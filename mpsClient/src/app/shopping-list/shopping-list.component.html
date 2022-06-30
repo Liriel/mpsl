@@ -1,0 +1,53 @@
+<div>
+    <div class="container">
+        <div class="header-footer header">
+            <span class="title">Supermarkt</span>
+        </div>
+        <div class="content">
+            <div class="list">
+                <div *ngFor="let item of items|async;" class="item">
+                    <div class="avatar">{{item.avatar}}</div>
+                    <div class="item-info">
+                        <div class="item-header">{{item.name}}</div>
+                        <div class="item-hint">{{item.hint}}</div>
+                    </div>
+                    <div class="item-amount">{{item.amount}}</div>
+                    <div class="item-unit">{{item.unit}}</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-footer">
+            <form class="add-form" [formGroup]="formGroup">
+                <mat-form-field style="flex:1;">
+                    <mat-label>Number</mat-label>
+                    <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
+                        [matAutocomplete]="auto">
+                    <mat-autocomplete #auto="matAutocomplete">
+                        <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+                            {{option}}
+                        </mat-option>
+                    </mat-autocomplete>
+                </mat-form-field>
+                <mat-form-field style="max-width: 50px;" formControlName="amount">
+                    <mat-label>Amnt</mat-label>
+                    <input type="text" placeholder="1" aria-label="Amount" matInput>
+                </mat-form-field>
+                <mat-form-field style="max-width: 50px;" >
+                    <mat-label>Unit</mat-label>
+                    <input type="text" placeholder="Stk" aria-label="Unit" matInput formControlName="unit"
+                        [matAutocomplete]="auto">
+                    <mat-autocomplete #auto="matAutocomplete">
+                        <mat-option *ngFor="let option of filteredOptions | async" [value]="option">
+                            {{option}}
+                        </mat-option>
+                    </mat-autocomplete>
+                </mat-form-field>
+                <button mat-icon-button color="accent" aria-label="Add to the shopping list" (click)="save()">
+                    <mat-icon>add</mat-icon>
+                </button>
+            </form>
+        </div>
+
+    </div>
+</div>

@@ -1,0 +1,86 @@
+.container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 20px;
+    flex-direction: column;
+}
+
+.content{
+    border: 1px solid rgb(210, 219, 221);
+    border-radius: 5px;
+    max-width: 400px;
+    width: 100%;
+    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    min-height: 600px;
+    padding:20px;
+}
+
+.list{
+    padding: 5px;
+}
+
+.item{
+    font-size: 20px;
+    color: rgb(126, 146, 160);
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+}
+
+.item:not(:last-child){
+    border-bottom: 1px solid rgb(145, 146, 148);
+}
+
+.item:not(:first-child){
+    margin-top:10px;
+}
+
+.avatar{
+    border: 1px solid rgba(0,0,0,.12);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    text-align: center;
+    line-height: 40px;
+    margin-right: 10px;
+}
+
+.item-info{
+    flex:1;
+}
+
+.item-hint{
+    font-size: 12px;
+}
+
+.item-header{
+    color: rgba(0, 0, 0, 0.87);
+}
+
+.header-footer{
+    margin-top: 5px;
+    max-width: 440px;
+    width: 100%;
+    @media only screen and (max-width: 600px) {
+        max-width: 400px;
+    }
+}
+
+
+.title{
+    font-weight: 200;
+    font-size: 18px;
+}
+
+.header{
+    padding-top: 5px;
+    padding-bottom: 5px;
+}
+
+.add-form {
+    display: flex;
+    mat-form-field:not(:last-child){
+        margin-right: 3px;
+    }
+}
