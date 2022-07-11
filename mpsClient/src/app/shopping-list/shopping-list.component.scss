@@ -2,7 +2,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 20px;
+    padding-top: 20px;
     flex-direction: column;
 }
 
@@ -12,8 +12,14 @@
     max-width: 400px;
     width: 100%;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-    min-height: 600px;
+    //min-height: 600px;
     padding:20px;
+    
+    // overflow: auto;
+
+    // @media only screen and (max-width: 600px) {
+    //     height: calc(100vh - 140px);
+    // }
 }
 
 .list{
@@ -84,3 +90,4 @@
         margin-right: 3px;
     }
 }
+

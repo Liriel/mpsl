@@ -20,7 +20,7 @@
         <div class="header-footer">
             <form class="add-form" [formGroup]="formGroup">
                 <mat-form-field style="flex:1;">
-                    <mat-label>Number</mat-label>
+                    <mat-label>Item</mat-label>
                     <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
                         [matAutocomplete]="auto">
                     <mat-autocomplete #auto="matAutocomplete">
@@ -29,9 +29,9 @@
                         </mat-option>
                     </mat-autocomplete>
                 </mat-form-field>
-                <mat-form-field style="max-width: 50px;" formControlName="amount">
+                <mat-form-field style="max-width: 50px;" >
                     <mat-label>Amnt</mat-label>
-                    <input type="text" placeholder="1" aria-label="Amount" matInput>
+                    <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
                 </mat-form-field>
                 <mat-form-field style="max-width: 50px;" >
                     <mat-label>Unit</mat-label>

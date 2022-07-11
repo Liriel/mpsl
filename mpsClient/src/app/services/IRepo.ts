@@ -10,6 +10,7 @@ import { ShoppingListItem } from "../models/ShoppingListItem";
 export let IRepoToken = new InjectionToken<IRepo>("IRepo");
 export interface IRepo {
   GetShoppingListItems(shoppingListId: string): Observable<ShoppingListItem[]>;
+  SearchShoppingListItems(pattern: string): Observable<ShoppingListItem[]>;
   AddOrUpdateItem(item: ShoppingListItem): Observable<EntityOperationResult<ShoppingListItem>>;
   GetUserInfo(): Observable<UserInfo>;
 

@@ -6,6 +6,7 @@ import { ShoppingListItem } from "../models/ShoppingListItem";
 import { IRepo } from "./IRepo";
 
 export class LocalRepo implements IRepo {
+  private lastId: number = 3;
   private shoppingList: ShoppingListItem[] = [
       new ShoppingListItem({
         id: 1, amount: 1, avatar: "MI", name: "Milch", hint: "länger frisch", unit: "l"
@@ -21,6 +22,14 @@ export class LocalRepo implements IRepo {
     return of(this.shoppingList);
   }
 
+  SearchShoppingListItems(pattern: string): Observable<ShoppingListItem[]> {
+    if(pattern == null || pattern.length < 1) 
+      return of(this.shoppingList);
+
+    const filterValue = pattern.toLowerCase();
+    return of(this.shoppingList.filter(i => i.name.toLowerCase().includes(filterValue)));
+  }
+
   AddOrUpdateItem(item: ShoppingListItem): Observable<EntityOperationResult<ShoppingListItem>> {
     let shoppingListItem = this.shoppingList.filter(l => l.id == item.id)[0];
     if(shoppingListItem){
@@ -29,6 +38,14 @@ export class LocalRepo implements IRepo {
       let idx: number = this.shoppingList.indexOf(shoppingListItem);
       this.shoppingList[idx] = shoppingListItem;
     }else{
+      // create the record
+      this.lastId++;
+      item.id = this.lastId;
+
+      // create an avatar
+      if(!item.avatar || item.avatar.length < 2){
+        item.avatar = item.name.substring(0, 2);
+      }
       this.shoppingList.push(item);
     }
 

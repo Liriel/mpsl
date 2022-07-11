@@ -1,6 +1,6 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { map, Observable, of, startWith } from 'rxjs';
+import { map, Observable, of, startWith, switchMap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ShoppingListItem } from '../models/ShoppingListItem';
 import { IRepo, IRepoToken } from '../services/IRepo';
@@ -32,7 +32,8 @@ export class ShoppingListComponent implements OnInit {
   ngOnInit(): void {
     this.filteredOptions = this.formGroup.get("name").valueChanges.pipe(
       startWith(''),
-      map(value => this.filter(value || '')),
+      switchMap((pattern)=> this.repo.SearchShoppingListItems(pattern)),
+      map(value => value.map(o => o.name))
     );
   }
 
