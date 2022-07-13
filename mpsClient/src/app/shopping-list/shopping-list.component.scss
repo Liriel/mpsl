@@ -1,25 +1,54 @@
+@mixin scrollbars(
+  $size: 10px,
+  $foreground-color: #999,
+  $background-color: #333
+) {
+  // For Chrome & Safari
+  &::-webkit-scrollbar {
+    width: $size;
+    height: $size;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: $foreground-color;
+  }
+  &::-webkit-scrollbar-track {
+    background: $background-color;
+  }
+
+  // Standard version (Firefox only for now)
+  scrollbar-color: $foreground-color $background-color;
+}
+
 .container {
     display: flex;
     align-items: center;
     justify-content: center;
     padding-top: 20px;
     flex-direction: column;
+    @media only screen and (max-width: 600px) {
+        height: 100%;
+    }
 }
 
 .content{
+    @include scrollbars(3px, rgb(156, 156, 156), rgb(233, 233, 233));
     border: 1px solid rgb(210, 219, 221);
     border-radius: 5px;
     max-width: 400px;
     width: 100%;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-    //min-height: 600px;
     padding:20px;
     
-    // overflow: auto;
+    overflow: auto;
 
-    // @media only screen and (max-width: 600px) {
-    //     height: calc(100vh - 140px);
-    // }
+    @media only screen and (max-width: 600px) {
+        flex: 1;
+    }
+
+    @media only screen and (min-width: 600px) {
+        min-height: 600px;
+        max-height: 800px;
+    }
 }
 
 .list{
@@ -29,9 +58,17 @@
 .item{
     font-size: 20px;
     color: rgb(126, 146, 160);
+    padding-bottom: 10px;
+}
+
+.swipeable{
     display: flex;
     align-items: center;
-    padding-bottom: 10px;
+    position: relative;
+}
+
+.done{
+    text-decoration:line-through;
 }
 
 .item:not(:last-child){
@@ -66,6 +103,7 @@
 
 .header-footer{
     margin-top: 5px;
+    margin-left: 15px;
     max-width: 440px;
     width: 100%;
     @media only screen and (max-width: 600px) {
@@ -90,4 +128,3 @@
         margin-right: 3px;
     }
 }
-

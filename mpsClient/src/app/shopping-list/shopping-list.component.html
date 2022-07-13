@@ -1,18 +1,27 @@
-<div>
     <div class="container">
         <div class="header-footer header">
             <span class="title">Supermarkt</span>
         </div>
         <div class="content">
             <div class="list">
-                <div *ngFor="let item of items|async;" class="item">
-                    <div class="avatar">{{item.avatar}}</div>
-                    <div class="item-info">
-                        <div class="item-header">{{item.name}}</div>
-                        <div class="item-hint">{{item.hint}}</div>
+                <div *ngFor="let item of items|async;" class="item" [ngClass]="{'done': item.done}">
+                    <div class="swipeable"
+                    [@flyInOut]="item.animateFlyInOut"
+                    (@flyInOut.done)="onSwipeComplete($event, item)"
+                    (swipeleft)="onSwipeLeft($event, item)"
+                    [style.left.px]="item.offsetX"
+                    (panstart)="item.offsetX = 0"
+                    (panmove)="showSwipeAnimation($event, item)"
+                    (panend)="item.offsetX = 0">
+
+                        <div class="avatar">{{item.avatar}}</div>
+                        <div class="item-info">
+                            <div class="item-header">{{item.name}}</div>
+                            <div class="item-hint">{{item.hint}}</div>
+                        </div>
+                        <div class="item-amount">{{item.amount}}</div>
+                        <div class="item-unit">{{item.unit}}</div>
                     </div>
-                    <div class="item-amount">{{item.amount}}</div>
-                    <div class="item-unit">{{item.unit}}</div>
                 </div>
             </div>
         </div>
@@ -50,4 +59,3 @@
         </div>
 
     </div>
-</div>

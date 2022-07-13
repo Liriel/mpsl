@@ -8,4 +8,7 @@ export class ShoppingListItem extends ModelBase<ShoppingListItem> implements IEn
   public hint: string;
   public amount: number;
   public unit: string;
+  public offsetX: number;
+  public done: boolean;
+  public animateFlyInOut: string;
 }

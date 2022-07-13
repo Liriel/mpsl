@@ -16,7 +16,41 @@ export class LocalRepo implements IRepo {
       }),
       new ShoppingListItem({
         id: 3, avatar: "BI", name: "Bier"
-      })];
+      }),
+      new ShoppingListItem({
+        id: 4, avatar: "ME", name: "Mehl", unit: "g", amount: 500
+      }),
+      new ShoppingListItem({
+        id: 5, avatar: "Kü", name: "Küchenrolle"
+      }),
+      new ShoppingListItem({
+        id: 6, avatar: "NU", name: "Nudeln"
+      }),
+      new ShoppingListItem({
+        id: 7, avatar: "RS", name: "Regeneriersalz"
+      }),
+      new ShoppingListItem({
+        id: 8, avatar: "Fa", name: "Faschiertes", amount: 500, unit: "g"
+      }),
+      new ShoppingListItem({
+        id: 9, avatar: "GS", name: "Geschirrspühlmittel"
+      }),
+      new ShoppingListItem({
+        id: 10, avatar: "TT", name: "Taschentücher"
+      }),
+      new ShoppingListItem({
+        id: 11, avatar: "KR", name: "Küchenrolle"
+      }),
+      new ShoppingListItem({
+        id: 12, avatar: "SF", name: "Schmierseife"
+      }),
+      new ShoppingListItem({
+        id: 13, avatar: "BR", name: "Brot", amount: 0.5, unit: "KG", hint: "St. Pöltner"
+      }),
+      new ShoppingListItem({
+        id: 14, avatar: "Ma", name: "Marmelade"
+      }),
+    ];
 
   GetShoppingListItems(shoppingListId: string): Observable<ShoppingListItem[]> {
     return of(this.shoppingList);

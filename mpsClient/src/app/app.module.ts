@@ -1,4 +1,4 @@
-import { NgModule } from '@angular/core';
+import { Injectable, NgModule } from '@angular/core';
 import { BrowserModule } from '@angular/platform-browser';
 import { FormsModule, ReactiveFormsModule } from "@angular/forms";
 
@@ -16,6 +16,16 @@ import { LocalRepo } from './services/LocalRepo';
 import { INotifcationServiceToken } from './services/INotifcationService';
 import { LocalNotificationService } from './services/LocalNotificationService';
 
+// import * as Hammer from 'hammerjs';
+ import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
+
+@Injectable() export class MyHammerConfig extends HammerGestureConfig  {
+  override = <any>{
+      // override hammerjs default configuration
+      'swipe': { direction: 50  }               //24 - DIRECTION_VERTICAL
+  }
+}
+
 @NgModule({
   declarations: [
     AppComponent,
@@ -24,6 +34,7 @@ import { LocalNotificationService } from './services/LocalNotificationService';
   imports: [
     BrowserModule,
     AppRoutingModule,
+    HammerModule,
     BrowserAnimationsModule,
     FormsModule,
     ReactiveFormsModule,
@@ -35,6 +46,10 @@ import { LocalNotificationService } from './services/LocalNotificationService';
   providers: [
     { provide: IRepoToken, useClass: LocalRepo },
     { provide: INotifcationServiceToken, useClass: LocalNotificationService},
+    { 
+      provide: HAMMER_GESTURE_CONFIG, 
+      useClass: MyHammerConfig 
+    } 
   ],
   bootstrap: [AppComponent]
 })
