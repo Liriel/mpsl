@@ -12,7 +12,8 @@
                     [style.left.px]="item.offsetX"
                     (panstart)="item.offsetX = 0"
                     (panmove)="showSwipeAnimation($event, item)"
-                    (panend)="item.offsetX = 0">
+                    (panend)="item.offsetX = 0"
+                    (click)="openDialog(item)">
 
                         <div class="avatar">{{item.avatar}}</div>
                         <div class="item-info">

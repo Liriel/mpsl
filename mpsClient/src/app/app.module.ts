@@ -11,6 +11,8 @@ import { MatButtonModule } from "@angular/material/button";
 import { MatAutocompleteModule } from '@angular/material/autocomplete';
 import { MatInputModule } from '@angular/material/input';
 import { MatIconModule } from "@angular/material/icon";
+import {MatDialogModule} from '@angular/material/dialog';
+
 import { IRepoToken } from './services/IRepo';
 import { LocalRepo } from './services/LocalRepo';
 import { INotifcationServiceToken } from './services/INotifcationService';
@@ -18,6 +20,7 @@ import { LocalNotificationService } from './services/LocalNotificationService';
 
 // import * as Hammer from 'hammerjs';
  import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
+import { ItemDialogComponent } from './item-dialog/item-dialog.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig  {
   override = <any>{
@@ -29,7 +32,8 @@ import { LocalNotificationService } from './services/LocalNotificationService';
 @NgModule({
   declarations: [
     AppComponent,
-    ShoppingListComponent
+    ShoppingListComponent,
+    ItemDialogComponent
   ],
   imports: [
     BrowserModule,
@@ -41,7 +45,8 @@ import { LocalNotificationService } from './services/LocalNotificationService';
     MatButtonModule,
     MatAutocompleteModule,
     MatInputModule,
-    MatIconModule
+    MatIconModule,
+    MatDialogModule
   ],
   providers: [
     { provide: IRepoToken, useClass: LocalRepo },

@@ -1,8 +1,11 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
+import { MatDialog } from '@angular/material/dialog';
 import { map, Observable, of, startWith, switchMap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
+import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
+import { ItemDialogData } from '../item-dialog/ItemDialogData';
 import { ShoppingListItem } from '../models/ShoppingListItem';
 import { IRepo, IRepoToken } from '../services/IRepo';
 
@@ -43,7 +46,8 @@ export class ShoppingListComponent implements OnInit {
   filteredOptions: Observable<string[]>;
 
   constructor(
-    @Inject(IRepoToken) private repo: IRepo
+    @Inject(IRepoToken) private repo: IRepo,
+    private dialog: MatDialog 
   ) {
     this.items = this.repo.GetShoppingListItems("asdf");
   }
@@ -54,6 +58,17 @@ export class ShoppingListComponent implements OnInit {
       switchMap((pattern) => this.repo.SearchShoppingListItems(pattern)),
       map(value => value.map(o => o.name))
     );
+  }
+
+  public openDialog(item: ShoppingListItem): void {
+    const dialogRef = this.dialog.open(ItemDialogComponent, {
+      // width: '250px',
+      data: new ItemDialogData({item: item})
+    });
+
+    dialogRef.afterClosed().subscribe(result => {
+      console.log('The dialog was closed', result);
+    });
   }
 
   public async save(): Promise<void> {
