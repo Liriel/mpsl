@@ -25,10 +25,10 @@ import { ItemDialogComponent } from './item-dialog/item-dialog.component';
 @Injectable() export class MyHammerConfig extends HammerGestureConfig  {
   override = <any>{
       // override hammerjs default configuration
-      'swipe': { direction: 50  }               //24 - DIRECTION_VERTICAL
+      'swipe': { direction: Hammer.DIRECTION_HORIZONTAL } 
   }
-}
 
+}
 @NgModule({
   declarations: [
     AppComponent,

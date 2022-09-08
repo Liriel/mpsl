@@ -65,6 +65,10 @@
     display: flex;
     align-items: center;
     position: relative;
+    
+    // HACK: limit hammerjs detection to y axis only
+    // https://medium.com/developer-rants/what-to-do-when-hammerjs-is-blocking-scrolling-on-mobile-9f79b460ac84
+    touch-action: pan-y !important;
 }
 
 .done{
