@@ -63,7 +63,7 @@ export class ShoppingListComponent implements OnInit {
   public openDialog(item: ShoppingListItem): void {
     const dialogRef = this.dialog.open(ItemDialogComponent, {
       // width: '250px',
-      data: new ItemDialogData({item: item})
+      data: new ItemDialogData({itemId: item.id})
     });
 
     dialogRef.afterClosed().subscribe(result => {

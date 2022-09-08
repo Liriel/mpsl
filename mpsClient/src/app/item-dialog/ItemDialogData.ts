@@ -6,5 +6,5 @@ export class ItemDialogData {
     Object.assign(this, model);
   }
 
-  public item: ShoppingListItem;
+  public itemId: number;
 }

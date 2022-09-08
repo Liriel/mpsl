@@ -86,6 +86,11 @@ export class LocalRepo implements IRepo {
     return of(new EntityOperationResult<ShoppingListItem>({success: true, entity: item }));
   }
 
+  GetShoppingListItemById(itemId: number): Observable<ShoppingListItem> {
+    let shoppingListItem = this.shoppingList.filter(l => l.id == itemId)[0];
+    return shoppingListItem ? of(shoppingListItem) : null;
+  }
+
   GetUserInfo(): Observable<UserInfo> {
     throw new Error("Method not implemented.");
   }

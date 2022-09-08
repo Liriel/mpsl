@@ -9,6 +9,7 @@ import { ShoppingListItem } from "../models/ShoppingListItem";
 // do this the interface symbols get lost during "compilation"
 export let IRepoToken = new InjectionToken<IRepo>("IRepo");
 export interface IRepo {
+  GetShoppingListItemById(itemId: number): Observable<ShoppingListItem>;
   GetShoppingListItems(shoppingListId: string): Observable<ShoppingListItem[]>;
   SearchShoppingListItems(pattern: string): Observable<ShoppingListItem[]>;
   AddOrUpdateItem(item: ShoppingListItem): Observable<EntityOperationResult<ShoppingListItem>>;

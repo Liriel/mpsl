@@ -1,12 +1,48 @@
-<h1 mat-dialog-title>Hi {{data.item.name}}</h1>
-<div mat-dialog-content>
-  <p>Edit shopping list item</p>
-  <mat-form-field appearance="fill">
-    <mat-label>Name</mat-label>
-    <input matInput [(ngModel)]="data.item.name">
-  </mat-form-field>
-</div>
-<div mat-dialog-actions>
-  <button mat-button (click)="onNoClick()">No Thanks</button>
-  <button mat-button [mat-dialog-close]="data.item" cdkFocusInitial>Ok</button>
-</div>
+<div mat-dialog-content class="content-container">
+  <form class="form-container" [formGroup]="this.formGroup" (ngSubmit)="save()">
+    <mat-form-field class="full-width">
+      <input matInput formControlName="name" class="input-name">
+      <mat-error *ngIf="formGroup.controls['name'].hasError('maxlength')">
+        <strong>Name</strong> must not be longer than
+        <strong>{{formGroup.controls['name'].errors["maxlength"].requiredLength}}</strong> characters
+      </mat-error>
+      <mat-error *ngIf="formGroup.controls['name'].hasError('required')">
+        <strong>Name</strong> is required
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field class="full-width">
+      <mat-label>Hint</mat-label>
+      <input matInput formControlName="hint">
+      <mat-error *ngIf="formGroup.controls['hint'].hasError('maxlength')">
+        <strong>Hint</strong> must not be longer than
+        <strong>{{formGroup.controls['hint'].errors["maxlength"].requiredLength}}</strong> characters
+      </mat-error>
+    </mat-form-field>
+
+    <div class="flex-row">
+      <mat-form-field style="flex:1; margin-right:5px">
+        <mat-label>Amount</mat-label>
+        <input matInput formControlName="amount" cdkFocusInitial>
+        <mat-error *ngIf="formGroup.controls['amount'].hasError('min')">
+          <strong>Amount</strong> must be at least
+          <strong>{{formGroup.controls['amount'].errors["min"].min}}</strong>
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field style="max-width: 50px;">
+        <mat-label>Unit</mat-label>
+        <input matInput formControlName="unit">
+        <mat-error *ngIf="formGroup.controls['unit'].hasError('maxlength')">
+          {{formGroup.controls['unit'].errors["maxlength"].actualLength + '/' +
+          formGroup.controls['unit'].errors["maxlength"].requiredLength}}
+        </mat-error>
+      </mat-form-field>
+    </div>
+
+    <div mat-dialog-actions class="flex-row">
+      <div class="spacer"></div>
+      <button mat-button (click)="onNoClick()">Cancel</button>
+      <button mat-button color="primary" type="submit" [disabled]="!formGroup.valid">OK</button>
+    </div>
+  </form>
