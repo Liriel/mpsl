@@ -1,0 +1,41 @@
+{
+  "name": "mps",
+  "version": "0.0.0",
+  "scripts": {
+    "ng": "ng",
+    "prestart": "node aspnetcore-https",
+    "start": "run-script-os",
+    "start:windows": "ng serve --port 44443 --ssl --ssl-cert %APPDATA%\\ASP.NET\\https\\%npm_package_name%.pem --ssl-key %APPDATA%\\ASP.NET\\https\\%npm_package_name%.key",
+    "start:default": "ng serve --port 44443 --ssl --ssl-cert $HOME/.aspnet/https/${npm_package_name}.pem --ssl-key $HOME/.aspnet/https/${npm_package_name}.key",
+    "build": "ng build",
+    "publish": "ng build --configuration production",
+    "build:ssr": "ng run ngtest:server:dev",
+    "watch": "ng build --watch --configuration development",
+    "test": "ng test"
+  },
+  "private": true,
+  "dependencies": {
+    "@angular/animations": "^14.2.1",
+    "@angular/cdk": "^14.2.1",
+    "@angular/common": "^14.2.1",
+    "@angular/compiler": "^14.2.1",
+    "@angular/core": "^14.2.1",
+    "@angular/forms": "^14.2.1",
+    "@angular/material": "^14.2.1",
+    "@angular/platform-browser": "^14.2.1",
+    "@angular/platform-browser-dynamic": "^14.2.1",
+    "@angular/router": "^14.2.1",
+    "hammerjs": "^2.0.8",
+    "rxjs": "~7.5.0",
+    "tslib": "^2.3.0",
+    "zone.js": "~0.11.4",
+    "run-script-os": "^1.1.6"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^14.2.2",
+    "@angular/cli": "~14.2.2",
+    "@angular/compiler-cli": "^14.2.1",
+    "@types/hammerjs": "^2.0.41",
+    "typescript": "~4.7.2"
+  }
+}
