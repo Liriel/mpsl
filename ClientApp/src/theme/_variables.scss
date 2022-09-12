@@ -1,0 +1,32 @@
+@import "~@angular/material/theming";
+
+$mat-theme: $mat-purple;
+
+// Define the palettes for your theme using the Material Design palettes available in palette.scss
+// (imported above). For each palette, you can optionally specify a default, lighter, and darker
+// hue. Available color palettes: https://material.io/design/color/
+$ui-app-primary: mat-palette($mat-theme);
+
+// $ui-app-accent: mat-palette($mat-light-blue, A200, A100, A400);
+$ui-app-accent: mat-palette($mat-amber);
+
+// The warn palette is optional (defaults to red).
+$ui-app-warn: mat-palette($mat-red);
+
+// Create the theme object (a Sass map containing all of the palettes).
+$ui-app-theme: mat-light-theme($ui-app-primary, $ui-app-accent, $ui-app-warn);
+
+$ui-primary: mat-color($ui-app-primary);
+$ui-accent: mat-color($ui-app-accent);
+$ui-warn: mat-color($ui-app-warn);
+
+// background color
+$background: map-get($ui-app-theme, background);
+$ui-background-color: mat-color($background, app-bar);
+
+// border color for raised broders (like raised button)
+$foreground: map-get($ui-app-theme, foreground);
+$ui-raised-border: mat-color($foreground, divider);
+
+// nav bar height
+$ui-nav-height: 50px;
