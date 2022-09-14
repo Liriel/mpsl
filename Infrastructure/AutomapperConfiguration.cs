@@ -9,10 +9,21 @@ namespace mps.Infrastructure
     {
         public MyProfile()
         {
-            // CreateMap<Customer, CustomerListViewModel>();
-            // CreateMap<Customer, CustomerEditViewModel>();
-            // CreateMap<CustomerEditViewModel, Customer>()
-            //     .ForMember(dst => dst.Id, opt => opt.Ignore());
+            CreateMap<ShoppingList, ShoppingListViewModel>();
+            CreateMap<ShoppingList, ShoppingListEditViewModel>();
+            CreateMap<ShoppingListEditViewModel, ShoppingList>()
+                .ForMember(dst => dst.Id, opt => opt.Ignore());
+
+            CreateMap<ShoppingListItem, ShoppingListItemViewModel>();
+            CreateMap<ShoppingListItem, ShoppingListItemEditViewModel>();
+            CreateMap<ShoppingListItemEditViewModel, ShoppingListItem>()
+                .ForMember(dst => dst.ShoppingListId, opt => opt.Ignore())
+                .ForMember(dst => dst.Id, opt => opt.Ignore());
+
+            CreateMap<Unit, UnitViewModel>();
+            CreateMap<Unit, UnitEditViewModel>();
+            CreateMap<UnitEditViewModel, Unit>()
+                .ForMember(dst => dst.Id, opt => opt.Ignore());
         }
 
     }

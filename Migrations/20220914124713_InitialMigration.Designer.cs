@@ -11,7 +11,7 @@ using mps.Model;
 namespace mps.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20220912122954_InitialMigration")]
+    [Migration("20220914124713_InitialMigration")]
     partial class InitialMigration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -209,6 +209,20 @@ namespace mps.Migrations
                         .HasDatabaseName("UserNameIndex");
 
                     b.ToTable("AspNetUsers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = "00000000-0000-0000-0000-000000000000",
+                            AccessFailedCount = 0,
+                            ConcurrencyStamp = "178617ae-8e83-4bb2-b69b-0e3c0bfd077e",
+                            EmailConfirmed = false,
+                            LockoutEnabled = true,
+                            PhoneNumberConfirmed = false,
+                            SecurityStamp = "31d8a3ba-65b1-4b7d-b80d-396313ef7beb",
+                            TwoFactorEnabled = false,
+                            UserName = "SYSTEM"
+                        });
                 });
 
             modelBuilder.Entity("mps.Model.ItemHistory", b =>
@@ -316,7 +330,6 @@ namespace mps.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
@@ -327,7 +340,36 @@ namespace mps.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ShortName")
+                        .IsUnique();
+
                     b.ToTable("Units");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Name = "Stück",
+                            ShortName = "Stk"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Name = "Gramm",
+                            ShortName = "g"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Name = "Kilo",
+                            ShortName = "kg"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Name = "Liter",
+                            ShortName = "l"
+                        });
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

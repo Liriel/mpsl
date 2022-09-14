@@ -1,8 +1,10 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace mps.Model
 {
-    public class Unit
+    [Index(nameof(ShortName), IsUnique = true)]
+    public class Unit : IEntity
     {
         [Key]
         public int Id { get; set; }
@@ -11,7 +13,6 @@ namespace mps.Model
         [MaxLength(5)]
         public string ShortName { get; set; }
 
-        [Required]
         [MaxLength(50)]
         public string Name { get; set; }
     }

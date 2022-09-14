@@ -3,6 +3,7 @@ using System.IO;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using mps.Infrastructure;
 
 namespace mps.Model
 {
@@ -19,6 +20,19 @@ namespace mps.Model
         {
             // https://stackoverflow.com/a/34013431/1859022
             base.OnModelCreating(modelBuilder);
+
+            // system user
+            modelBuilder.Entity<ApplicationUser>().HasData(new[]{
+                new ApplicationUser{ Id = Constants.SYSUSER_ID, UserName = "SYSTEM", LockoutEnabled = true }
+            });
+
+            // units
+            modelBuilder.Entity<Unit>().HasData(new[]{
+                new Unit { Id = 1, ShortName = "Stk", Name = "Stück" },
+                new Unit { Id = 2, ShortName = "g", Name = "Gramm" },
+                new Unit { Id = 3, ShortName = "kg", Name = "Kilo" },
+                new Unit { Id = 4, ShortName = "l", Name = "Liter" },
+            });
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
