@@ -38,6 +38,15 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
+builder.Services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
+{
+    builder
+        .AllowAnyMethod()
+        .AllowAnyHeader()
+        .AllowCredentials()
+        .WithOrigins("https://localhost:44443");
+}));
+
 builder.Services.AddScoped<IRepository, PersistedRepository>();
 builder.Services.AddScoped<IUserIdentityService, HttpContextIdentityService>();
 builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntityService>();
@@ -69,6 +78,8 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+app.UseCors("CorsPolicy");
 
 using (var scope = app.Services.CreateScope()){
     var dbInitializer = scope.ServiceProvider.GetService<AppDbInitializer>();

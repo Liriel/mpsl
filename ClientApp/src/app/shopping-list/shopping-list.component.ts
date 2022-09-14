@@ -1,8 +1,9 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { Component, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
-import { map, Observable, of, startWith, switchMap } from 'rxjs';
+import { Router, ActivatedRoute } from '@angular/router';
+import { filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
@@ -33,9 +34,11 @@ import { IRepo, IRepoToken } from '../services/IRepo';
     ])
   ]
 })
-export class ShoppingListComponent implements OnInit {
+export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public items: Observable<ShoppingListItem[]>;
+  public isLoading: boolean = true;
+  public shoppingListId: number = 0;
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl(''),
@@ -47,23 +50,32 @@ export class ShoppingListComponent implements OnInit {
 
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
-    private dialog: MatDialog 
-  ) {
-    this.items = this.repo.GetShoppingListItems("asdf");
+    private router: Router,
+    private route: ActivatedRoute,
+    private dialog: MatDialog
+  ) { 
+    this.shoppingListId = +this.route.snapshot.paramMap.get('id');
   }
 
   ngOnInit(): void {
     this.filteredOptions = this.formGroup.get("name").valueChanges.pipe(
       startWith(''),
-      switchMap((pattern) => this.repo.SearchShoppingListItems(pattern)),
+      // filter(value => value != ''),
+      switchMap((pattern) => this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item")),
       map(value => value.map(o => o.name))
+    );
+  }
+
+  public async ngAfterViewInit(): Promise<void> {
+    this.items = this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").pipe(
+      tap(r => this.isLoading = false)
     );
   }
 
   public openDialog(item: ShoppingListItem): void {
     const dialogRef = this.dialog.open(ItemDialogComponent, {
       // width: '250px',
-      data: new ItemDialogData({itemId: item.id})
+      data: new ItemDialogData({ itemId: item.id })
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -88,13 +100,13 @@ export class ShoppingListComponent implements OnInit {
   }
 
   public onSwipeComplete(event: any, item: ShoppingListItem): void {
-    if(event.toState === 'left'){
+    if (event.toState === 'left') {
       item.done = !item.done;
       item.animateFlyInOut = "start";
     }
   }
 
-  public onSwipeLeft(event: any, item: ShoppingListItem):void {
+  public onSwipeLeft(event: any, item: ShoppingListItem): void {
     console.log(event);
     item.animateFlyInOut = 'left'
   }
