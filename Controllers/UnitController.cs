@@ -7,7 +7,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class UnitController : EntityController<Unit, UnitEditViewModel, UnitViewModel>
 {
     private readonly ILogger<UnitController> logger;

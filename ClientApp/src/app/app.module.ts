@@ -26,6 +26,9 @@ import { LocalNotificationService } from './services/LocalNotificationService';
 import { UserListComponent } from './user-list/user-list.component';
 import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
+import { ConsoleLogger, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
+import { HomeComponent } from './home/home.component';
+import { HttpClientModule } from '@angular/common/http';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -39,9 +42,11 @@ import { ItemDialogComponent } from './item-dialog/item-dialog.component';
     AppComponent,
     ShoppingListComponent,
     ItemDialogComponent,
-    UserListComponent
+    UserListComponent,
+    HomeComponent
   ],
   imports: [
+    HttpClientModule,
     BrowserModule,
     AppRoutingModule,
     HammerModule,
@@ -58,8 +63,10 @@ import { ItemDialogComponent } from './item-dialog/item-dialog.component';
     MatExpansionModule
   ],
   providers: [
-    { provide: IRepoToken, useClass: LocalRepo },
+    { provide: IRepoToken, useClass: WebRepo },
     { provide: INotifcationServiceToken, useClass: LocalNotificationService },
+    { provide: IConfigServiceToken, useClass: StaticConfigService },
+    { provide: ILoggerToken, useClass: ConsoleLogger },
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig

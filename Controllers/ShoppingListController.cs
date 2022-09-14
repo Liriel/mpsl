@@ -8,7 +8,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
-[Route("[controller]")]
+[Route("api/[controller]")]
 public class ShoppingListController : EntityController<ShoppingList, ShoppingListEditViewModel, ShoppingListViewModel>
 {
     private readonly ILogger<ShoppingListController> logger;
