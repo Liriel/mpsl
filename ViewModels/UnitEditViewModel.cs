@@ -1,13 +1,8 @@
 using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
 
-namespace mps.Model
+namespace mps.ViewModels
 {
-    [Index(nameof(ShortName), IsUnique = true)]
-    public class Unit : IEntity
-    {
-        [Key]
-        public int Id { get; set; }
+    public class UnitEditViewModel : EditViewModel{
 
         [Required]
         [MaxLength(5)]

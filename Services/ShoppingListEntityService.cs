@@ -7,14 +7,20 @@ namespace mps.Services
 {
     public class ShoppingListEntityService : EntityService<ShoppingList>
     {
+        private readonly IUserIdentityService identityService;
 
-        public ShoppingListEntityService(IRepository repo) : base(repo)
+        public ShoppingListEntityService(IRepository repo, IUserIdentityService identityService) : base(repo)
         {
+            this.identityService = identityService;
         }
 
         public override EntityOperationResult<ShoppingList> AddOrUpdate(ShoppingList entity)
         {
-            // TODO: custom code
+            if (entity.Id == 0)
+            {
+                entity.OwnerUserKey = this.identityService.CurrentUserId ?? Constants.SYSUSER_ID;
+            }
+
             return base.AddOrUpdate(entity);
         }
 

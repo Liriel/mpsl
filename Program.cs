@@ -40,6 +40,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddScoped<IRepository, PersistedRepository>();
 builder.Services.AddScoped<IUserIdentityService, HttpContextIdentityService>();
+builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntityService>();
+builder.Services.AddTransient<IEntityService<Unit>, EntityService<Unit>>();
 builder.Services.AddTransient<AppDbInitializer>();
 builder.Services.AddSignalR();
 builder.Services.AddMvc();
@@ -79,7 +81,7 @@ app.UseRouting();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller}/{action=Index}/{id?}");
+    pattern: "{controller}/{action=FilteredIndex}/{id?}");
 
 app.MapFallbackToFile("index.html");;
 

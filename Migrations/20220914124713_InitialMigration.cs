@@ -55,7 +55,7 @@ namespace mps.Migrations
                     Id = table.Column<int>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     ShortName = table.Column<string>(type: "TEXT", maxLength: 5, nullable: false),
-                    Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
+                    Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -245,6 +245,31 @@ namespace mps.Migrations
                         principalColumn: "Id");
                 });
 
+            migrationBuilder.InsertData(
+                table: "AspNetUsers",
+                columns: new[] { "Id", "AccessFailedCount", "ConcurrencyStamp", "Email", "EmailConfirmed", "LockoutEnabled", "LockoutEnd", "NormalizedEmail", "NormalizedUserName", "PasswordHash", "PhoneNumber", "PhoneNumberConfirmed", "SecurityStamp", "TwoFactorEnabled", "UserName" },
+                values: new object[] { "00000000-0000-0000-0000-000000000000", 0, "178617ae-8e83-4bb2-b69b-0e3c0bfd077e", null, false, true, null, null, null, null, null, false, "31d8a3ba-65b1-4b7d-b80d-396313ef7beb", false, "SYSTEM" });
+
+            migrationBuilder.InsertData(
+                table: "Units",
+                columns: new[] { "Id", "Name", "ShortName" },
+                values: new object[] { 1, "Stück", "Stk" });
+
+            migrationBuilder.InsertData(
+                table: "Units",
+                columns: new[] { "Id", "Name", "ShortName" },
+                values: new object[] { 2, "Gramm", "g" });
+
+            migrationBuilder.InsertData(
+                table: "Units",
+                columns: new[] { "Id", "Name", "ShortName" },
+                values: new object[] { 3, "Kilo", "kg" });
+
+            migrationBuilder.InsertData(
+                table: "Units",
+                columns: new[] { "Id", "Name", "ShortName" },
+                values: new object[] { 4, "Liter", "l" });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AspNetRoleClaims_RoleId",
                 table: "AspNetRoleClaims",
@@ -318,6 +343,12 @@ namespace mps.Migrations
                 name: "IX_ShoppingLists_OwnerUserKey",
                 table: "ShoppingLists",
                 column: "OwnerUserKey");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Units_ShortName",
+                table: "Units",
+                column: "ShortName",
+                unique: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
