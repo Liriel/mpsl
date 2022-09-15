@@ -41,13 +41,15 @@ namespace mps.Controllers
             this.mapper = mapper;
         }
 
+        [HttpGet(Order = 1)]
         public virtual IActionResult Index(int skip = 0, int take = 100, string sort = null, SortDirection sortDirection = SortDirection.asc)
         {
             var q = this.ApplySort(this.repo.GetEntities<TEntity>(), sort, sortDirection);
             return PageAndProjectResult(q, skip, take);
         }
 
-        internal IActionResult PageAndProjectResult(IQueryable<TEntity> query, int skip = 0, int take = 100){
+        internal IActionResult PageAndProjectResult(IQueryable<TEntity> query, int skip = 0, int take = 100)
+        {
             int totalRecordCount = query.Count();
             take = Math.Min(take, Constants.MAX_LIST_ROWS);
             return Json(new ListResult<TListViewModel>
@@ -57,19 +59,20 @@ namespace mps.Controllers
             });
         }
 
-        internal IQueryable<TEntity> ApplySort(IQueryable<TEntity> query, string sort = null, SortDirection sortDirection = SortDirection.asc){
+        internal IQueryable<TEntity> ApplySort(IQueryable<TEntity> query, string sort = null, SortDirection sortDirection = SortDirection.asc)
+        {
 
             // apply sort if specified
             if (!string.IsNullOrWhiteSpace(sort))
             {
-                 // fix json camel case
-                sort = sort.Substring(0,1).ToUpper() + sort.Substring(1);
+                // fix json camel case
+                sort = sort.Substring(0, 1).ToUpper() + sort.Substring(1);
 
                 var sortFunc = this.GetPropertyFunc(sort);
                 if (sortFunc == null)
                     return query;
-                
-                if(sortDirection == SortDirection.asc)
+
+                if (sortDirection == SortDirection.asc)
                     query = query.OrderBy(sortFunc);
                 else
                     query = query.OrderByDescending(sortFunc);
@@ -84,7 +87,7 @@ namespace mps.Controllers
             return this.mapper.ProjectTo<TEditViewModel>(this.repo.GetEntities<TEntity>().Where(s => s.Id == id)).SingleOrDefault();
         }
 
-        [HttpPost]
+        [HttpPost(Order = 1)]
         public IActionResult Post(TEditViewModel viewModel)
         {
             WebOperationResult<TEditViewModel, TEntity> result;
@@ -94,6 +97,12 @@ namespace mps.Controllers
                     return new BadRequestObjectResult($"{typeof(TEntity).Name} has already been added");
 
                 var entity = this.mapper.Map<TEntity>(viewModel);
+                this.PostMapping(viewModel, entity);
+
+                var validationResult = this.svc.Validate(entity);
+                if (!validationResult.Success)
+                    return new BadRequestObjectResult(validationResult);
+
                 var saveResult = this.svc.AddOrUpdate(entity);
                 if (saveResult.Success)
                     this.repo.SaveChanges();
@@ -108,7 +117,7 @@ namespace mps.Controllers
             return new OkObjectResult(result);
         }
 
-        [HttpPut("{id}")]
+        [HttpPut("{id}", Order = 1)]
         public IActionResult Put(int id, TEditViewModel viewModel)
         {
             WebOperationResult<TEditViewModel, TEntity> result;
@@ -122,8 +131,14 @@ namespace mps.Controllers
                     return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
 
                 this.mapper.Map<TEditViewModel, TEntity>(viewModel, entity);
+                this.PostMapping(viewModel, entity);
+
+                var validationResult = this.svc.Validate(entity);
+                if (!validationResult.Success)
+                    return new BadRequestObjectResult(validationResult);
+
                 var saveResult = this.svc.AddOrUpdate(entity);
-                if(saveResult.Success)
+                if (saveResult.Success)
                     this.repo.SaveChanges();
 
                 result = new WebOperationResult<TEditViewModel, TEntity>(mapper, saveResult);
@@ -135,6 +150,9 @@ namespace mps.Controllers
 
             return new OkObjectResult(result);
         }
+
+        protected virtual void PostMapping(TEditViewModel viewModel, TEntity entity)
+        { }
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)

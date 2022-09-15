@@ -10,6 +10,8 @@ import { IEntity, ShoppingListItem } from "../models";
 export let IRepoToken = new InjectionToken<IRepo>("IRepo");
 export interface IRepo {
   Get<T>(controller: string, action?: string): Observable<T>;
+  Post<T>(controller: string, action: string, data: any): Observable<T>;
+  Put<T>(controller: string, action: string, data: any): Observable<T>;
   GetEntity<T>(entityName: string, id: number): Observable<T>;
   SaveEntity<T>(entityName: string, entity: T & IEntity): Observable<EntityOperationResult<T & IEntity>>;
   GetEntities<T>(
@@ -20,11 +22,6 @@ export interface IRepo {
     sort?: string,
     sortDirection?: string
   ): Observable<DataResult<T>>;
-
-  GetShoppingListItemById(itemId: number): Observable<ShoppingListItem>;
-  GetShoppingListItems(shoppingListId: string): Observable<ShoppingListItem[]>;
-  SearchShoppingListItems(pattern: string): Observable<ShoppingListItem[]>;
-  AddOrUpdateItem(item: ShoppingListItem): Observable<EntityOperationResult<ShoppingListItem>>;
 
   GetUserInfo(): Observable<UserInfo>;
   ClaimAdmin(): Observable<boolean>;

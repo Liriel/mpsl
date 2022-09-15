@@ -12,18 +12,6 @@ import { DataResult, IEntity, ShoppingListItem } from "../models";
 @Injectable()
 export class WebRepo implements IRepo {
   constructor(private http: HttpClient, @Inject(ILoggerToken) private logger: ILogger, @Inject(IConfigServiceToken) private config: IConfigService) { }
-  GetShoppingListItemById(itemId: number): Observable<ShoppingListItem> {
-    throw new Error("Method not implemented.");
-  }
-  GetShoppingListItems(shoppingListId: string): Observable<ShoppingListItem[]> {
-    throw new Error("Method not implemented.");
-  }
-  SearchShoppingListItems(pattern: string): Observable<ShoppingListItem[]> {
-    throw new Error("Method not implemented.");
-  }
-  AddOrUpdateItem(item: ShoppingListItem): Observable<EntityOperationResult<ShoppingListItem>> {
-    throw new Error("Method not implemented.");
-  }
 
   private headers: HttpHeaders = new HttpHeaders().set('Content-Type', 'application/json; charset=utf-8');
 
@@ -90,14 +78,14 @@ export class WebRepo implements IRepo {
     return this.Put<boolean>("Account", "Demote/" + userId, null);
   }
 
-  private Post<T>(controller: string, action: string, data: any): Observable<T> {
-    var reqUrl = this.config.ServerUrl + '/' + controller + '/' + action + '/';
+  public Post<T>(controller: string, action: string, data: any): Observable<T> {
+    var reqUrl = this.config.ServerUrl + '/' + controller + '/' + action;
     this.logger.Debug("POST REQ to " + reqUrl);
     return this.http.post<T>(reqUrl, data, { headers: this.headers, withCredentials: true });
   }
 
-  private Put<T>(controller: string, action: string, data: any): Observable<T> {
-    var reqUrl = this.config.ServerUrl + '/' + controller + '/' + action + '/';
+  public Put<T>(controller: string, action: string, data: any): Observable<T> {
+    var reqUrl = this.config.ServerUrl + '/' + controller + '/' + action;
     this.logger.Debug("PUT REQ to " + reqUrl);
     return this.http.put<T>(reqUrl, data, { headers: this.headers, withCredentials: true });
   }

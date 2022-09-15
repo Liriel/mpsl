@@ -14,10 +14,14 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly ILogger<ShoppingListController> logger;
     private readonly IRepository repo;
     private readonly IMapper mapper;
+    private readonly IUnitService unitService;
+    private readonly IEntityService<ShoppingListItem> itemService;
 
-    public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper)
+    public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService, IEntityService<ShoppingListItem> itemService)
         : base(entitySvc, repo, logger, mapper)
     {
+        this.itemService = itemService;
+        this.unitService = unitService;
         this.repo = repo;
         this.logger = logger;
         this.mapper = mapper;
@@ -40,51 +44,51 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     }
 
     [HttpGet("{shoppingListId}/item")]
-    public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId){
-        var q = this.repo.ShoppingListItems.Where(i => i.ShoppingListId == shoppingListId);
+    public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId)
+    {
+        var q = from i in this.repo.ShoppingListItems
+                where i.ShoppingListId == shoppingListId
+                where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))
+                select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
     }
 
-    [HttpPost("{shoppingListId}/item")]
-    public IActionResult AddItem(int shoppingListId, ShoppingListItemEditViewModel itemViewModel){
-        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
-        if(shoppingList == null)
-            return new NotFoundObjectResult("shopping list not found");
-
-        var item = this.mapper.Map<ShoppingListItem>(itemViewModel);
-        item.Unit = GetOrCreateUnit(itemViewModel.UnitShortName);
-        shoppingList.Items.Add(item);
-        this.repo.SaveChanges();
-
-        return Ok();
-    }
-
-    [HttpPut("{shoppingListId}/item/{itemId}")]
-    public IActionResult UpdateItem(int shoppingListId, int itemId, ShoppingListItemEditViewModel itemViewModel)
+    [HttpPost("{shoppingListId}/add")]
+    public IActionResult AddItem(int shoppingListId, ShoppingListAddViewModel itemViewModel)
     {
-        var item = this.repo.ShoppingListItems.SingleOrDefault(i => i.ShoppingListId == shoppingListId && i.Id == itemId);
-        if (item == null)
-            return new NotFoundObjectResult("shopping list or item not found");
-
-        this.mapper.Map(itemViewModel, item);
-        item.Unit = GetOrCreateUnit(itemViewModel.UnitShortName);
-
-        this.repo.SaveChanges();
-        return Ok();
-    }
-
-    private Unit GetOrCreateUnit(string unitShortName)
-    {
-        // check if the unit exists or should be created
-        if (string.IsNullOrWhiteSpace(unitShortName))
-            return null;
-
-        var unit = this.repo.Units.SingleOrDefault(u => u.ShortName.ToLower() == unitShortName.ToLower());
-        if (unit == null)
+        WebOperationResult<ShoppingListAddViewModel, ShoppingListItem> result;
+        if (ModelState.IsValid)
         {
-            unit = new Unit { ShortName = unitShortName };
+            if (itemViewModel.Id != 0)
+                return new BadRequestObjectResult("Use item controller to update items");
+
+            var item = this.mapper.Map<ShoppingListItem>(itemViewModel);
+
+            item.ShoppingListId = shoppingListId;
+            item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
+            var saveResult = this.itemService.AddOrUpdate(item);
+            if (saveResult.Success)
+                this.repo.SaveChanges();
+
+            result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(mapper, saveResult);
         }
-        return unit;
+        else
+        {
+            result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(ModelState);
+        }
+
+        return new OkObjectResult(result);
+    }
+
+    [HttpGet("{shoppingListId}/search/{pattern?}")]
+    public IEnumerable<ShoppingListItemViewModel> SearchItems(int shoppingListId, string pattern)
+    {
+        var q = from i in this.repo.ShoppingListItems
+                where i.ShoppingListId == shoppingListId
+                where i.Name.ToLower().Contains(pattern)
+                select i;
+
+        return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
     }
 }

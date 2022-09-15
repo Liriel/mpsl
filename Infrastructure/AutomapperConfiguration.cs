@@ -16,8 +16,11 @@ namespace mps.Infrastructure
 
             CreateMap<ShoppingListItem, ShoppingListItemViewModel>();
             CreateMap<ShoppingListItem, ShoppingListItemEditViewModel>();
+            CreateMap<ShoppingListItem, ShoppingListAddViewModel>();
             CreateMap<ShoppingListItemEditViewModel, ShoppingListItem>()
                 .ForMember(dst => dst.ShoppingListId, opt => opt.Ignore())
+                .ForMember(dst => dst.Id, opt => opt.Ignore());
+            CreateMap<ShoppingListAddViewModel, ShoppingListItem>()
                 .ForMember(dst => dst.Id, opt => opt.Ignore());
 
             CreateMap<Unit, UnitViewModel>();

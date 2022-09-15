@@ -26,7 +26,7 @@ export class ItemDialogComponent {
     @Inject(MAT_DIALOG_DATA) private data: ItemDialogData,
     public dialogRef: MatDialogRef<ItemDialogComponent>,
   ) {
-    this.repo.GetShoppingListItemById(this.data.itemId)
+    this.repo.GetEntity<ShoppingListItem>("item", this.data.itemId)
     .subscribe(i => {
       this.item = i;
       FormHelper.ReadModel(i, this.formGroup);
@@ -39,6 +39,8 @@ export class ItemDialogComponent {
 
   public save(): void {
     FormHelper.UpdateModel(ShoppingListItem, this.item, this.formGroup);
-    this.dialogRef.close(this.item);
+    this.repo.SaveEntity("item", this.item).subscribe(result =>
+      this.dialogRef.close(result)
+    );
   }
 }
