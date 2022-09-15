@@ -151,7 +151,7 @@ namespace tempmon.Web.Controllers
                     {
                         u.Id,
                         u.UserName,
-                        Shortname = AvatarHelper.GetShortname(u.UserName, 2),
+                        Shortname = NameHelper.GetUserAvatarName(u.UserName, 2),
                         IsUser = userRoles.ContainsKey(u.Id) ? userRoles[u.Id].Contains(userRoleId) : false,
                         IsAdmin = userRoles.ContainsKey(u.Id) ? userRoles[u.Id].Contains(adminRoleId) : false,
                     };

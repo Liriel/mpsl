@@ -20,7 +20,6 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
 
 import { IRepoToken } from './services/IRepo';
-import { LocalRepo } from './services/LocalRepo';
 import { INotifcationServiceToken } from './services/INotifcationService';
 import { LocalNotificationService } from './services/LocalNotificationService';
 import { UserListComponent } from './user-list/user-list.component';

@@ -6,7 +6,7 @@ namespace mps.ViewModels
 
         public string Name { get; set; }
 
-        public int ShoppingListId { get; set; }
+        public string Hint { get; set; }
 
         public string ShortName { get; set; }
 

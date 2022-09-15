@@ -3,7 +3,7 @@ import { AfterViewInit, Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
-import { filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
+import { debounceTime, filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
@@ -61,7 +61,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     this.filteredOptions = this.formGroup.get("name").valueChanges.pipe(
       startWith(''),
       // filter(value => value != ''),
-      switchMap((pattern) => this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item")),
+      debounceTime(200),
+      switchMap((pattern) => this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/search/" + pattern)),
       map(value => value.map(o => o.name))
     );
   }
@@ -75,7 +76,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   public openDialog(item: ShoppingListItem): void {
     const dialogRef = this.dialog.open(ItemDialogComponent, {
       // width: '250px',
-      data: new ItemDialogData({ itemId: item.id })
+      data: new ItemDialogData({ shoppingListId: this.shoppingListId, itemId: item.id })
     });
 
     dialogRef.afterClosed().subscribe(result => {
@@ -83,13 +84,15 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  public async save(): Promise<void> {
-    let item = new ShoppingListItem({ avatar: "", hint: "", name: "", amount: 0, unit: "" });
+  public save(): void{
+    let item = new ShoppingListItem({ name: "", amount: 0, unitName: "", shoppingListId: this.shoppingListId });
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
     console.log(item);
 
-    let result = await this.repo.AddOrUpdateItem(item).toPromise();
-    this.formGroup.reset();
+    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result =>{
+      console.log(result);
+      this.formGroup.reset();
+    });
   }
 
   public showSwipeAnimation(event: any, rd: ShoppingListItem) {

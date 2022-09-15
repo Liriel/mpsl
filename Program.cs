@@ -51,6 +51,8 @@ builder.Services.AddScoped<IRepository, PersistedRepository>();
 builder.Services.AddScoped<IUserIdentityService, HttpContextIdentityService>();
 builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntityService>();
 builder.Services.AddTransient<IEntityService<Unit>, EntityService<Unit>>();
+builder.Services.AddTransient<IEntityService<ShoppingListItem>, ShoppingListItemEntityService>();
+builder.Services.AddTransient<IUnitService, UnitService>();
 builder.Services.AddTransient<AppDbInitializer>();
 builder.Services.AddSignalR();
 builder.Services.AddMvc();

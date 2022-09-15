@@ -7,4 +7,5 @@ export class ItemDialogData {
   }
 
   public itemId: number;
+  public shoppingListId: number;
 }
