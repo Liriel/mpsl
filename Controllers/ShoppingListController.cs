@@ -63,9 +63,19 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             if (itemViewModel.Id != 0)
                 return new BadRequestObjectResult("Use item controller to update items");
 
-            var item = this.mapper.Map<ShoppingListItem>(itemViewModel);
+            var item = this.repo.ShoppingListItems
+                .Where(i=> i.ShoppingListId == shoppingListId && 
+                       i.Name.ToLower() == itemViewModel.Name.ToLower())
+                .SingleOrDefault();
 
-            item.ShoppingListId = shoppingListId;
+            if(item == null){
+                item = this.mapper.Map<ShoppingListItem>(itemViewModel);
+                item.ShoppingListId = shoppingListId;
+            }else{
+                item.Amount = itemViewModel.Amount;
+                item.Status = ItemState.Open;
+            }
+
             item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
             var saveResult = this.itemService.AddOrUpdate(item);
             if (saveResult.Success)
@@ -81,12 +91,30 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         return new OkObjectResult(result);
     }
 
+    [HttpDelete("{shoppingListId}/remove/{itemId}")]
+    public IActionResult RemoveItem(int shoppingListId, int itemId)
+    {
+        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
+
+        if(shoppingList == null)
+            return new BadRequestObjectResult("Invalid shopping list");
+
+        var item = shoppingList.Items.SingleOrDefault(i => i.Id == itemId);
+        if(item == null)
+            return new BadRequestObjectResult("Item not found in shopping list");
+
+        item.Status = ItemState.Archived;
+        this.repo.SaveChanges();
+
+        return Ok();
+    }
+
     [HttpGet("{shoppingListId}/search/{pattern?}")]
-    public IEnumerable<ShoppingListItemViewModel> SearchItems(int shoppingListId, string pattern)
+    public IEnumerable<ShoppingListItemViewModel> SearchItems(int shoppingListId, string pattern = "")
     {
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
-                where i.Name.ToLower().Contains(pattern)
+                where i.Name.ToLower().Contains(pattern.ToLower())
                 select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);

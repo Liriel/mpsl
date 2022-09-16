@@ -85,7 +85,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   public save(): void{
-    let item = new ShoppingListItem({ name: "", amount: 0, unitName: "", shoppingListId: this.shoppingListId });
+    let item = new ShoppingListItem({ name: "", amount: 0, unitShortName: "", shoppingListId: this.shoppingListId });
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
     console.log(item);
 

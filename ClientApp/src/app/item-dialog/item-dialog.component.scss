@@ -4,6 +4,7 @@
 
 .content-container{
     height: 260px;
+    overflow: hidden;
 }
 
 .input-name{
@@ -13,10 +14,29 @@
 
 .flex-row {
     display: flex;
+
     .spacer{
         flex:1;
     }
     button[mat-button]{
         width: 75px;
     }
+}
+
+.slider{
+    display: flex;
+    position: absolute;
+    left:0;
+    top:0;
+    width: 100%;
+}
+
+.button-container{
+    position: relative;
+    width: 100%;
+}
+
+.confirm{
+    position: absolute;
+    top:-24px;
 }

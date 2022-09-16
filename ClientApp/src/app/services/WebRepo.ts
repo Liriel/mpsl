@@ -89,4 +89,10 @@ export class WebRepo implements IRepo {
     this.logger.Debug("PUT REQ to " + reqUrl);
     return this.http.put<T>(reqUrl, data, { headers: this.headers, withCredentials: true });
   }
+
+  public Delete<T>(controller: string, action: string): Observable<T> {
+    var reqUrl = this.config.ServerUrl + '/' + controller + '/' + action;
+    this.logger.Debug("DELETE REQ to " + reqUrl);
+    return this.http.delete<T>(reqUrl, { headers: this.headers, withCredentials: true });
+  }
 }

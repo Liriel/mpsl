@@ -12,6 +12,6 @@ namespace mps.ViewModels
 
         public int? Amount { get; set; }
 
-        public string UnitName { get; set; }
+        public string UnitShortName { get; set; }
     }
 }
