@@ -12,6 +12,7 @@ export interface IRepo {
   Get<T>(controller: string, action?: string): Observable<T>;
   Post<T>(controller: string, action: string, data: any): Observable<T>;
   Put<T>(controller: string, action: string, data: any): Observable<T>;
+  Delete<T>(controller: string, action: string): Observable<T>;
   GetEntity<T>(entityName: string, id: number): Observable<T>;
   SaveEntity<T>(entityName: string, entity: T & IEntity): Observable<EntityOperationResult<T & IEntity>>;
   GetEntities<T>(
