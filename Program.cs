@@ -44,6 +44,7 @@ builder.Services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
         .AllowAnyMethod()
         .AllowAnyHeader()
         .AllowCredentials()
+        //.WithOrigins("https://localhost:44443", "https://192.168.0.96:44443");
         .WithOrigins("https://localhost:44443");
 }));
 

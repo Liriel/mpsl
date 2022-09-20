@@ -29,4 +29,28 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
         model.Unit = this.unitService.GetOrCreateUnit(viewModel.UnitShortName);
 
     }
+
+    [HttpPut("{itemId}/toggle")]
+    public IActionResult ToggleStatus(int itemId){
+
+        // TODO: check access
+        var item = this.repo.Find<ShoppingListItem>(itemId);
+
+        if(item == null)
+            return new NotFoundObjectResult("item not found");
+
+        if(item.Status == ItemState.Archived)
+            return new BadRequestObjectResult("cant toggle archived items");
+
+        if(item.Status == ItemState.Open){
+            item.Status = ItemState.Checked;
+            item.CheckDate = DateTime.Now;
+        }else{
+            item.Status = ItemState.Open;
+            item.CheckDate = null;
+        }
+
+        this.repo.SaveChanges();
+        return Ok();
+    }
 }
