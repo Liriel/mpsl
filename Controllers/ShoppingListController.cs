@@ -46,6 +46,25 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     [HttpGet("{shoppingListId}/item")]
     public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId)
     {
+        // TODO: move to service?
+        var o = from i in this.repo.ShoppingListItems
+                where i.ShoppingListId == shoppingListId
+                where i.Status == ItemState.Checked && i.CheckDate < DateTime.Now.AddMinutes(-1)
+                select i;
+        
+        if(o.Any()){
+            foreach (var item in o)
+            {
+                item.History.Add(new ItemHistory{ 
+                    Amount = item.Amount,
+                    UnitId = item.UnitId,
+                    CheckDate = item.CheckDate.Value
+                });
+            }
+
+            this.repo.SaveChanges();
+        }
+
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
                 where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))

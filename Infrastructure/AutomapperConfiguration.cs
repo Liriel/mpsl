@@ -14,7 +14,8 @@ namespace mps.Infrastructure
             CreateMap<ShoppingListEditViewModel, ShoppingList>()
                 .ForMember(dst => dst.Id, opt => opt.Ignore());
 
-            CreateMap<ShoppingListItem, ShoppingListItemViewModel>();
+            CreateMap<ShoppingListItem, ShoppingListItemViewModel>()
+                .ForMember(dst => dst.Done, opt => opt.MapFrom(src => src.Status != ItemState.Open));
             CreateMap<ShoppingListItem, ShoppingListItemEditViewModel>();
             CreateMap<ShoppingListItem, ShoppingListAddViewModel>();
             CreateMap<ShoppingListItemEditViewModel, ShoppingListItem>()

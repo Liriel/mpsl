@@ -104,7 +104,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public onSwipeComplete(event: any, item: ShoppingListItem): void {
     if (event.toState === 'left') {
-      item.done = !item.done;
+      this.repo.Put<void>("api/item/" + item.id, "toggle", null).subscribe(
+        r => item.done = !item.done
+      );
       item.animateFlyInOut = "start";
     }
   }

@@ -13,5 +13,11 @@ namespace mps.ViewModels
         public int? Amount { get; set; }
 
         public string UnitShortName { get; set; }
+
+        public DateTime? CheckDate { get; set; }
+
+        public string Status { get; set; }
+
+        public bool Done { get; set; }
     }
 }
