@@ -32,10 +32,10 @@
 
       <mat-form-field style="max-width: 50px;">
         <mat-label>Unit</mat-label>
-        <input matInput formControlName="unit">
-        <mat-error *ngIf="formGroup.controls['unit'].hasError('maxlength')">
-          {{formGroup.controls['unit'].errors["maxlength"].actualLength + '/' +
-          formGroup.controls['unit'].errors["maxlength"].requiredLength}}
+        <input matInput formControlName="unitShortName">
+        <mat-error *ngIf="formGroup.controls['unitShortName'].hasError('maxlength')">
+          {{formGroup.controls['unitShortName'].errors["maxlength"].actualLength + '/' +
+          formGroup.controls['unitShortName'].errors["maxlength"].requiredLength}}
         </mat-error>
       </mat-form-field>
     </div>

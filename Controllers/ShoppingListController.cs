@@ -71,7 +71,6 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
                 where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))
-                orderby i.Name
                 select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
@@ -142,6 +141,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
                 where i.Name.ToLower().Contains(pattern.ToLower())
+                orderby i.Name
                 select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
