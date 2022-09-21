@@ -9,6 +9,7 @@ import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
 import { RemovedItem } from '../models/RemovedItem';
 import { ShoppingListItem } from '../models/ShoppingListItem';
+import { Unit } from '../models/Unit';
 import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
 
@@ -44,11 +45,12 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl(''),
-    amount: new FormControl(1),
-    unit: new FormControl('')
+    amount: new FormControl(''),
+    unitShortName: new FormControl('')
   });
   options: string[] = ['One', 'Two', 'Three'];
-  filteredOptions: Observable<string[]>;
+  filteredItems: Observable<string[]>;
+  filteredUnits: Observable<string[]>;
 
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
@@ -87,12 +89,20 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.filteredOptions = this.formGroup.get("name").valueChanges.pipe(
+    this.filteredItems = this.formGroup.get("name").valueChanges.pipe(
       startWith(''),
       // filter(value => value != ''),
       debounceTime(200),
       switchMap((pattern) => this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/search/" + pattern)),
       map(value => value.map(o => o.name))
+    );
+
+    this.filteredUnits = this.formGroup.get("unitShortName").valueChanges.pipe(
+      startWith(''),
+      // filter(value => value != ''),
+      debounceTime(200),
+      switchMap((pattern) => this.repo.Get<Unit[]>("api/unit/search/" + pattern)),
+      map(value => value.map(o => o.shortName))
     );
   }
 
@@ -117,10 +127,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   public save(): void {
     let item = new ShoppingListItem({ name: "", amount: 0, unitShortName: "", shoppingListId: this.shoppingListId });
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
-    console.log(item);
 
     this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result => {
-      console.log(result);
       this.formGroup.reset();
     });
   }

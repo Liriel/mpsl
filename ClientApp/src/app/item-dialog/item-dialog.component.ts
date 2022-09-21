@@ -42,7 +42,7 @@ export class ItemDialogComponent {
     name: new FormControl('', [Validators.required, Validators.maxLength(50)]),
     hint: new FormControl('', [Validators.maxLength(100)]),
     amount: new FormControl(null, [Validators.min(1)]),
-    unit: new FormControl('', [Validators.maxLength(5)]),
+    unitShortName: new FormControl('', [Validators.maxLength(5)]),
   });
 
   constructor(

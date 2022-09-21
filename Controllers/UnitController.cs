@@ -21,4 +21,16 @@ public class UnitController : EntityController<Unit, UnitEditViewModel, UnitView
         this.logger = logger;
         this.mapper = mapper;
     }
+
+    [HttpGet("search/{pattern?}")]
+    public IEnumerable<UnitViewModel> SearchItems(string pattern = "")
+    {
+        var q = from u in this.repo.Units
+                where u.Name.ToLower().Contains(pattern.ToLower()) ||
+                      u.ShortName.ToLower().Contains(pattern.ToLower())
+                orderby u.ShortName
+                select u;
+
+        return this.mapper.ProjectTo<UnitViewModel>(q);
+    }
 }
