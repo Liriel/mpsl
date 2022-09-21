@@ -6,9 +6,11 @@ namespace mps.Services
     public class ShoppingListItemEntityService : EntityService<ShoppingListItem>
     {
         private readonly IUserIdentityService identityService;
+        private readonly INotificationService notificationService;
 
-        public ShoppingListItemEntityService(IRepository repo, IUserIdentityService identityService) : base(repo)
+        public ShoppingListItemEntityService(IRepository repo, IUserIdentityService identityService, INotificationService notificationService) : base(repo)
         {
+            this.notificationService = notificationService;
             this.identityService = identityService;
         }
 
@@ -17,14 +19,22 @@ namespace mps.Services
             if (entity.Id == 0)
             {
                 entity.Status = ItemState.Open;
-                if(string.IsNullOrWhiteSpace(entity.ShortName)){
-                    
+                if (string.IsNullOrWhiteSpace(entity.ShortName))
+                {
+
                     // TODO: make sure shortname is unique
                     entity.ShortName = NameHelper.GetShortName(entity.Name);
                 }
             }
 
+            this.notificationService.BroadCastItemChanged(entity);
             return base.AddOrUpdate(entity);
+        }
+
+        public override EntityOperationResult<ShoppingListItem> Delete(ShoppingListItem entity)
+        {
+            this.notificationService.BroadCastItemRemoved(entity);
+            return base.Delete(entity);
         }
 
         public override IQueryable<ShoppingListItem> GetFilteredEntities()
@@ -35,7 +45,7 @@ namespace mps.Services
 
         public override EntityOperationResult<ShoppingListItem> Validate(ShoppingListItem entity)
         {
-            if(this.repo.Find<ShoppingList>(entity.ShoppingListId) == null && entity.ShoppingList == null)
+            if (this.repo.Find<ShoppingList>(entity.ShoppingListId) == null && entity.ShoppingList == null)
                 return new EntityOperationResult<ShoppingListItem>(new ValidationError("Invalid shopping list", nameof(ShoppingListItem.ShoppingListId), nameof(ShoppingListItem.ShoppingList)));
 
             return base.Validate(entity);

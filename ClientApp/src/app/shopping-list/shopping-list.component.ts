@@ -7,7 +7,9 @@ import { debounceTime, filter, map, Observable, of, startWith, switchMap, tap } 
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
+import { RemovedItem } from '../models/RemovedItem';
 import { ShoppingListItem } from '../models/ShoppingListItem';
+import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
 
 @Component({
@@ -36,7 +38,7 @@ import { IRepo, IRepoToken } from '../services/IRepo';
 })
 export class ShoppingListComponent implements OnInit, AfterViewInit {
 
-  public items: Observable<ShoppingListItem[]>;
+  public items: ShoppingListItem[];
   public isLoading: boolean = true;
   public shoppingListId: number = 0;
 
@@ -50,11 +52,38 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
-    private router: Router,
+    @Inject(INotificationServiceToken) private notificationService: INotificationService,
     private route: ActivatedRoute,
     private dialog: MatDialog
-  ) { 
+  ) {
     this.shoppingListId = +this.route.snapshot.paramMap.get('id');
+    this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
+    this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
+  }
+
+  private OnItemRemoved(item: RemovedItem): void {
+    console.log("items", this.items);
+    let shoppingListItem = this.items.filter(l => l.id == item.id)[0];
+    if (shoppingListItem) {
+      let idx: number = this.items.indexOf(shoppingListItem);
+      this.items.splice(idx, 1);
+    }
+  }
+
+  // called if an item was changed on the server
+  private OnItemChanged(item: ShoppingListItem): void {
+    let shoppingListItem = this.items.filter(l => l.id == item.id)[0];
+    if (shoppingListItem) {
+
+      // replace the existing item
+      let idx: number = this.items.indexOf(shoppingListItem);
+      this.items[idx] = item;
+    } else {
+
+      // create the record
+      this.items.push(item);
+    }
+
   }
 
   ngOnInit(): void {
@@ -68,9 +97,10 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   public async ngAfterViewInit(): Promise<void> {
-    this.items = this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").pipe(
-      tap(r => this.isLoading = false)
-    );
+    this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").subscribe(r => {
+      this.items = r;
+      this.isLoading = false;
+    });
   }
 
   public openDialog(item: ShoppingListItem): void {
@@ -84,12 +114,12 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     });
   }
 
-  public save(): void{
+  public save(): void {
     let item = new ShoppingListItem({ name: "", amount: 0, unitShortName: "", shoppingListId: this.shoppingListId });
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
     console.log(item);
 
-    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result =>{
+    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result => {
       console.log(result);
       this.formGroup.reset();
     });
@@ -104,9 +134,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public onSwipeComplete(event: any, item: ShoppingListItem): void {
     if (event.toState === 'left') {
-      this.repo.Put<void>("api/item/" + item.id, "toggle", null).subscribe(
-        r => item.done = !item.done
-      );
+      this.repo.Put<void>("api/item/" + item.id, "toggle", null).subscribe();
       item.animateFlyInOut = "start";
     }
   }
@@ -114,5 +142,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   public onSwipeLeft(event: any, item: ShoppingListItem): void {
     console.log(event);
     item.animateFlyInOut = 'left'
+  }
+
+  public getItemId(index: number, item: ShoppingListItem): number {
+    return item.id;
   }
 }

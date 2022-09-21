@@ -4,6 +4,8 @@ namespace mps.ViewModels
     {
         public int Id { get; set; }
 
+        public int shoppingListId { get; set; }
+
         public string Name { get; set; }
 
         public string Hint { get; set; }

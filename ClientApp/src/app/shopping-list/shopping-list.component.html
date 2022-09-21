@@ -4,7 +4,7 @@
         </div>
         <div class="content">
             <div class="list">
-                <div *ngFor="let item of items|async;" class="item" [ngClass]="{'done': item.done}">
+                <div *ngFor="let item of items; trackBy:getItemId" class="item" [ngClass]="{'done': item.done === true}">
                     <div class="swipeable"
                     [@flyInOut]="item.animateFlyInOut"
                     (@flyInOut.done)="onSwipeComplete($event, item)"
