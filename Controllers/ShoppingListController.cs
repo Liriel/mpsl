@@ -17,7 +17,8 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly IUnitService unitService;
     private readonly IEntityService<ShoppingListItem> itemService;
 
-    public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService, IEntityService<ShoppingListItem> itemService)
+    public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService,
+        IEntityService<ShoppingListItem> itemService)
         : base(entitySvc, repo, logger, mapper)
     {
         this.itemService = itemService;
@@ -51,11 +52,13 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                 where i.ShoppingListId == shoppingListId
                 where i.Status == ItemState.Checked && i.CheckDate < DateTime.Now.AddMinutes(-1)
                 select i;
-        
-        if(o.Any()){
+
+        if (o.Any())
+        {
             foreach (var item in o)
             {
-                item.History.Add(new ItemHistory{ 
+                item.History.Add(new ItemHistory
+                {
                     Amount = item.Amount,
                     UnitId = item.UnitId,
                     CheckDate = item.CheckDate.Value
@@ -68,6 +71,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
                 where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))
+                orderby i.Name
                 select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
@@ -83,22 +87,26 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                 return new BadRequestObjectResult("Use item controller to update items");
 
             var item = this.repo.ShoppingListItems
-                .Where(i=> i.ShoppingListId == shoppingListId && 
+                .Where(i => i.ShoppingListId == shoppingListId &&
                        i.Name.ToLower() == itemViewModel.Name.ToLower())
                 .SingleOrDefault();
 
-            if(item == null){
+            if (item == null)
+            {
                 item = this.mapper.Map<ShoppingListItem>(itemViewModel);
                 item.ShoppingListId = shoppingListId;
-            }else{
+            }
+            else
+            {
                 item.Amount = itemViewModel.Amount;
                 item.Status = ItemState.Open;
             }
 
             item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
             var saveResult = this.itemService.AddOrUpdate(item);
-            if (saveResult.Success)
+            if (saveResult.Success){
                 this.repo.SaveChanges();
+            }
 
             result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(mapper, saveResult);
         }
@@ -115,15 +123,15 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     {
         var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
 
-        if(shoppingList == null)
+        if (shoppingList == null)
             return new BadRequestObjectResult("Invalid shopping list");
 
         var item = shoppingList.Items.SingleOrDefault(i => i.Id == itemId);
-        if(item == null)
+        if (item == null)
             return new BadRequestObjectResult("Item not found in shopping list");
 
         item.Status = ItemState.Archived;
-        this.repo.SaveChanges();
+        this.itemService.AddOrUpdate(item);
 
         return Ok();
     }

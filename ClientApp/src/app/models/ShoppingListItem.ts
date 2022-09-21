@@ -13,3 +13,4 @@ export class ShoppingListItem extends ModelBase<ShoppingListItem> implements IEn
   public done: boolean;
   public animateFlyInOut: string;
 }
+
