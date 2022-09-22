@@ -9,6 +9,7 @@ using mps.Services;
 using mps.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Authorization;
 
 namespace mps.Controllers
 {
@@ -23,6 +24,7 @@ namespace mps.Controllers
     /// specific services have done their thing.
     /// </remarks>
     [Route("api/[controller]")]
+    [Authorize]
     [ApiController]
     public class EntityController<TEntity, TEditViewModel, TListViewModel> : Controller
         where TEntity : class, IEntity

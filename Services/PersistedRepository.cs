@@ -74,7 +74,7 @@ namespace mps.Services
 
         public int GetUserCount()
         {
-            return this.context.Users.Count();
+            return this.context.Users.Where(u => u.Id != Constants.SYSUSER_ID).Count();
         }
 
         public void Remove<T>(T entity) where T : class, IEntity
