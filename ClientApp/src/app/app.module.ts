@@ -32,6 +32,8 @@ import { INotificationServiceToken } from './services/INotificationService';
 import { SignalRNotificationService } from './services/SignalRNotificationService';
 import { LoadingComponent } from './loading/loading.component';
 import { LoginComponent } from './login/login.component';
+import { ServiceWorkerModule } from '@angular/service-worker';
+import { environment } from '../environments/environment';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -67,7 +69,13 @@ import { LoginComponent } from './login/login.component';
     MatListModule,
     MatExpansionModule,
     MatCardModule,
-    MatProgressSpinnerModule
+    MatProgressSpinnerModule,
+    ServiceWorkerModule.register('ngsw-worker.js', {
+      enabled: environment.production,
+      // Register the ServiceWorker as soon as the application is stable
+      // or after 30 seconds (whichever comes first).
+      registrationStrategy: 'registerWhenStable:30000'
+    })
   ],
   providers: [
     { provide: IRepoToken, useClass: WebRepo },
