@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using mps.Model;
 using mps.Services;
@@ -7,6 +8,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class UnitController : EntityController<Unit, UnitEditViewModel, UnitViewModel>
 {

@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using mps.Infrastructure;
 using mps.Model;
@@ -8,6 +9,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/[controller]")]
 public class ItemController : EntityController<ShoppingListItem, ShoppingListItemEditViewModel, ShoppingListItemViewModel>
 {

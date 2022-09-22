@@ -1,13 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication;
-using System;
 using System.Security.Claims;
-using System.Linq;
-using System.Collections.Generic;
 using mps.Infrastructure;
 using mps.Model;
 using mps.ViewModels;
@@ -147,6 +142,7 @@ namespace tempmon.Web.Controllers
             var userRoles = q.ToDictionary(g => g.Key, g => g.ToHashSet());
 
             var r = from u in this.repo.Users
+                    where u.Id != Constants.SYSUSER_ID
                     select new
                     {
                         u.Id,
