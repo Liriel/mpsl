@@ -14,6 +14,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatCardModule } from '@angular/material/card';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 
 
 // import * as Hammer from 'hammerjs';
@@ -23,11 +25,13 @@ import { IRepoToken } from './services/IRepo';
 import { UserListComponent } from './user-list/user-list.component';
 import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
-import { ConsoleLogger, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
+import { AuthService, BreakpoingAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
 import { HomeComponent } from './home/home.component';
 import { HttpClientModule } from '@angular/common/http';
 import { INotificationServiceToken } from './services/INotificationService';
 import { SignalRNotificationService } from './services/SignalRNotificationService';
+import { LoadingComponent } from './loading/loading.component';
+import { LoginComponent } from './login/login.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -42,7 +46,9 @@ import { SignalRNotificationService } from './services/SignalRNotificationServic
     ShoppingListComponent,
     ItemDialogComponent,
     UserListComponent,
-    HomeComponent
+    HomeComponent,
+    LoadingComponent,
+    LoginComponent
   ],
   imports: [
     HttpClientModule,
@@ -59,13 +65,17 @@ import { SignalRNotificationService } from './services/SignalRNotificationServic
     MatDialogModule,
     MatMenuModule,
     MatListModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatCardModule,
+    MatProgressSpinnerModule
   ],
   providers: [
     { provide: IRepoToken, useClass: WebRepo },
     { provide: INotificationServiceToken, useClass: SignalRNotificationService },
     { provide: IConfigServiceToken, useClass: StaticConfigService },
     { provide: ILoggerToken, useClass: ConsoleLogger },
+    { provide: IAuthServiceToken, useClass: AuthService},
+    { provide: IAppUiServiceToken, useClass: BreakpoingAppUiService},
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig

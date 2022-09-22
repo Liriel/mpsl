@@ -1,0 +1,40 @@
+<div [app-loading]="isLoading" class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <div mat-card-avatar>
+        <mat-icon class="login-header-image">account_circle</mat-icon>
+      </div>
+      <mat-card-title *ngIf="showSignIn">Sign In</mat-card-title>
+      <mat-card-title *ngIf="!showSignIn">{{ UserInfo.userName }}</mat-card-title>
+      <mat-card-subtitle>Multiplayer shopping list</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content *ngIf="!canClaimAdmin">
+      <p *ngIf="showSignIn" class="login-content">
+        This page requires authentication. Pick your preferred login provider from the bottom list to sign in.
+      </p>
+      <p *ngIf="!showSignIn" class="login-content">You have successfully authenticated with your login provider.</p>
+      <p *ngIf="showAdminHint">Now the admin of this site has to confirm your account</p>
+    </mat-card-content>
+    <mat-card-content *ngIf="canClaimAdmin">
+      <p class="login-content">This site was recently created and does not have an administrator yet.</p>
+    </mat-card-content>
+    <mat-card-actions *ngIf="!canClaimAdmin">
+      <a *ngIf="showSignIn" href="Account/SignIn">
+        <button mat-button class="external-login">
+          <mat-icon svgIcon="microsoft"></mat-icon>
+          <span class="provider-name">Microsoft Account</span>
+        </button>
+      </a>
+      <a *ngIf="!showSignIn" href="Account/SignOut">
+        <button mat-button class="external-login">
+          Logout
+        </button>
+      </a>
+    </mat-card-actions>
+    <mat-card-actions *ngIf="canClaimAdmin">
+      <button mat-button class="external-login" (click)="ClaimAdmin()">
+        Claim Site Admin
+      </button>
+    </mat-card-actions>
+  </mat-card>
+</div>
