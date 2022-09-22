@@ -20,6 +20,7 @@ builder.Services.AddAuthentication()
     microsoftOptions.ClientId = builder.Configuration["Authentication:Microsoft:ClientId"];
     microsoftOptions.ClientSecret = builder.Configuration["Authentication:Microsoft:ClientSecret"];
     microsoftOptions.AuthorizationEndpoint = "https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize";
+    microsoftOptions.TokenEndpoint = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 });
 
 builder.Services.ConfigureApplicationCookie(options =>
@@ -61,7 +62,7 @@ builder.Services.AddSignalR();
 builder.Services.AddMvc();
 builder.Services.AddAutoMapper(typeof(MyProfile));
 
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllers();
 
 // reverse proxy support
 // https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-5.0
@@ -76,6 +77,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -94,6 +97,8 @@ using (var scope = app.Services.CreateScope()){
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllerRoute(
     name: "default",
