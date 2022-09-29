@@ -43,13 +43,13 @@ export class WebRepo implements IRepo {
 
     var reqUrl = this.config.ServerUrl + "/api/" + entityName;
     this.logger.Debug("GET Entities REQ to " + reqUrl);
-    return this.http.get<DataResult<T>>(reqUrl, { params: params });
+    return this.http.get<DataResult<T>>(reqUrl, { params: params, withCredentials: true });
   }
 
   public Get<T>(controller: string, action?: string): Observable<T> {
     var reqUrl = this.config.ServerUrl + '/' + controller + ((action && action.length > 0) ? '/' + action + '/' : '');
     this.logger.Debug("GET REQ to " + reqUrl);
-    return this.http.get<T>(reqUrl, { headers: this.headers, withCredentials: true });
+    return this.http.get<T>(reqUrl, { withCredentials: true });
   }
 
   public SaveEntity<T>(entityName: string, entity: T & IEntity): Observable<EntityOperationResult<T & IEntity>> {
