@@ -54,13 +54,9 @@
               "src/manifest.webmanifest"
             ],
             "stylePreprocessorOptions": {
-              "includePaths": [
-                "src/theme"
-              ]
+              "includePaths": ["node_modules/", "src/theme"]
             },
-            "styles": [
-              "src/styles.scss"
-            ],
+            "styles": ["src/styles.scss"],
             "scripts": [],
             "serviceWorker": true,
             "ngswConfigPath": "ngsw-config.json"
