@@ -1,32 +1,17 @@
-@import "@angular/material/theming";
+@use '@angular/material' as mat;
+@use 'theme' as t;
 
-$mat-theme: $mat-purple;
+$ui-accent: mat.get-color-from-palette(t.$theme-accent);
+$ui-primary: mat.get-color-from-palette(t.$theme-primary);
+$background: map-get(t.$theme, background);
+$foreground: map-get(t.$theme, foreground);
+$background-color: mat.get-color-from-palette($background, background);
+$background-primary-color: mat.get-color-from-palette($background, primary);
+$foreground-text-color: mat.get-color-from-palette($foreground, text);
+$ui-raised-border: mat.get-color-from-palette($foreground, divider);
 
-// Define the palettes for your theme using the Material Design palettes available in palette.scss
-// (imported above). For each palette, you can optionally specify a default, lighter, and darker
-// hue. Available color palettes: https://material.io/design/color/
-$ui-app-primary: mat-palette($mat-theme);
+// breakpoint
+$max-width-bp: 600px;
 
-// $ui-app-accent: mat-palette($mat-light-blue, A200, A100, A400);
-$ui-app-accent: mat-palette($mat-amber);
-
-// The warn palette is optional (defaults to red).
-$ui-app-warn: mat-palette($mat-red);
-
-// Create the theme object (a Sass map containing all of the palettes).
-$ui-app-theme: mat-light-theme($ui-app-primary, $ui-app-accent, $ui-app-warn);
-
-$ui-primary: mat-color($ui-app-primary);
-$ui-accent: mat-color($ui-app-accent);
-$ui-warn: mat-color($ui-app-warn);
-
-// background color
-$background: map-get($ui-app-theme, background);
-$ui-background-color: mat-color($background, app-bar);
-
-// border color for raised broders (like raised button)
-$foreground: map-get($ui-app-theme, foreground);
-$ui-raised-border: mat-color($foreground, divider);
-
-// nav bar height
-$ui-nav-height: 50px;
+// max content with in desktop mode
+$max-content-width: 1024px;

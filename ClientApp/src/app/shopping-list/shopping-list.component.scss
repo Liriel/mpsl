@@ -1,3 +1,5 @@
+@use "variables" as vars;
+
 @mixin scrollbars(
   $size: 10px,
   $foreground-color: #999,
@@ -25,7 +27,7 @@
     justify-content: center;
     padding-top: 20px;
     flex-direction: column;
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: vars.$max-width-bp) {
         height: 100%;
     }
 }
@@ -41,11 +43,11 @@
     
     overflow: auto;
 
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: vars.$max-width-bp) {
         flex: 1;
     }
 
-    @media only screen and (min-width: 600px) {
+    @media only screen and (min-width: vars.$max-width-bp) {
         min-height: 600px;
         max-height: 800px;
     }
@@ -84,7 +86,7 @@
 }
 
 .avatar{
-    border: 1px solid rgba(0,0,0,.12);
+    border: 1px solid vars.$ui-raised-border;
     border-radius: 50%;
     width: 40px;
     height: 40px;
@@ -102,7 +104,7 @@
 }
 
 .item-header{
-    color: rgba(0, 0, 0, 0.87);
+    color: vars.$foreground-text-color;
 }
 
 .header-footer{
@@ -110,7 +112,7 @@
     margin-left: 15px;
     max-width: 440px;
     width: 100%;
-    @media only screen and (max-width: 600px) {
+    @media only screen and (max-width: vars.$max-width-bp) {
         max-width: 400px;
     }
 }

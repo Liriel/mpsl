@@ -1,0 +1,47 @@
+@use "variables" as vars;
+
+.header-row {
+    display: flex;
+    background-color: vars.$ui-primary;
+    color: vars.$foreground-text-color;
+    padding-top: 10px;
+}
+
+.header{
+    max-width: vars.$max-content-width;
+    flex:1;
+}
+
+.welcome{
+    margin-top: 40px;
+    margin-bottom: 40px;
+}
+
+.spacer{
+    flex:1;
+}
+
+.content-container{
+    display: flex;
+}
+
+.content{
+    max-width: vars.$max-width-bp;
+}
+
+.list-item{
+    font-size: 20px;
+    padding-bottom: 10px;
+}
+
+.list-item:not(:last-child){
+    border-bottom: 1px solid vars.$ui-raised-border;
+}
+
+.list-item:not(:first-child){
+    margin-top:10px;
+}
+
+.info-container{
+    margin-bottom: 40px;
+}
