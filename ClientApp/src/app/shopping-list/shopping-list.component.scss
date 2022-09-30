@@ -1,46 +1,50 @@
 @use "variables" as vars;
 
-@mixin scrollbars(
-  $size: 10px,
-  $foreground-color: #999,
-  $background-color: #333
-) {
-  // For Chrome & Safari
-  &::-webkit-scrollbar {
-    width: $size;
-    height: $size;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: $foreground-color;
-  }
-  &::-webkit-scrollbar-track {
-    background: $background-color;
-  }
+@mixin scrollbars($size: 10px,
+    $foreground-color: #999,
+    $background-color: #333) {
 
-  // Standard version (Firefox only for now)
-  scrollbar-color: $foreground-color $background-color;
+    // For Chrome & Safari
+    &::-webkit-scrollbar {
+        width: $size;
+        height: $size;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        background: $foreground-color;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: $background-color;
+    }
+
+    // Standard version (Firefox only for now)
+    scrollbar-color: $foreground-color $background-color;
 }
 
 .container {
+    $top-padding: 5px;
     display: flex;
     align-items: center;
     justify-content: center;
-    padding-top: 20px;
+    padding-top: $top-padding;
     flex-direction: column;
+
     @media only screen and (max-width: vars.$max-width-bp) {
-        height: 100%;
+        // subtract the top padding to prevent scrolling
+        height: calc(100% - $top-padding);
     }
 }
 
-.content{
+.content {
     @include scrollbars(3px, rgb(156, 156, 156), rgb(233, 233, 233));
     border: 1px solid rgb(210, 219, 221);
     border-radius: 5px;
     max-width: 400px;
     width: 100%;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-    padding:20px;
-    
+    padding: 20px;
+
     overflow: auto;
 
     @media only screen and (max-width: vars.$max-width-bp) {
@@ -53,39 +57,39 @@
     }
 }
 
-.list{
+.list {
     padding: 5px;
 }
 
-.item{
+.item {
     font-size: 20px;
     color: rgb(126, 146, 160);
     padding-bottom: 10px;
 }
 
-.swipeable{
+.swipeable {
     display: flex;
     align-items: center;
     position: relative;
-    
+
     // HACK: limit hammerjs detection to y axis only
     // https://medium.com/developer-rants/what-to-do-when-hammerjs-is-blocking-scrolling-on-mobile-9f79b460ac84
     touch-action: pan-y !important;
 }
 
-.done{
-    text-decoration:line-through;
+.done {
+    text-decoration: line-through;
 }
 
-.item:not(:last-child){
+.item:not(:last-child) {
     border-bottom: 1px solid rgb(145, 146, 148);
 }
 
-.item:not(:first-child){
-    margin-top:10px;
+.item:not(:first-child) {
+    margin-top: 10px;
 }
 
-.avatar{
+.avatar {
     border: 1px solid vars.$ui-raised-border;
     border-radius: 50%;
     width: 40px;
@@ -95,42 +99,54 @@
     margin-right: 10px;
 }
 
-.item-info{
-    flex:1;
+.item-info {
+    flex: 1;
 }
 
-.item-hint{
+.item-hint {
     font-size: 12px;
 }
 
-.item-header{
+.item-header {
     color: vars.$foreground-text-color;
 }
 
-.header-footer{
+.header-footer {
     margin-top: 5px;
     margin-left: 15px;
     max-width: 440px;
     width: 100%;
+
     @media only screen and (max-width: vars.$max-width-bp) {
         max-width: 400px;
     }
 }
 
 
-.title{
+.title {
     font-weight: 200;
     font-size: 18px;
 }
 
-.header{
+.header {
     padding-top: 5px;
     padding-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.spacer{
+    flex:1;
+}
+
+.toolbar-button{
+    margin-right: 10px;
 }
 
 .add-form {
     display: flex;
-    mat-form-field:not(:last-child){
+
+    mat-form-field:not(:last-child) {
         margin-right: 3px;
     }
 }

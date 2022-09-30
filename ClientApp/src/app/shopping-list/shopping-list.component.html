@@ -1,62 +1,63 @@
-    <div class="container">
-        <div class="header-footer header">
-            <span class="title">Supermarkt</span>
+<div class="container">
+    <div class="header-footer header">
+        <span class="title">Supermarkt</span>
+        <div class="spacer"></div>
+        <div class="toolbar">
+            <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
+                <mat-icon>refresh</mat-icon>
+            </button>
         </div>
-        <div class="content">
-            <div class="list">
-                <div *ngFor="let item of items; trackBy:getItemId" class="item" [ngClass]="{'done': item.done === true}">
-                    <div class="swipeable"
-                    [@flyInOut]="item.animateFlyInOut"
-                    (@flyInOut.done)="onSwipeComplete($event, item)"
-                    (swipeleft)="onSwipeLeft($event, item)"
-                    [style.left.px]="item.offsetX"
-                    (panstart)="item.offsetX = 0"
-                    (panmove)="showSwipeAnimation($event, item)"
-                    (panend)="item.offsetX = 0"
-                    (click)="openDialog(item)">
+    </div>
+    <div class="content">
+        <div class="list">
+            <div *ngFor="let item of items; trackBy:getItemId" class="item" [ngClass]="{'done': item.done === true}">
+                <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
+                    (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
+                    [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
+                    (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0" (click)="openDialog(item)">
 
-                        <div class="avatar">{{item.shortName}}</div>
-                        <div class="item-info">
-                            <div class="item-header">{{item.name}}</div>
-                            <div class="item-hint">{{item.hint}}</div>
-                        </div>
-                        <div class="item-amount">{{item.amount}}</div>
-                        <div class="item-unit">{{item.unitShortName}}</div>
+                    <div class="avatar">{{item.shortName}}</div>
+                    <div class="item-info">
+                        <div class="item-header">{{item.name}}</div>
+                        <div class="item-hint">{{item.hint}}</div>
                     </div>
+                    <div class="item-amount">{{item.amount}}</div>
+                    <div class="item-unit">{{item.unitShortName}}</div>
                 </div>
             </div>
         </div>
-
-        <div class="header-footer">
-            <form class="add-form" [formGroup]="formGroup">
-                <mat-form-field style="flex:1;">
-                    <mat-label>Item</mat-label>
-                    <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
-                        [matAutocomplete]="autoItems">
-                    <mat-autocomplete #autoItems="matAutocomplete">
-                        <mat-option *ngFor="let option of filteredItems | async" [value]="option">
-                            {{option}}
-                        </mat-option>
-                    </mat-autocomplete>
-                </mat-form-field>
-                <mat-form-field style="max-width: 50px;" >
-                    <mat-label>Amnt</mat-label>
-                    <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
-                </mat-form-field>
-                <mat-form-field style="max-width: 50px;" >
-                    <mat-label>Unit</mat-label>
-                    <input type="text" placeholder="Stk" aria-label="Unit" matInput formControlName="unitShortName"
-                        [matAutocomplete]="autoUnits">
-                    <mat-autocomplete #autoUnits="matAutocomplete">
-                        <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
-                            {{option}}
-                        </mat-option>
-                    </mat-autocomplete>
-                </mat-form-field>
-                <button mat-icon-button color="primary" aria-label="Add to the shopping list" (click)="save()">
-                    <mat-icon>add</mat-icon>
-                </button>
-            </form>
-        </div>
-
     </div>
+
+    <div class="header-footer">
+        <form class="add-form" [formGroup]="formGroup">
+            <mat-form-field style="flex:1;">
+                <mat-label>Item</mat-label>
+                <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
+                    [matAutocomplete]="autoItems">
+                <mat-autocomplete #autoItems="matAutocomplete">
+                    <mat-option *ngFor="let option of filteredItems | async" [value]="option">
+                        {{option}}
+                    </mat-option>
+                </mat-autocomplete>
+            </mat-form-field>
+            <mat-form-field style="max-width: 50px;">
+                <mat-label>Amnt</mat-label>
+                <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
+            </mat-form-field>
+            <mat-form-field style="max-width: 50px;">
+                <mat-label>Unit</mat-label>
+                <input type="text" placeholder="Stk" aria-label="Unit" matInput formControlName="unitShortName"
+                    [matAutocomplete]="autoUnits">
+                <mat-autocomplete #autoUnits="matAutocomplete">
+                    <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
+                        {{option}}
+                    </mat-option>
+                </mat-autocomplete>
+            </mat-form-field>
+            <button mat-icon-button color="primary" aria-label="Add to the shopping list" (click)="save()">
+                <mat-icon>add</mat-icon>
+            </button>
+        </form>
+    </div>
+
+</div>
