@@ -107,6 +107,10 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   public async ngAfterViewInit(): Promise<void> {
+    await this.refresh();
+  }
+
+  public refresh():void{
     this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").subscribe(r => {
       this.items = r;
       this.isLoading = false;

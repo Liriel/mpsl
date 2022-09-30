@@ -65,6 +65,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                     UnitId = item.UnitId,
                     CheckDate = item.CheckDate.Value
                 });
+                item.Status = ItemState.Archived;
             }
 
             this.repo.SaveChanges();
