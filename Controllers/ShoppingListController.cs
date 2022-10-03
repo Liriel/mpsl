@@ -74,6 +74,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
                 where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))
+                orderby i.AddDate
                 select i;
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
@@ -105,8 +106,11 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             }
 
             item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
+            item.UnitId = item.Unit?.Id;
+            item.AddDate = DateTime.Now;
             var saveResult = this.itemService.AddOrUpdate(item);
-            if (saveResult.Success){
+            if (saveResult.Success)
+            {
                 this.repo.SaveChanges();
             }
 
