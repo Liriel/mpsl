@@ -27,7 +27,12 @@ namespace mps.Services
                 }
             }
 
-            this.notificationService.BroadCastItemChanged(entity);
+            // broadcast removed if the item has been archived
+            if (entity.Status == ItemState.Archived)
+                this.notificationService.BroadCastItemRemoved(entity);
+            else
+                this.notificationService.BroadCastItemChanged(entity);
+
             return base.AddOrUpdate(entity);
         }
 

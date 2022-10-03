@@ -135,11 +135,11 @@
     align-items: center;
 }
 
-.spacer{
-    flex:1;
+.spacer {
+    flex: 1;
 }
 
-.toolbar-button{
+.toolbar-button {
     margin-right: 10px;
 }
 
@@ -148,5 +148,19 @@
 
     mat-form-field:not(:last-child) {
         margin-right: 3px;
+    }
+}
+
+.connection-info {
+    display: flex;
+    align-items: center;
+    flex-direction: column;
+
+    mat-icon {
+        $size: 128px;
+        font-size: $size;
+        height: $size;
+        width: $size;
+        opacity: 0.65;
     }
 }
