@@ -1,9 +1,10 @@
 import { Inject, Injectable } from '@angular/core';
 import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
-import { Observable, Subject } from 'rxjs';
+import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { ShoppingListItem } from '../models';
 import { RemovedItem } from '../models/RemovedItem';
+import { ConnectionState } from './ConnectionState';
 import { IConfigService, IConfigServiceToken } from './IConfigService';
 import { ILogger, ILoggerToken } from './ILogger';
 import { INotificationService } from './INotificationService';
@@ -22,6 +23,7 @@ export class SignalRNotificationService implements INotificationService {
     private hubConnection: HubConnection;
     private itemChangedSubject: Subject<ShoppingListItem> = new Subject<ShoppingListItem>();
     private itemRemovedSubject: Subject<RemovedItem> = new Subject<RemovedItem>();
+    private connStateSubject: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Closed);
 
     constructor(
         @Inject(ILoggerToken) private logger: ILogger,
@@ -32,14 +34,32 @@ export class SignalRNotificationService implements INotificationService {
             .build();
 
 
+        // connection lifecycle events before starting the connection
+        // close
+        this.hubConnection.onclose((err) => {
+            if (err) this.logger.Error(err.message);
+            this.connStateSubject.next(ConnectionState.Closed);
+        });
+
+        // connecting
+        this.hubConnection.onreconnecting((err) => {
+            if (err) this.logger.Error(err.message);
+            this.connStateSubject.next(ConnectionState.Connecting);
+        });
+
+        // connected
+        this.hubConnection.onreconnected(() => {
+            this.connStateSubject.next(ConnectionState.Connected);
+        });
+
         this.hubConnection
             .start()
-            .then(() => 
-            {
+            .then(() => {
                 this.logger.Debug('Connection started!');
+                this.connStateSubject.next(ConnectionState.Connected);
             })
             .catch(err => this.logger.Error(err));
-        
+
 
         this.hubConnection.on('OnItemChanged', (item: ShoppingListItem) => {
             this.itemChangedSubject.next(item);
@@ -56,5 +76,9 @@ export class SignalRNotificationService implements INotificationService {
 
     OnItemRemoved(shoppingListId: number): Observable<RemovedItem> {
         return this.itemRemovedSubject.pipe(filter(r => r.shoppingListId == shoppingListId));
+    }
+
+    public get ConnectionState(): Observable<ConnectionState> {
+        return this.connStateSubject;
     }
 }

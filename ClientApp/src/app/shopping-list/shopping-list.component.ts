@@ -3,13 +3,14 @@ import { AfterViewInit, Component, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
-import { debounceTime, filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
 import { RemovedItem } from '../models/RemovedItem';
 import { ShoppingListItem } from '../models/ShoppingListItem';
 import { Unit } from '../models/Unit';
+import { ConnectionState } from '../services/ConnectionState';
 import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
 
@@ -40,8 +41,13 @@ import { IRepo, IRepoToken } from '../services/IRepo';
 export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public items: ShoppingListItem[];
-  public isLoading: boolean = true;
+  public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
   public shoppingListId: number = 0;
+  public ConnState: Observable<ConnectionState>;
+
+  // make enum available in template
+  public ConnectionState: typeof ConnectionState = ConnectionState;
+
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl(''),
@@ -61,6 +67,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     this.shoppingListId = +this.route.snapshot.paramMap.get('id');
     this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
     this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
+    this.ConnState = this.notificationService.ConnectionState;
   }
 
   private OnItemRemoved(item: RemovedItem): void {
@@ -111,9 +118,10 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   public refresh():void{
+    //this.isLoading.next(true);
     this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").subscribe(r => {
       this.items = r;
-      this.isLoading = false;
+      this.isLoading.next(false);
     });
   }
 

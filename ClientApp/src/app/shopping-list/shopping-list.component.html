@@ -1,15 +1,17 @@
-<div class="container">
+<div class="container" [app-loading]="isLoading|async">
     <div class="header-footer header">
         <span class="title">Supermarkt</span>
         <div class="spacer"></div>
-        <div class="toolbar">
+        <div class="toolbar" *ngIf="(ConnState|async) == ConnectionState.Connected">
             <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
                 <mat-icon>refresh</mat-icon>
             </button>
         </div>
     </div>
-    <div class="content">
-        <div class="list">
+
+    <div class="content" >
+        <!-- list items -->
+        <div class="list" *ngIf="(ConnState|async) == ConnectionState.Connected">
             <div *ngFor="let item of items; trackBy:getItemId" class="item" [ngClass]="{'done': item.done === true}">
                 <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
                     (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
@@ -26,9 +28,17 @@
                 </div>
             </div>
         </div>
+
+        <!-- notification service connection lost info-->
+        <div class="connection-info" *ngIf="(ConnState|async) != ConnectionState.Connected">
+            <div class="nc">
+                <mat-icon>sensors_off</mat-icon>
+            </div>
+            <h3>not connected</h3>
+        </div>
     </div>
 
-    <div class="header-footer">
+    <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
         <form class="add-form" [formGroup]="formGroup">
             <mat-form-field style="flex:1;">
                 <mat-label>Item</mat-label>
