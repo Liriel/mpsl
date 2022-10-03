@@ -61,6 +61,15 @@ namespace mps.Model
         /// </remarks
         public DateTime? CheckDate { get; set; }
 
+
+        /// <summary>
+        /// Gets or sets a property indicating the last time the item was added to the shopping list.
+        /// </summary>
+        /// <remarks>
+        /// Used to sort the items in the order they where added to the shopping list.
+        /// </remarks
+        public DateTime AddDate { get; set; }
+
         /// <summary>
         /// A complete record of the times the item was wanted on the list.
         /// </summary>

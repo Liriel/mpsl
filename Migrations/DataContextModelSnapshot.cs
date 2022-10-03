@@ -213,11 +213,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "178617ae-8e83-4bb2-b69b-0e3c0bfd077e",
+                            ConcurrencyStamp = "b1922bc1-02f4-4118-93ed-11525e63019e",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "31d8a3ba-65b1-4b7d-b80d-396313ef7beb",
+                            SecurityStamp = "22e04eed-6cc3-4ab8-a14a-6e72a905259c",
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });
@@ -276,6 +276,9 @@ namespace mps.Migrations
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AddDate")
+                        .HasColumnType("TEXT");
 
                     b.Property<int?>("Amount")
                         .HasColumnType("INTEGER");
