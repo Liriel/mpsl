@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@angular/core';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
+import { HubConnection, HubConnectionBuilder, HubConnectionState } from '@microsoft/signalr';
 import { BehaviorSubject, Observable, Subject } from 'rxjs';
 import { filter, tap } from 'rxjs/operators';
 import { ShoppingListItem } from '../models';
@@ -80,5 +80,10 @@ export class SignalRNotificationService implements INotificationService {
 
     public get ConnectionState(): Observable<ConnectionState> {
         return this.connStateSubject;
+    }
+
+    public async Reconnect():Promise<void>{
+        if(this.hubConnection.state == HubConnectionState.Disconnected)
+            await this.hubConnection.start();
     }
 }

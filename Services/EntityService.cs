@@ -30,12 +30,14 @@ namespace mps.Services
             if(entity.Id == 0)
                 this.repo.Add(entity);
 
+            this.repo.SaveChanges();
             return new EntityOperationResult<T> { Entity = entity, Success = true };
         }
 
         public virtual EntityOperationResult<T> Delete(T entity)
         {
             this.repo.Remove(entity);
+            this.repo.SaveChanges();
             return new EntityOperationResult<T> { Entity = entity, Success = true };
         }
     }

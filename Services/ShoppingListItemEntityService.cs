@@ -27,13 +27,17 @@ namespace mps.Services
                 }
             }
 
+            // call base implementation befor sending the broadcast to get all the 
+            // changes (like the id on create)
+            var result = base.AddOrUpdate(entity);
+
             // broadcast removed if the item has been archived
             if (entity.Status == ItemState.Archived)
                 this.notificationService.BroadCastItemRemoved(entity);
             else
                 this.notificationService.BroadCastItemChanged(entity);
 
-            return base.AddOrUpdate(entity);
+            return result;
         }
 
         public override EntityOperationResult<ShoppingListItem> Delete(ShoppingListItem entity)

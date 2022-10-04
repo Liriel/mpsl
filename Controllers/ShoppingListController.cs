@@ -109,10 +109,6 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             item.UnitId = item.Unit?.Id;
             item.AddDate = DateTime.Now;
             var saveResult = this.itemService.AddOrUpdate(item);
-            if (saveResult.Success)
-            {
-                this.repo.SaveChanges();
-            }
 
             result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(mapper, saveResult);
         }
@@ -137,7 +133,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             return new BadRequestObjectResult("Item not found in shopping list");
 
         item.Status = ItemState.Archived;
-        this.itemService.AddOrUpdate(item);
+        var saveResult = this.itemService.AddOrUpdate(item);
 
         return Ok();
     }

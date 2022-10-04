@@ -1,5 +1,5 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { AfterViewInit, Component, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, HostListener, Inject, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -77,6 +77,11 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
       let idx: number = this.items.indexOf(shoppingListItem);
       this.items.splice(idx, 1);
     }
+  }
+
+  @HostListener('window:focus', ['$event'])
+  handleFocus(event: FocusEvent) {
+    this.notificationService.Reconnect();
   }
 
   // called if an item was changed on the server

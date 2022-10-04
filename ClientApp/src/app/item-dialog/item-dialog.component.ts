@@ -6,6 +6,7 @@ import { IRepoToken, IRepo } from '../services/IRepo';
 import { ItemDialogData } from './ItemDialogData';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { trigger, state, style, transition, animate } from '@angular/animations';
+import { BehaviorSubject } from 'rxjs';
 
 @Component({
   selector: 'app-item-dialog',
@@ -37,6 +38,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 export class ItemDialogComponent {
   public item: ShoppingListItem;
   public flyInOut: string = "in";
+  public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.maxLength(50)]),
@@ -54,6 +56,7 @@ export class ItemDialogComponent {
     .subscribe(i => {
       this.item = i;
       FormHelper.ReadModel(i, this.formGroup);
+      this.isLoading.next(false);
     });
   }
 
