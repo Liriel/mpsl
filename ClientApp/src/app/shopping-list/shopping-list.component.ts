@@ -17,7 +17,7 @@ import { IRepo, IRepoToken } from '../services/IRepo';
 @Component({
   selector: 'app-shopping-list',
   templateUrl: './shopping-list.component.html',
-  styleUrls: ['./shopping-list.component.scss'],
+  styleUrls: ['./shopping-list.component.scss', './dot-pulse.scss'],
   animations: [
     trigger("flyInOut", [
       state("start", style({ left: 0 })),
