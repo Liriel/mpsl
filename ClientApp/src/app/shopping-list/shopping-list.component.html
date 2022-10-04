@@ -34,7 +34,10 @@
             <div class="nc">
                 <mat-icon>sensors_off</mat-icon>
             </div>
-            <h3>not connected</h3>
+            <ng-container *ngIf="(ConnState|async) == ConnectionState.Connecting">
+                <h3>connecting</h3>
+                <div class="dot-pulse"></div>
+            </ng-container>
         </div>
     </div>
 
