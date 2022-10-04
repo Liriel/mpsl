@@ -18,9 +18,12 @@ namespace mps.Infrastructure
             return userName.Substring(0, 2).ToUpper();
         }
 
-        public static string GetShortName(string name, int length = 2)
+        public static string GetShortName(string name, int length = 2, int offset = 1)
         {
             if (string.IsNullOrWhiteSpace(name))
+                return null;
+
+            if(offset >= name.Length)
                 return null;
 
             if (name.Length <= length)
@@ -28,10 +31,10 @@ namespace mps.Infrastructure
 
             var words = name.Split(' ');
 
-            if(words.Length > 1)
-                return (words.First().Substring(0,1) + words.Last().Substring(0,1)).ToUpper();
+            if (words.Length > 1)
+                return (words.First().Substring(0, 1) + words.Last().Substring(offset, 1)).ToUpper();
 
-            return words[0].Substring(0,length).ToUpper();
+            return (words[0].Substring(0, 1) + words[0].Substring(offset, 1)).ToUpper();
         }
 
     }

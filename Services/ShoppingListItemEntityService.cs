@@ -21,9 +21,13 @@ namespace mps.Services
                 entity.Status = ItemState.Open;
                 if (string.IsNullOrWhiteSpace(entity.ShortName))
                 {
+                    int offset = 1;
+                    do{
+                        entity.ShortName = NameHelper.GetShortName(entity.Name, 2, offset);
+                        offset++;
 
-                    // TODO: make sure shortname is unique
-                    entity.ShortName = NameHelper.GetShortName(entity.Name);
+                    // make sure shortname is unique
+                    }while(this.repo.ShoppingListItems.Any(i=>i.ShoppingListId == entity.ShoppingListId && i.ShortName == entity.ShortName));
                 }
             }
 
