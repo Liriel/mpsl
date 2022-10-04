@@ -10,4 +10,5 @@ export interface INotificationService{
     readonly ConnectionState: Observable<ConnectionState>;
     OnItemChanged(shoppingListId: number): Observable<ShoppingListItem>;
     OnItemRemoved(shoppingListId: number): Observable<RemovedItem>;
+    Reconnect():Promise<void>;
 }

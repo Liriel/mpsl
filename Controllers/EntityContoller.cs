@@ -106,9 +106,6 @@ namespace mps.Controllers
                     return new BadRequestObjectResult(validationResult);
 
                 var saveResult = this.svc.AddOrUpdate(entity);
-                if (saveResult.Success)
-                    this.repo.SaveChanges();
-
                 result = new WebOperationResult<TEditViewModel, TEntity>(mapper, saveResult);
             }
             else
@@ -140,9 +137,6 @@ namespace mps.Controllers
                     return new BadRequestObjectResult(validationResult);
 
                 var saveResult = this.svc.AddOrUpdate(entity);
-                if (saveResult.Success)
-                    this.repo.SaveChanges();
-
                 result = new WebOperationResult<TEditViewModel, TEntity>(mapper, saveResult);
             }
             else
