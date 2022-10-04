@@ -24,7 +24,7 @@ namespace mps.Infrastructure
                 return null;
 
             if(offset >= name.Length)
-                return null;
+                return (name.Substring(0, 1) + offset.ToString()).ToUpper();
 
             if (name.Length <= length)
                 return name.ToUpper();
