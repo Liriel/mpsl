@@ -82,6 +82,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   @HostListener('window:focus', ['$event'])
   handleFocus(event: FocusEvent) {
     this.notificationService.Reconnect();
+    this.refresh();
   }
 
   // called if an item was changed on the server
