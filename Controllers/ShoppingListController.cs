@@ -105,8 +105,13 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                 item.Status = ItemState.Open;
             }
 
-            item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
-            item.UnitId = item.Unit?.Id;
+            // this ensures that the unit property was loaded by the lazy laoding proxy
+            if (item.Unit != null || !string.IsNullOrEmpty(itemViewModel.UnitShortName))
+            {
+                item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
+                item.UnitId = item.Unit?.Id;
+            }
+
             item.AddDate = DateTime.Now;
             var saveResult = this.itemService.AddOrUpdate(item);
 
