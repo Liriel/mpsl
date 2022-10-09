@@ -3,7 +3,7 @@ import { AfterViewInit, Component, HostListener, Inject, OnInit } from '@angular
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, debounceTime, filter, map, Observable, of, startWith, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
@@ -47,6 +47,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   // make enum available in template
   public ConnectionState: typeof ConnectionState = ConnectionState;
+  public OnFormReset: Subject<any> = new Subject();
 
 
   public formGroup: FormGroup = new FormGroup({
@@ -102,7 +103,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
-    this.filteredItems = this.formGroup.get("name").valueChanges.pipe(
+    this.filteredItems = merge(this.formGroup.get("name").valueChanges, this.OnFormReset).pipe(
       startWith(''),
       // filter(value => value != ''),
       debounceTime(200),
@@ -110,7 +111,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
       map(value => value.map(o => o.name))
     );
 
-    this.filteredUnits = this.formGroup.get("unitShortName").valueChanges.pipe(
+    this.filteredUnits = merge(this.formGroup.get("unitShortName").valueChanges, this.OnFormReset).pipe(
       startWith(''),
       // filter(value => value != ''),
       debounceTime(200),
@@ -148,6 +149,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
     this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result => {
       this.formGroup.reset();
+      this.OnFormReset.next('');
     });
   }
 
