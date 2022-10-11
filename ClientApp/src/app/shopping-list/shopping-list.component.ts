@@ -59,6 +59,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   filteredItems: Observable<string[]>;
   filteredUnits: Observable<string[]>;
 
+  private windowConnState: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Connected);
+
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
     @Inject(INotificationServiceToken) private notificationService: INotificationService,
@@ -68,7 +70,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     this.shoppingListId = +this.route.snapshot.paramMap.get('id');
     this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
     this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
-    this.ConnState = this.notificationService.ConnectionState;
+    this.ConnState = merge(this.notificationService.ConnectionState, this.windowConnState);
   }
 
   private OnItemRemoved(item: RemovedItem): void {
@@ -84,6 +86,16 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   handleFocus(event: FocusEvent) {
     this.notificationService.Reconnect();
     this.refresh();
+  }
+
+  @HostListener('window:offline', ['$event'])
+  handleOffline(event: Event) {
+    this.windowConnState.next(ConnectionState.Closed);
+  }
+
+  @HostListener('window:online', ['$event'])
+  handleOnline(event: Event) {
+    this.windowConnState.next(ConnectionState.Connected);
   }
 
   // called if an item was changed on the server
