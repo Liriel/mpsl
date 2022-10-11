@@ -49,10 +49,12 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     [HttpGet("{shoppingListId}/item")]
     public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId)
     {
-        // TODO: move to service?
+        DateTime minDate = DateTime.Now.AddHours(-1);
+
+        // find old items
         var o = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
-                where i.Status == ItemState.Checked && i.CheckDate < DateTime.Now.AddMinutes(-1)
+                where i.Status == ItemState.Checked && i.CheckDate < minDate
                 select i;
 
         if (o.Any())
@@ -73,7 +75,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
 
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
-                where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= DateTime.Now.AddHours(-1))
+                where i.Status == ItemState.Open || (i.Status == ItemState.Checked && i.CheckDate >= minDate)
                 orderby i.AddDate
                 select i;
 
