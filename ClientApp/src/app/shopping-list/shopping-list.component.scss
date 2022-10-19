@@ -1,5 +1,7 @@
 @use "variables" as vars;
 
+$content-padding: 20px;
+
 @mixin scrollbars($size: 10px,
     $foreground-color: #999,
     $background-color: #333) {
@@ -41,14 +43,16 @@
     border: 1px solid rgb(210, 219, 221);
     border-radius: 5px;
     max-width: 400px;
-    width: 100%;
+    width: calc(100% - 2 * $content-padding - 2px);
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
-    padding: 20px;
+    padding: $content-padding;
 
     overflow: auto;
 
     @media only screen and (max-width: vars.$max-width-bp) {
         flex: 1;
+        border-left: none;
+        border-right: none;
     }
 
     @media only screen and (min-width: vars.$max-width-bp) {
@@ -115,7 +119,7 @@
     margin-top: 5px;
     margin-left: 15px;
     max-width: 440px;
-    width: 100%;
+    width: calc(100% - $content-padding);
 
     @media only screen and (max-width: vars.$max-width-bp) {
         max-width: 400px;
