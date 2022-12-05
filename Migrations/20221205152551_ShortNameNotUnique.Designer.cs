@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using mps.Model;
 
@@ -10,12 +11,13 @@ using mps.Model;
 namespace mps.Migrations
 {
     [DbContext(typeof(DataContext))]
-    partial class DataContextModelSnapshot : ModelSnapshot
+    [Migration("20221205152551_ShortNameNotUnique")]
+    partial class ShortNameNotUnique
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.11");
+            modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -295,11 +297,6 @@ namespace mps.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("NormalizedName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("TEXT");
-
                     b.Property<int>("ShoppingListId")
                         .HasColumnType("INTEGER");
 
@@ -321,9 +318,6 @@ namespace mps.Migrations
                     b.HasIndex("UnitId");
 
                     b.HasIndex("Name", "ShoppingListId")
-                        .IsUnique();
-
-                    b.HasIndex("NormalizedName", "ShoppingListId")
                         .IsUnique();
 
                     b.ToTable("ShoppingListItems");
