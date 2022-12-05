@@ -91,9 +91,10 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             if (itemViewModel.Id != 0)
                 return new BadRequestObjectResult("Use item controller to update items");
 
+            var normalizedName = NameHelper.GetNormalizedName(itemViewModel.Name);
             var item = this.repo.ShoppingListItems
                 .Where(i => i.ShoppingListId == shoppingListId &&
-                       i.Name.ToLower() == itemViewModel.Name.ToLower())
+                       i.NormalizedName == normalizedName)
                 .SingleOrDefault();
 
             if (item == null)
@@ -148,9 +149,12 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     [HttpGet("{shoppingListId}/search/{pattern?}")]
     public IEnumerable<ShoppingListItemViewModel> SearchItems(int shoppingListId, string pattern = "")
     {
+        // replace umlauts
+        pattern = NameHelper.GetNormalizedName(pattern);
+
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
-                where i.Name.ToLower().Contains(pattern.ToLower())
+                where i.NormalizedName.Contains(pattern)
                 orderby i.Name
                 select i;
 

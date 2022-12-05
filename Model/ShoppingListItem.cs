@@ -9,6 +9,7 @@ namespace mps.Model
     /// Features like history, suggestions and statistics are also scoped to the parent list.
     /// </summary>
     [Index(nameof(Name), nameof(ShoppingListId), IsUnique = true)]
+    [Index(nameof(NormalizedName), nameof(ShoppingListId), IsUnique = true)]
     [Index(nameof(ShortName), nameof(ShoppingListId), IsUnique = true)]
     public class ShoppingListItem : IEntity
     {
@@ -23,6 +24,15 @@ namespace mps.Model
         [Required]
         [MaxLength(50)]
         public string Name { get; set; }
+
+        /// <summary>
+        /// Gets or sets a normalized version of the name that does not contain special chracters
+        /// and replaces umlauts with escape sequences.
+        /// displayed as "avatar".
+        /// </summary>
+        [Required]
+        [MaxLength(50)]
+        public string NormalizedName { get; set; }
 
         /// <summary>
         /// Gets or sets the unique short name for the item that will be 

@@ -1,3 +1,5 @@
+using System.Globalization;
+
 namespace mps.Infrastructure
 {
     public static class NameHelper
@@ -37,5 +39,12 @@ namespace mps.Infrastructure
             return (words[0].Substring(0, 1) + words[0].Substring(offset, 1)).ToUpper();
         }
 
+        public static string GetNormalizedName(string name){
+            name = name.Replace("ä", "ae", true, CultureInfo.InvariantCulture);
+            name = name.Replace("ü", "ue", true, CultureInfo.InvariantCulture);
+            name = name.Replace("ö", "oe", true, CultureInfo.InvariantCulture);
+            name = name.Replace("ß", "sz", true, CultureInfo.InvariantCulture);
+            return name.ToUpper();
+        }
     }
 }
