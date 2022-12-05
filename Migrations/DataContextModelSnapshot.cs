@@ -213,11 +213,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "b1922bc1-02f4-4118-93ed-11525e63019e",
+                            ConcurrencyStamp = "a48079e8-bc30-4082-951e-424b6a8d081c",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "22e04eed-6cc3-4ab8-a14a-6e72a905259c",
+                            SecurityStamp = "432f9f2f-5de2-4d97-817f-629b727fa8d6",
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });
@@ -316,9 +316,6 @@ namespace mps.Migrations
                     b.HasIndex("UnitId");
 
                     b.HasIndex("Name", "ShoppingListId")
-                        .IsUnique();
-
-                    b.HasIndex("ShortName", "ShoppingListId")
                         .IsUnique();
 
                     b.ToTable("ShoppingListItems");

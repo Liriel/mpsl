@@ -9,7 +9,6 @@ namespace mps.Model
     /// Features like history, suggestions and statistics are also scoped to the parent list.
     /// </summary>
     [Index(nameof(Name), nameof(ShoppingListId), IsUnique = true)]
-    [Index(nameof(ShortName), nameof(ShoppingListId), IsUnique = true)]
     public class ShoppingListItem : IEntity
     {
         [Key]
