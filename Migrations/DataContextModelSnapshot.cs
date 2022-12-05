@@ -15,7 +15,7 @@ namespace mps.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.8");
+            modelBuilder.HasAnnotation("ProductVersion", "6.0.11");
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -213,11 +213,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "b1922bc1-02f4-4118-93ed-11525e63019e",
+                            ConcurrencyStamp = "142c0c14-69ba-4ebc-93f5-42961c666243",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "22e04eed-6cc3-4ab8-a14a-6e72a905259c",
+                            SecurityStamp = "8e7a865d-3775-47ae-8e1d-16152941f0ae",
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });
@@ -295,6 +295,11 @@ namespace mps.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("NormalizedName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ShoppingListId")
                         .HasColumnType("INTEGER");
 
@@ -316,6 +321,9 @@ namespace mps.Migrations
                     b.HasIndex("UnitId");
 
                     b.HasIndex("Name", "ShoppingListId")
+                        .IsUnique();
+
+                    b.HasIndex("NormalizedName", "ShoppingListId")
                         .IsUnique();
 
                     b.HasIndex("ShortName", "ShoppingListId")
