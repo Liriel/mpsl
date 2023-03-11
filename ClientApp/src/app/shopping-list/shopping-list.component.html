@@ -6,30 +6,36 @@
         <span class="title">Supermarkt</span>
         <div class="spacer"></div>
         <div class="toolbar" *ngIf="(ConnState|async) == ConnectionState.Connected">
+            <button mat-icon-button type="button" class="toolbar-button" (click)="hideComplete = !hideComplete">
+                <mat-icon [ngClass]="{'hide-complete': hideComplete}">check_circle_outline</mat-icon>
+            </button>
             <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
                 <mat-icon>refresh</mat-icon>
             </button>
         </div>
     </div>
 
-    <div class="content" >
+    <div class="content">
         <!-- list items -->
         <div class="list" *ngIf="(ConnState|async) == ConnectionState.Connected">
-            <div *ngFor="let item of items; trackBy:getItemId" class="item" [ngClass]="{'done': item.done === true}">
-                <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
-                    (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
-                    [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
-                    (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0" (click)="openDialog(item)">
+            <ng-container *ngFor="let item of items; trackBy:getItemId">
+                <div *ngIf="!item.done || !hideComplete" class="item" [ngClass]="{'done': item.done === true}">
+                    <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
+                        (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
+                        [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
+                        (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
+                        (click)="openDialog(item)">
 
-                    <div class="avatar">{{item.shortName}}</div>
-                    <div class="item-info">
-                        <div class="item-header">{{item.name}}</div>
-                        <div class="item-hint">{{item.hint}}</div>
+                        <div class="avatar">{{item.shortName}}</div>
+                        <div class="item-info">
+                            <div class="item-header">{{item.name}}</div>
+                            <div class="item-hint">{{item.hint}}</div>
+                        </div>
+                        <div class="item-amount">{{item.amount}}</div>
+                        <div class="item-unit">{{item.unitShortName}}</div>
                     </div>
-                    <div class="item-amount">{{item.amount}}</div>
-                    <div class="item-unit">{{item.unitShortName}}</div>
                 </div>
-            </div>
+            </ng-container>
         </div>
 
         <!-- notification service connection lost info-->

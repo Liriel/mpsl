@@ -58,6 +58,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   options: string[] = ['One', 'Two', 'Three'];
   filteredItems: Observable<string[]>;
   filteredUnits: Observable<string[]>;
+  hideComplete: boolean = false;
 
   private windowConnState: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Connected);
 
