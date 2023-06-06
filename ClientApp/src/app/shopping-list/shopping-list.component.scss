@@ -109,6 +109,10 @@ $content-padding: 20px;
 
 .item-hint {
     font-size: 12px;
+    // display: inline-block;
+    &.short-name{
+        margin-right: 2px;
+    }
 }
 
 .item-header {

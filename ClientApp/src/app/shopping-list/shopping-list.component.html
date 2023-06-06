@@ -29,7 +29,11 @@
                         <div class="avatar">{{item.shortName}}</div>
                         <div class="item-info">
                             <div class="item-header">{{item.name}}</div>
-                            <div class="item-hint">{{item.hint}}</div>
+                            <div *ngIf="item.lastChangeByUserShowShortnameInList" class="item-hint short-name">
+                                {{item.lastChangeByUserShortName}}{{item.hint != null ? ':': ''}}
+                                {{item.hint}}
+                            </div>
+                            <div *ngIf="!item.lastChangeByUserShowShortnameInList" class="item-hint">{{item.hint}}</div>
                         </div>
                         <div class="item-amount">{{item.amount}}</div>
                         <div class="item-unit">{{item.unitShortName}}</div>

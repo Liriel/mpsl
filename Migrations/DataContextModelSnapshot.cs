@@ -190,6 +190,13 @@ namespace mps.Migrations
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("ShortName")
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("ShowShortnameInList")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("INTEGER");
 
@@ -213,11 +220,12 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "bc8c97bc-9403-46ec-a860-6874fd750ca4",
+                            ConcurrencyStamp = "90fa7c0d-fed5-4b49-bf0e-40dc51e9f884",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "b91ede7a-21f5-4d52-a5cd-6bc41e6358b5",
+                            SecurityStamp = "f5f731cc-43b3-4140-9145-1603a91bfd21",
+                            ShowShortnameInList = false,
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });

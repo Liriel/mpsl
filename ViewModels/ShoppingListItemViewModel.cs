@@ -12,6 +12,10 @@ namespace mps.ViewModels
 
         public string ShortName { get; set; }
 
+        public string LastChangeByUserShortName { get; set; }
+
+        public bool LastChangeByUserShowShortnameInList { get; set; }
+
         public int? Amount { get; set; }
 
         public string UnitShortName { get; set; }
