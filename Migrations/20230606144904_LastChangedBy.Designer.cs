@@ -11,7 +11,7 @@ using mps.Model;
 namespace mps.Migrations
 {
     [DbContext(typeof(DataContext))]
-    [Migration("20230606141614_LastChangedBy")]
+    [Migration("20230606144904_LastChangedBy")]
     partial class LastChangedBy
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -215,11 +215,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "32403c07-e1b3-4165-a56e-a4b6bdc58711",
+                            ConcurrencyStamp = "bc8c97bc-9403-46ec-a860-6874fd750ca4",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "fcf6fd07-4f04-448d-8e79-a034b515df6a",
+                            SecurityStamp = "b91ede7a-21f5-4d52-a5cd-6bc41e6358b5",
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });
@@ -258,9 +258,6 @@ namespace mps.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("LastChangeByUserId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -270,8 +267,6 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("LastChangeByUserId");
 
                     b.HasIndex("OwnerUserKey");
 
@@ -287,10 +282,16 @@ namespace mps.Migrations
                     b.Property<DateTime>("AddDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("AddedByUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<int?>("Amount")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime?>("CheckDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CheckedByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Hint")
@@ -298,6 +299,9 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastChangeByUserId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastChangedDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -326,6 +330,10 @@ namespace mps.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AddedByUserId");
+
+                    b.HasIndex("CheckedByUserId");
+
                     b.HasIndex("LastChangeByUserId");
 
                     b.HasIndex("ShoppingListId");
@@ -344,9 +352,6 @@ namespace mps.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("LastChangeByUserId")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("Name")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
@@ -357,8 +362,6 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("LastChangeByUserId");
 
                     b.HasIndex("ShortName")
                         .IsUnique();
@@ -462,21 +465,23 @@ namespace mps.Migrations
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>
                 {
-                    b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
-                        .WithMany()
-                        .HasForeignKey("LastChangeByUserId");
-
                     b.HasOne("mps.Model.ApplicationUser", "OwnerUser")
                         .WithMany()
                         .HasForeignKey("OwnerUserKey");
-
-                    b.Navigation("LastChangeByUser");
 
                     b.Navigation("OwnerUser");
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingListItem", b =>
                 {
+                    b.HasOne("mps.Model.ApplicationUser", "AddedByUser")
+                        .WithMany()
+                        .HasForeignKey("AddedByUserId");
+
+                    b.HasOne("mps.Model.ApplicationUser", "CheckedByUser")
+                        .WithMany()
+                        .HasForeignKey("CheckedByUserId");
+
                     b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
                         .WithMany()
                         .HasForeignKey("LastChangeByUserId");
@@ -491,20 +496,15 @@ namespace mps.Migrations
                         .WithMany()
                         .HasForeignKey("UnitId");
 
+                    b.Navigation("AddedByUser");
+
+                    b.Navigation("CheckedByUser");
+
                     b.Navigation("LastChangeByUser");
 
                     b.Navigation("ShoppingList");
 
                     b.Navigation("Unit");
-                });
-
-            modelBuilder.Entity("mps.Model.Unit", b =>
-                {
-                    b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
-                        .WithMany()
-                        .HasForeignKey("LastChangeByUserId");
-
-                    b.Navigation("LastChangeByUser");
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>

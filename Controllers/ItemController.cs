@@ -18,11 +18,13 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
     private readonly IMapper mapper;
     private readonly IUnitService unitService;
     private readonly INotificationService notificationService;
+    private readonly IUserIdentityService userIdentityService;
 
     public ItemController(IEntityService<ShoppingListItem> entitySvc, IRepository repo, ILogger<ItemController> logger, IMapper mapper, IUnitService unitService,
-        INotificationService notificationService)
+        INotificationService notificationService, IUserIdentityService userIdentityService)
         : base(entitySvc, repo, logger, mapper)
     {
+        this.userIdentityService = userIdentityService;
         this.notificationService = notificationService;
         this.unitService = unitService;
         this.repo = repo;
@@ -52,11 +54,13 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
         {
             item.Status = ItemState.Checked;
             item.CheckDate = DateTime.Now;
+            item.CheckedByUserId = this.userIdentityService.CurrentUserId;
         }
         else
         {
             item.Status = ItemState.Open;
             item.CheckDate = null;
+            item.CheckedByUserId = null;
         }
 
         this.repo.SaveChanges();
