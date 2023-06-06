@@ -4,11 +4,8 @@ using Microsoft.EntityFrameworkCore;
 namespace mps.Model
 {
     [Index(nameof(ShortName), IsUnique = true)]
-    public class Unit : IEntity
+    public class Unit : EntityBase
     {
-        [Key]
-        public int Id { get; set; }
-
         [Required]
         [MaxLength(5)]
         public string ShortName { get; set; }

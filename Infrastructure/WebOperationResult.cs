@@ -9,7 +9,7 @@ namespace mps.Infrastructure{
     /// Extends the <see="EntityOperationResult" /> with ModelState handling.
     /// </summary>
     public class WebOperationResult<TEditViewModel, TEntity> : OperationResult<TEditViewModel>
-        where TEntity : class, IEntity
+        where TEntity : EntityBase
         where TEditViewModel : EditViewModel, new()
     {
         public WebOperationResult()

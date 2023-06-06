@@ -27,7 +27,7 @@ namespace mps.Controllers
     [Authorize]
     [ApiController]
     public class EntityController<TEntity, TEditViewModel, TListViewModel> : Controller
-        where TEntity : class, IEntity
+        where TEntity : EntityBase
         where TEditViewModel : EditViewModel, new()
     {
         private readonly IRepository repo;

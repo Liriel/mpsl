@@ -14,16 +14,16 @@ namespace mps.Services
         IQueryable<IdentityRole> Roles { get; }
         IQueryable<IdentityUserRole<string>> UserRoles { get; }
 
-        T Find<T>(int id) where T : class, IEntity;
+        T Find<T>(int id) where T : EntityBase;
 
-        void Add<T>(T entity) where T : class, IEntity;
+        void Add<T>(T entity) where T : EntityBase;
 
         int GetUserCount();
 
-        void Remove<T>(T entity) where T : class, IEntity;
+        void Remove<T>(T entity) where T : EntityBase;
 
         void SaveChanges();
 
-        IQueryable<T> GetEntities<T>() where T : class, IEntity;
+        IQueryable<T> GetEntities<T>() where T : EntityBase;
     }
 }

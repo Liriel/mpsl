@@ -4,7 +4,7 @@ using System.Collections.Specialized;
 
 namespace mps.Infrastructure
 {
-    public class EntityOperationResult<TEntity> : OperationResult<TEntity> where TEntity : class, IEntity
+    public class EntityOperationResult<TEntity> : OperationResult<TEntity> where TEntity : EntityBase
     {
         public EntityOperationResult(params ValidationError[] validationErrors)
         : base(validationErrors)

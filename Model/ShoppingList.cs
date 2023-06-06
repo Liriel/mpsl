@@ -4,11 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace mps.Model
 {
-    public class ShoppingList : IEntity
+    public class ShoppingList : EntityBase
     {
-        [Key]
-        public int Id { get; set; }
-
         [MaxLength(255)]
         [Required]
         public string Name { get; set; }

@@ -6,7 +6,7 @@ using mps.Infrastructure;
 
 namespace mps.Services
 {
-    public class EntityService<T> : IEntityService<T> where T : class, IEntity
+    public class EntityService<T> : IEntityService<T> where T : EntityBase
     {
         protected readonly IRepository repo;
 

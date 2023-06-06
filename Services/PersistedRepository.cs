@@ -41,7 +41,7 @@ namespace mps.Services
 
             foreach (EntityEntry dbEntityEntry in this.context.ChangeTracker.Entries())
             {
-                var entity = dbEntityEntry.Entity as IEntity;
+                var entity = dbEntityEntry.Entity as EntityBase;
                 if (entity == null)
                 {
                     continue;
@@ -65,24 +65,24 @@ namespace mps.Services
             this.context.SaveChanges();
         }
 
-        public void Add<T>(T entity) where T : class, IEntity
+        public void Add<T>(T entity) where T : EntityBase
         {
             this.context.Add<T>(entity);
         }
 
-        public IQueryable<T> GetEntities<T>() where T : class, IEntity => this.context.Set<T>().AsQueryable();
+        public IQueryable<T> GetEntities<T>() where T : EntityBase => this.context.Set<T>().AsQueryable();
 
         public int GetUserCount()
         {
             return this.context.Users.Where(u => u.Id != Constants.SYSUSER_ID).Count();
         }
 
-        public void Remove<T>(T entity) where T : class, IEntity
+        public void Remove<T>(T entity) where T : EntityBase
         {
             this.context.Remove<T>(entity);
         }
 
-        public T Find<T>(int id) where T : class, IEntity
+        public T Find<T>(int id) where T : EntityBase
         {
             var result = this.context.Find(typeof(T), id);
             if (result == null)
