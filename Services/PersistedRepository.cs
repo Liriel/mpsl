@@ -35,30 +35,24 @@ namespace mps.Services
             var currentUser = this.GetUserByName(this.identityService.CurrentUserName);
             if (currentUser == null)
             {
-                // HACK: fallback to system user
+                // fallback to system user
                 currentUser = this.Users.Single(u => u.Id == Constants.SYSUSER_ID);
             }
 
+            var timestamp = DateTime.Now;
             foreach (EntityEntry dbEntityEntry in this.context.ChangeTracker.Entries())
             {
-                var entity = dbEntityEntry.Entity as EntityBase;
+                var entity = dbEntityEntry.Entity as ITrackLastChange;
                 if (entity == null)
                 {
                     continue;
                 }
 
-                if (dbEntityEntry.State == EntityState.Added)
-                {
-                    // TODO: uncomment or delete
-                    // entity.CreatedBy = currentUser;
-                    // entity.CreationDate = DateTime.Now;
-                }
+                if ((dbEntityEntry.State == EntityState.Modified) || (dbEntityEntry.State == EntityState.Added)){
 
-                if ((dbEntityEntry.State == EntityState.Modified) || (dbEntityEntry.State == EntityState.Added))
-                {
-                    // TODO: uncomment or delete
-                    // entity.LastChangedBy = currentUser;
-                    // entity.LastChangedDate = DateTime.Now;
+                    // set the last changed user
+                    entity.LastChangeByUserId = currentUser.Id;
+                    entity.LastChangedDate = timestamp;
                 }
             }
 

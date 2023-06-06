@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -8,19 +9,15 @@ namespace mps.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_ShoppingListItems_NormalizedName_ShoppingListId",
-                table: "ShoppingListItems");
-
             migrationBuilder.AddColumn<string>(
-                name: "LastChangeByUserId",
-                table: "Units",
+                name: "AddedByUserId",
+                table: "ShoppingListItems",
                 type: "TEXT",
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
-                name: "LastChangeByUserId",
-                table: "ShoppingLists",
+                name: "CheckedByUserId",
+                table: "ShoppingListItems",
                 type: "TEXT",
                 nullable: true);
 
@@ -30,22 +27,36 @@ namespace mps.Migrations
                 type: "TEXT",
                 nullable: true);
 
+            migrationBuilder.AddColumn<DateTime>(
+                name: "LastChangedDate",
+                table: "ShoppingListItems",
+                type: "TEXT",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "NormalizedName",
+                table: "ShoppingListItems",
+                type: "TEXT",
+                maxLength: 50,
+                nullable: false,
+                defaultValue: "");
+
             migrationBuilder.UpdateData(
                 table: "AspNetUsers",
                 keyColumn: "Id",
                 keyValue: "00000000-0000-0000-0000-000000000000",
                 columns: new[] { "ConcurrencyStamp", "SecurityStamp" },
-                values: new object[] { "32403c07-e1b3-4165-a56e-a4b6bdc58711", "fcf6fd07-4f04-448d-8e79-a034b515df6a" });
+                values: new object[] { "bc8c97bc-9403-46ec-a860-6874fd750ca4", "b91ede7a-21f5-4d52-a5cd-6bc41e6358b5" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Units_LastChangeByUserId",
-                table: "Units",
-                column: "LastChangeByUserId");
+                name: "IX_ShoppingListItems_AddedByUserId",
+                table: "ShoppingListItems",
+                column: "AddedByUserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ShoppingLists_LastChangeByUserId",
-                table: "ShoppingLists",
-                column: "LastChangeByUserId");
+                name: "IX_ShoppingListItems_CheckedByUserId",
+                table: "ShoppingListItems",
+                column: "CheckedByUserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ShoppingListItems_LastChangeByUserId",
@@ -53,22 +64,22 @@ namespace mps.Migrations
                 column: "LastChangeByUserId");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_ShoppingListItems_AspNetUsers_AddedByUserId",
+                table: "ShoppingListItems",
+                column: "AddedByUserId",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ShoppingListItems_AspNetUsers_CheckedByUserId",
+                table: "ShoppingListItems",
+                column: "CheckedByUserId",
+                principalTable: "AspNetUsers",
+                principalColumn: "Id");
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_ShoppingListItems_AspNetUsers_LastChangeByUserId",
                 table: "ShoppingListItems",
-                column: "LastChangeByUserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_ShoppingLists_AspNetUsers_LastChangeByUserId",
-                table: "ShoppingLists",
-                column: "LastChangeByUserId",
-                principalTable: "AspNetUsers",
-                principalColumn: "Id");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_Units_AspNetUsers_LastChangeByUserId",
-                table: "Units",
                 column: "LastChangeByUserId",
                 principalTable: "AspNetUsers",
                 principalColumn: "Id");
@@ -77,39 +88,47 @@ namespace mps.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
-                name: "FK_ShoppingListItems_AspNetUsers_LastChangeByUserId",
+                name: "FK_ShoppingListItems_AspNetUsers_AddedByUserId",
                 table: "ShoppingListItems");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_ShoppingLists_AspNetUsers_LastChangeByUserId",
-                table: "ShoppingLists");
+                name: "FK_ShoppingListItems_AspNetUsers_CheckedByUserId",
+                table: "ShoppingListItems");
 
             migrationBuilder.DropForeignKey(
-                name: "FK_Units_AspNetUsers_LastChangeByUserId",
-                table: "Units");
+                name: "FK_ShoppingListItems_AspNetUsers_LastChangeByUserId",
+                table: "ShoppingListItems");
 
             migrationBuilder.DropIndex(
-                name: "IX_Units_LastChangeByUserId",
-                table: "Units");
+                name: "IX_ShoppingListItems_AddedByUserId",
+                table: "ShoppingListItems");
 
             migrationBuilder.DropIndex(
-                name: "IX_ShoppingLists_LastChangeByUserId",
-                table: "ShoppingLists");
+                name: "IX_ShoppingListItems_CheckedByUserId",
+                table: "ShoppingListItems");
 
             migrationBuilder.DropIndex(
                 name: "IX_ShoppingListItems_LastChangeByUserId",
                 table: "ShoppingListItems");
 
             migrationBuilder.DropColumn(
-                name: "LastChangeByUserId",
-                table: "Units");
+                name: "AddedByUserId",
+                table: "ShoppingListItems");
+
+            migrationBuilder.DropColumn(
+                name: "CheckedByUserId",
+                table: "ShoppingListItems");
 
             migrationBuilder.DropColumn(
                 name: "LastChangeByUserId",
-                table: "ShoppingLists");
+                table: "ShoppingListItems");
 
             migrationBuilder.DropColumn(
-                name: "LastChangeByUserId",
+                name: "LastChangedDate",
+                table: "ShoppingListItems");
+
+            migrationBuilder.DropColumn(
+                name: "NormalizedName",
                 table: "ShoppingListItems");
 
             migrationBuilder.UpdateData(
@@ -118,12 +137,6 @@ namespace mps.Migrations
                 keyValue: "00000000-0000-0000-0000-000000000000",
                 columns: new[] { "ConcurrencyStamp", "SecurityStamp" },
                 values: new object[] { "a48079e8-bc30-4082-951e-424b6a8d081c", "432f9f2f-5de2-4d97-817f-629b727fa8d6" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ShoppingListItems_NormalizedName_ShoppingListId",
-                table: "ShoppingListItems",
-                columns: new[] { "NormalizedName", "ShoppingListId" },
-                unique: true);
         }
     }
 }

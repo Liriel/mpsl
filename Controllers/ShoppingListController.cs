@@ -18,11 +18,13 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly IMapper mapper;
     private readonly IUnitService unitService;
     private readonly IEntityService<ShoppingListItem> itemService;
+    private readonly IUserIdentityService userIdentityService;
 
     public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService,
-        IEntityService<ShoppingListItem> itemService)
+        IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService)
         : base(entitySvc, repo, logger, mapper)
     {
+        this.userIdentityService = userIdentityService;
         this.itemService = itemService;
         this.unitService = unitService;
         this.repo = repo;
@@ -116,6 +118,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             }
 
             item.AddDate = DateTime.Now;
+            item.AddedByUserId = this.userIdentityService.CurrentUserId;
             var saveResult = this.itemService.AddOrUpdate(item);
 
             result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(mapper, saveResult);

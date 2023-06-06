@@ -9,7 +9,7 @@ namespace mps.Model
     /// Features like history, suggestions and statistics are also scoped to the parent list.
     /// </summary>
     [Index(nameof(Name), nameof(ShoppingListId), IsUnique = true)]
-    public class ShoppingListItem : EntityBase
+    public class ShoppingListItem : EntityBase, ITrackLastChange
     {
         public int ShoppingListId { get; set; }
         
@@ -66,6 +66,11 @@ namespace mps.Model
         /// </remarks
         public DateTime? CheckDate { get; set; }
 
+        public string CheckedByUserId { get; set; }
+
+        [ForeignKey(nameof(CheckedByUserId))]
+        public virtual ApplicationUser CheckedByUser { get; set; }
+
 
         /// <summary>
         /// Gets or sets a property indicating the last time the item was added to the shopping list.
@@ -75,9 +80,31 @@ namespace mps.Model
         /// </remarks
         public DateTime AddDate { get; set; }
 
+        public string AddedByUserId { get; set; }
+
+        [ForeignKey(nameof(AddedByUserId))]
+        public virtual ApplicationUser AddedByUser { get; set; }
+
+        /// <summary>
+        /// Gets or sets the user that made the last change to the item.
+        /// </summary>
+        [ForeignKey(nameof(LastChangeByUserId))]
+        public virtual ApplicationUser LastChangeByUser { get; set; }
+
+        /// <summary>
+        /// Gets or sets the ID of user that made the last change to the item.
+        /// </summary>
+        /// <remarks>
+        /// Nullable since the field was introduced in a later version. Should not be 
+        /// null tough.
+        /// </remarks
+        public string LastChangeByUserId { get; set; }
+        public DateTime? LastChangedDate { get; set; }
+
         /// <summary>
         /// A complete record of the times the item was wanted on the list.
         /// </summary>
         public virtual ICollection<ItemHistory> History {get; set;}
+
     }
 }
