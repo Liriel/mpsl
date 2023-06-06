@@ -4,7 +4,7 @@ using mps.Infrastructure;
 
 namespace mps.Services
 {
-    public interface IEntityService<TEntity> where TEntity : class, IEntity
+    public interface IEntityService<TEntity> where TEntity : EntityBase
     {
         EntityOperationResult<TEntity> Validate(TEntity entity);
 

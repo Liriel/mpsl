@@ -213,11 +213,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "a48079e8-bc30-4082-951e-424b6a8d081c",
+                            ConcurrencyStamp = "32403c07-e1b3-4165-a56e-a4b6bdc58711",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "432f9f2f-5de2-4d97-817f-629b727fa8d6",
+                            SecurityStamp = "fcf6fd07-4f04-448d-8e79-a034b515df6a",
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
                         });
@@ -256,6 +256,9 @@ namespace mps.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LastChangeByUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -265,6 +268,8 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LastChangeByUserId");
 
                     b.HasIndex("OwnerUserKey");
 
@@ -288,6 +293,9 @@ namespace mps.Migrations
 
                     b.Property<string>("Hint")
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastChangeByUserId")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
@@ -316,14 +324,13 @@ namespace mps.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("LastChangeByUserId");
+
                     b.HasIndex("ShoppingListId");
 
                     b.HasIndex("UnitId");
 
                     b.HasIndex("Name", "ShoppingListId")
-                        .IsUnique();
-
-                    b.HasIndex("NormalizedName", "ShoppingListId")
                         .IsUnique();
 
                     b.ToTable("ShoppingListItems");
@@ -335,6 +342,9 @@ namespace mps.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("LastChangeByUserId")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
@@ -345,6 +355,8 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LastChangeByUserId");
 
                     b.HasIndex("ShortName")
                         .IsUnique();
@@ -448,15 +460,25 @@ namespace mps.Migrations
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>
                 {
+                    b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
+                        .WithMany()
+                        .HasForeignKey("LastChangeByUserId");
+
                     b.HasOne("mps.Model.ApplicationUser", "OwnerUser")
                         .WithMany()
                         .HasForeignKey("OwnerUserKey");
+
+                    b.Navigation("LastChangeByUser");
 
                     b.Navigation("OwnerUser");
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingListItem", b =>
                 {
+                    b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
+                        .WithMany()
+                        .HasForeignKey("LastChangeByUserId");
+
                     b.HasOne("mps.Model.ShoppingList", "ShoppingList")
                         .WithMany("Items")
                         .HasForeignKey("ShoppingListId")
@@ -467,9 +489,20 @@ namespace mps.Migrations
                         .WithMany()
                         .HasForeignKey("UnitId");
 
+                    b.Navigation("LastChangeByUser");
+
                     b.Navigation("ShoppingList");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("mps.Model.Unit", b =>
+                {
+                    b.HasOne("mps.Model.ApplicationUser", "LastChangeByUser")
+                        .WithMany()
+                        .HasForeignKey("LastChangeByUserId");
+
+                    b.Navigation("LastChangeByUser");
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>

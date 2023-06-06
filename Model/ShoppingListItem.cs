@@ -9,11 +9,8 @@ namespace mps.Model
     /// Features like history, suggestions and statistics are also scoped to the parent list.
     /// </summary>
     [Index(nameof(Name), nameof(ShoppingListId), IsUnique = true)]
-    public class ShoppingListItem : IEntity
+    public class ShoppingListItem : EntityBase
     {
-        [Key]
-        public int Id { get; set; }
-
         public int ShoppingListId { get; set; }
         
         [ForeignKey(nameof(ShoppingListId))]
