@@ -12,4 +12,6 @@ export class ShoppingListItem extends ModelBase<ShoppingListItem> implements IEn
   public offsetX: number;
   public done: boolean;
   public animateFlyInOut: string;
+  public lastChangeByUserShortName: string;
+  public lastChangeByUserShowShortnameInList: boolean;
 }
