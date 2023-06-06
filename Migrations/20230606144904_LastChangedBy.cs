@@ -33,14 +33,6 @@ namespace mps.Migrations
                 type: "TEXT",
                 nullable: true);
 
-            migrationBuilder.AddColumn<string>(
-                name: "NormalizedName",
-                table: "ShoppingListItems",
-                type: "TEXT",
-                maxLength: 50,
-                nullable: false,
-                defaultValue: "");
-
             migrationBuilder.UpdateData(
                 table: "AspNetUsers",
                 keyColumn: "Id",
