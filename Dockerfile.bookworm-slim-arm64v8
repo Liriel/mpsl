@@ -1,10 +1,10 @@
 # https://hub.docker.com/_/microsoft-dotnet
-FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
 COPY *.csproj ./
-RUN dotnet restore -r alpine-arm64
+RUN dotnet restore -r linux-arm64
 
 # copy everything else and build app
 COPY *.cs* app*.json ./ 
@@ -23,7 +23,7 @@ COPY ViewModels/ ./ViewModels/
 RUN dotnet publish -c release -o /app -r linux-arm64 --self-contained true
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/aspnet:6.0-bullseye-slim-arm64v8
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-bookworm-slim-arm64v8
 
 LABEL maintainer="lassi@heisl.org"
 LABEL version="0.1"
