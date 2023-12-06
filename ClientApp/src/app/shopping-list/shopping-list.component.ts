@@ -13,6 +13,7 @@ import { Unit } from '../models/Unit';
 import { ConnectionState } from '../services/ConnectionState';
 import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
+import { ShoppingList } from '../models/ShoppingList';
 
 @Component({
   selector: 'app-shopping-list',
@@ -44,6 +45,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
   public shoppingListId: number = 0;
   public ConnState: Observable<ConnectionState>;
+  public shoppingListName: Observable<string>;
 
   // make enum available in template
   public ConnectionState: typeof ConnectionState = ConnectionState;
@@ -69,6 +71,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     private dialog: MatDialog
   ) {
     this.shoppingListId = +this.route.snapshot.paramMap.get('id');
+    this.shoppingListName = this.repo.GetEntity<ShoppingList>("ShoppingList", this.shoppingListId).pipe(
+      map(r => r.name)
+    );
     this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
     this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
     this.ConnState = merge(this.notificationService.ConnectionState, this.windowConnState);
@@ -116,6 +121,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+
     this.filteredItems = merge(this.formGroup.get("name").valueChanges, this.OnFormReset).pipe(
       startWith(''),
       // filter(value => value != ''),
