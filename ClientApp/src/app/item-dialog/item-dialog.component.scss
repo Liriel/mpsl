@@ -3,7 +3,7 @@
 }
 
 .content-container{
-    height: 260px;
+    //height: 260px;
     overflow: hidden;
 }
 
@@ -19,7 +19,10 @@
         flex:1;
     }
     button[mat-button]{
-        width: 75px;
+        width: 100px;
+    }
+    button[mat-raised-button]{
+        width: 100px;
     }
 }
 
@@ -29,11 +32,8 @@
     left:0;
     top:0;
     width: 100%;
-}
-
-.button-container{
-    position: relative;
-    width: 100%;
+    margin-top: 10px;
+    align-items: center;
 }
 
 .confirm{

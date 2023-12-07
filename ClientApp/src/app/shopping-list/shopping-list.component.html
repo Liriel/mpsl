@@ -68,12 +68,12 @@
                 </mat-autocomplete>
             </mat-form-field>
             <mat-form-field style="max-width: 50px;">
-                <mat-label>Amnt</mat-label>
+                <!-- <mat-label>#</mat-label> -->
                 <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
             </mat-form-field>
             <mat-form-field style="max-width: 50px;">
-                <mat-label>Unit</mat-label>
-                <input type="text" placeholder="Stk" aria-label="Unit" matInput formControlName="unitShortName"
+                <!-- <mat-label>Unit</mat-label> -->
+                <input type="text" aria-label="Unit" matInput formControlName="unitShortName"
                     [matAutocomplete]="autoUnits">
                 <mat-autocomplete #autoUnits="matAutocomplete">
                     <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
@@ -81,7 +81,7 @@
                     </mat-option>
                 </mat-autocomplete>
             </mat-form-field>
-            <button mat-icon-button color="primary" aria-label="Add to the shopping list" (click)="save()">
+            <button mat-icon-button color="primary" class="add-button" aria-label="Add to the shopping list" (click)="save()">
                 <mat-icon>add</mat-icon>
             </button>
         </form>

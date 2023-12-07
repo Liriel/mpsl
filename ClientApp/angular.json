@@ -66,7 +66,7 @@
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "800kb",
+                  "maximumWarning": "1mb",
                   "maximumError": "1.5mb"
                 },
                 {
@@ -98,11 +98,11 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "browserTarget": "mpsClient:build:production"
+              "buildTarget": "mpsClient:build:production"
             },
             "development": {
-              "browserTarget": "mpsClient:build:development",
-              "proxyConfig": "proxy.conf.js"
+              "proxyConfig": "proxy.conf.js",
+              "buildTarget": "mpsClient:build:development"
             }
           },
           "defaultConfiguration": "development"
@@ -110,7 +110,7 @@
         "extract-i18n": {
           "builder": "@angular-devkit/build-angular:extract-i18n",
           "options": {
-            "browserTarget": "mpsClient:build"
+            "buildTarget": "mpsClient:build"
           },
           "server": {
             "builder": "@angular-devkit/build-angular:server",
