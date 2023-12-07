@@ -1,6 +1,6 @@
 @use "variables" as vars;
 
-$content-padding: 20px;
+$content-padding: 15px;
 
 @mixin scrollbars($size: 10px,
     $foreground-color: #999,
@@ -121,7 +121,7 @@ $content-padding: 20px;
 
 .header-footer {
     margin-top: 5px;
-    margin-left: 15px;
+    margin-left: 5px;
     max-width: 440px;
     width: calc(100% - $content-padding);
 
@@ -157,6 +157,10 @@ $content-padding: 20px;
     mat-form-field:not(:last-child) {
         margin-right: 3px;
     }
+}
+
+.add-button{
+    margin-top: 5px;
 }
 
 .connection-info {

@@ -3,6 +3,7 @@
 @use '@angular/material' as mat;
 // Plus imports for other components in your app.
 
+
 // Define the palettes for your theme using the Material Design palettes available in palette.scss
 // (imported above). For each palette, you can optionally specify a default, lighter, and darker
 // hue. Available color palettes: https://material.io/design/color/
@@ -21,6 +22,7 @@ $theme: mat.define-dark-theme(
       accent: $theme-accent,
       warn: $theme-warn,
     ),
+    density: -1,
   )
 );
 

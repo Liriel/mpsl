@@ -30,7 +30,7 @@
         </mat-error>
       </mat-form-field>
 
-      <mat-form-field style="max-width: 50px;">
+      <mat-form-field style="max-width: 75px;">
         <mat-label>Unit</mat-label>
         <input matInput formControlName="unitShortName">
         <mat-error *ngIf="formGroup.controls['unitShortName'].hasError('maxlength')">
@@ -41,24 +41,22 @@
     </div>
 
     <div mat-dialog-actions class="flex-row">
-      <div class="button-container">
-        <div [@flyInOut]="flyInOut" class="slider">
-          <button mat-icon-button (click)="flyInOut = 'out'" type="button" aria-label="Remove from list or delete">
-            <mat-icon>delete</mat-icon>
-          </button>
-          <div class="spacer"></div>
-          <button mat-button (click)="onNoClick()">Cancel</button>
-          <button mat-button color="primary" type="submit" [disabled]="!formGroup.valid">OK</button>
+      <div [@flyInOut]="flyInOut" class="slider">
+        <button mat-icon-button (click)="flyInOut = 'out'" type="button" aria-label="Remove from list or delete">
+          <mat-icon>delete</mat-icon>
+        </button>
+        <div class="spacer"></div>
+        <button mat-button (click)="onNoClick()">Cancel</button>
+        <button mat-raised-button color="primary" type="submit" [disabled]="!formGroup.valid">OK</button>
+      </div>
+      <div [@flyOutIn]="flyInOut" class="slider" style="left: -150%">
+        <div class="confirm">
+          <mat-error>Are you sure?</mat-error>
         </div>
-        <div [@flyOutIn]="flyInOut" class="slider" style="left: -150%">
-          <div class="confirm">
-            <mat-error>Are you sure?</mat-error>
-          </div>
-          <button mat-button (click)="flyInOut = 'in'" type="button">Cancel</button>
-          <div class="spacer"></div>
-          <button mat-button (click)="onDeleteClick()" color="warn" type="button">Delete</button>
-          <button mat-button (click)="onRemoveClick()" color="primary" type="button" >Remove</button>
-        </div>
+        <button mat-button (click)="flyInOut = 'in'" type="button">Cancel</button>
+        <div class="spacer"></div>
+        <button mat-button (click)="onDeleteClick()" color="warn" type="button">Delete</button>
+        <button mat-raised-button (click)="onRemoveClick()" color="primary" type="button">Remove</button>
       </div>
     </div>
   </form>
