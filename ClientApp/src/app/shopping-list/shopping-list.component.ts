@@ -18,7 +18,7 @@ import { ShoppingList } from '../models/ShoppingList';
 @Component({
   selector: 'app-shopping-list',
   templateUrl: './shopping-list.component.html',
-  styleUrls: ['./shopping-list.component.scss', './dot-pulse.scss'],
+  styleUrls: ['./shopping-list.component.scss', './dot-pulse.scss', '../shared-list-item.scss'],
   animations: [
     trigger("flyInOut", [
       state("start", style({ left: 0 })),
@@ -57,7 +57,6 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     amount: new FormControl(''),
     unitShortName: new FormControl('')
   });
-  options: string[] = ['One', 'Two', 'Three'];
   filteredItems: Observable<string[]>;
   filteredUnits: Observable<string[]>;
   hideComplete: boolean = false;

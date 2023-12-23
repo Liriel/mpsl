@@ -24,6 +24,11 @@ $content-padding: 15px;
     scrollbar-color: $foreground-color $background-color;
 }
 
+.outer-container{
+    display: flex;
+    justify-content: center;
+}
+
 .container {
     $top-padding: 5px;
     display: flex;
@@ -65,12 +70,6 @@ $content-padding: 15px;
     padding: 5px;
 }
 
-.item {
-    font-size: 20px;
-    color: rgb(126, 146, 160);
-    padding-bottom: 10px;
-}
-
 .swipeable {
     display: flex;
     align-items: center;
@@ -89,10 +88,6 @@ $content-padding: 15px;
     border-bottom: 1px solid rgb(145, 146, 148);
 }
 
-.item:not(:first-child) {
-    margin-top: 10px;
-}
-
 .avatar {
     border: 1px solid vars.$ui-raised-border;
     border-radius: 50%;
@@ -101,22 +96,6 @@ $content-padding: 15px;
     text-align: center;
     line-height: 40px;
     margin-right: 10px;
-}
-
-.item-info {
-    flex: 1;
-}
-
-.item-hint {
-    font-size: 12px;
-    // display: inline-block;
-    &.short-name{
-        margin-right: 2px;
-    }
-}
-
-.item-header {
-    color: vars.$foreground-text-color;
 }
 
 .header-footer {
@@ -130,6 +109,18 @@ $content-padding: 15px;
     }
 }
 
+// recommendations panel
+.panel-header{
+    margin-top: 65px;
+    .title{
+        border-bottom: thin solid;
+    }
+}
+
+.panel-container{
+    margin-left: 20px;
+
+}
 
 .title {
     font-weight: 200;

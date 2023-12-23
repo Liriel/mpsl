@@ -1,90 +1,101 @@
-<div class="container" [app-loading]="isLoading|async">
-    <div class="header-footer header">
-        <button mat-icon-button type="button" class="toolbar-button" routerLink="/">
-            <mat-icon>navigate_before</mat-icon>
-        </button>
-        <span class="title">{{shoppingListName|async}}</span>
-        <div class="spacer"></div>
-        <div class="toolbar" *ngIf="(ConnState|async) == ConnectionState.Connected">
-            <button mat-icon-button type="button" class="toolbar-button" (click)="hideComplete = !hideComplete">
-                <mat-icon [ngClass]="{'hide-complete': hideComplete}">check_circle_outline</mat-icon>
+<div class="outer-container">
+
+    <div class="container" [app-loading]="isLoading|async">
+        <div class="header-footer header">
+            <button mat-icon-button type="button" class="toolbar-button" routerLink="/">
+                <mat-icon>navigate_before</mat-icon>
             </button>
-            <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
-                <mat-icon>refresh</mat-icon>
-            </button>
-        </div>
-    </div>
-
-    <div class="content">
-        <!-- list items -->
-        <div class="list" *ngIf="(ConnState|async) == ConnectionState.Connected">
-            <ng-container *ngFor="let item of items; trackBy:getItemId">
-                <div *ngIf="!item.done || !hideComplete" class="item" [ngClass]="{'done': item.done === true}">
-                    <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
-                        (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
-                        [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
-                        (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
-                        (click)="openDialog(item)">
-
-                        <div class="avatar">{{item.shortName}}</div>
-                        <div class="item-info">
-                            <div class="item-header">{{item.name}}</div>
-                            <div *ngIf="item.lastChangeByUserShowShortnameInList" class="item-hint short-name">
-                                {{item.lastChangeByUserShortName}}{{item.hint != null ? ':': ''}}
-                                {{item.hint}}
-                            </div>
-                            <div *ngIf="!item.lastChangeByUserShowShortnameInList" class="item-hint">{{item.hint}}</div>
-                        </div>
-                        <div class="item-amount">{{item.amount}}</div>
-                        <div class="item-unit">{{item.unitShortName}}</div>
-                    </div>
-                </div>
-            </ng-container>
-        </div>
-
-        <!-- notification service connection lost info-->
-        <div class="connection-info" *ngIf="(ConnState|async) != ConnectionState.Connected">
-            <div class="nc">
-                <mat-icon>sensors_off</mat-icon>
+            <span class="title">{{shoppingListName|async}}</span>
+            <div class="spacer"></div>
+            <div class="toolbar" *ngIf="(ConnState|async) == ConnectionState.Connected">
+                <button mat-icon-button type="button" class="toolbar-button" (click)="hideComplete = !hideComplete">
+                    <mat-icon [ngClass]="{'hide-complete': hideComplete}">check_circle_outline</mat-icon>
+                </button>
+                <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
+                    <mat-icon>refresh</mat-icon>
+                </button>
             </div>
-            <ng-container *ngIf="(ConnState|async) == ConnectionState.Connecting">
-                <h3>connecting</h3>
-                <div class="dot-pulse"></div>
-            </ng-container>
-            <h3 *ngIf="(ConnState|async) != ConnectionState.Connecting">connection lost</h3>
+        </div>
+
+        <div class="content">
+            <!-- list items -->
+            <div class="list" *ngIf="(ConnState|async) == ConnectionState.Connected">
+                <ng-container *ngFor="let item of items; trackBy:getItemId">
+                    <div *ngIf="!item.done || !hideComplete" class="item" [ngClass]="{'done': item.done === true}">
+                        <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
+                            (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
+                            [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
+                            (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
+                            (click)="openDialog(item)">
+
+                            <div class="avatar">{{item.shortName}}</div>
+                            <div class="item-info">
+                                <div class="item-header">{{item.name}}</div>
+                                <div *ngIf="item.lastChangeByUserShowShortnameInList" class="item-hint short-name">
+                                    {{item.lastChangeByUserShortName}}{{item.hint != null ? ':': ''}}
+                                    {{item.hint}}
+                                </div>
+                                <div *ngIf="!item.lastChangeByUserShowShortnameInList" class="item-hint">{{item.hint}}
+                                </div>
+                            </div>
+                            <div class="item-amount">{{item.amount}}</div>
+                            <div class="item-unit">{{item.unitShortName}}</div>
+                        </div>
+                    </div>
+                </ng-container>
+            </div>
+
+            <!-- notification service connection lost info-->
+            <div class="connection-info" *ngIf="(ConnState|async) != ConnectionState.Connected">
+                <div class="nc">
+                    <mat-icon>sensors_off</mat-icon>
+                </div>
+                <ng-container *ngIf="(ConnState|async) == ConnectionState.Connecting">
+                    <h3>connecting</h3>
+                    <div class="dot-pulse"></div>
+                </ng-container>
+                <h3 *ngIf="(ConnState|async) != ConnectionState.Connecting">connection lost</h3>
+            </div>
+        </div>
+
+        <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
+            <form class="add-form" [formGroup]="formGroup">
+                <mat-form-field style="flex:1;">
+                    <mat-label>Item</mat-label>
+                    <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
+                        [matAutocomplete]="autoItems">
+                    <mat-autocomplete #autoItems="matAutocomplete">
+                        <mat-option *ngFor="let option of filteredItems | async" [value]="option">
+                            {{option}}
+                        </mat-option>
+                    </mat-autocomplete>
+                </mat-form-field>
+                <mat-form-field style="max-width: 50px;">
+                    <!-- <mat-label>#</mat-label> -->
+                    <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
+                </mat-form-field>
+                <mat-form-field style="max-width: 50px;">
+                    <!-- <mat-label>Unit</mat-label> -->
+                    <input type="text" aria-label="Unit" matInput formControlName="unitShortName"
+                        [matAutocomplete]="autoUnits">
+                    <mat-autocomplete #autoUnits="matAutocomplete">
+                        <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
+                            {{option}}
+                        </mat-option>
+                    </mat-autocomplete>
+                </mat-form-field>
+                <button mat-icon-button color="primary" class="add-button" aria-label="Add to the shopping list"
+                    (click)="save()">
+                    <mat-icon>add</mat-icon>
+                </button>
+            </form>
         </div>
     </div>
 
-    <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
-        <form class="add-form" [formGroup]="formGroup">
-            <mat-form-field style="flex:1;">
-                <mat-label>Item</mat-label>
-                <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
-                    [matAutocomplete]="autoItems">
-                <mat-autocomplete #autoItems="matAutocomplete">
-                    <mat-option *ngFor="let option of filteredItems | async" [value]="option">
-                        {{option}}
-                    </mat-option>
-                </mat-autocomplete>
-            </mat-form-field>
-            <mat-form-field style="max-width: 50px;">
-                <!-- <mat-label>#</mat-label> -->
-                <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
-            </mat-form-field>
-            <mat-form-field style="max-width: 50px;">
-                <!-- <mat-label>Unit</mat-label> -->
-                <input type="text" aria-label="Unit" matInput formControlName="unitShortName"
-                    [matAutocomplete]="autoUnits">
-                <mat-autocomplete #autoUnits="matAutocomplete">
-                    <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
-                        {{option}}
-                    </mat-option>
-                </mat-autocomplete>
-            </mat-form-field>
-            <button mat-icon-button color="primary" class="add-button" aria-label="Add to the shopping list" (click)="save()">
-                <mat-icon>add</mat-icon>
-            </button>
-        </form>
+    <div class="panel-container" >
+        <div class="header panel-header">
+            <span class="title">Recommendations</span>
+        </div>
+        <app-recommendations [shoppingListId]="shoppingListId"></app-recommendations>
     </div>
-
 </div>
