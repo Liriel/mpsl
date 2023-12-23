@@ -34,6 +34,7 @@ import { LoadingComponent } from './loading/loading.component';
 import { LoginComponent } from './login/login.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
+import { RecommendationsComponent } from './recommendations/recommendations.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -50,7 +51,8 @@ import { environment } from '../environments/environment';
     UserListComponent,
     HomeComponent,
     LoadingComponent,
-    LoginComponent
+    LoginComponent,
+    RecommendationsComponent
   ],
   imports: [
     HttpClientModule,

@@ -15,3 +15,4 @@ export class ShoppingListItem extends ModelBase<ShoppingListItem> implements IEn
   public lastChangeByUserShortName: string;
   public lastChangeByUserShowShortnameInList: boolean;
 }
+

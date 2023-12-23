@@ -1,0 +1,8 @@
+<div class="container" [app-loading]="isLoading|async">
+    <div *ngFor="let item of items; trackBy: getItemId" class="item">
+        <div class="item-info">
+            <div class="item-header">{{item.name}}</div>
+            <div class="item-hint">6 days ago</div>
+        </div>
+    </div>
+</div>
