@@ -27,6 +27,10 @@ $content-padding: 15px;
 .outer-container{
     display: flex;
     justify-content: center;
+
+    @media only screen and (max-width: vars.$max-width-bp) {
+        height: 100%;
+    }
 }
 
 .container {
@@ -40,6 +44,7 @@ $content-padding: 15px;
     @media only screen and (max-width: vars.$max-width-bp) {
         // subtract the top padding to prevent scrolling
         height: calc(100% - $top-padding);
+        width: 100%;
     }
 }
 
@@ -107,6 +112,24 @@ $content-padding: 15px;
     @media only screen and (max-width: vars.$max-width-bp) {
         max-width: 400px;
     }
+}
+
+// recommendations hint (mobile only)
+.recommend-container{
+    display: flex;
+    justify-content: flex-start;
+}
+
+.recommend-ripple-container{
+    line-height: 40px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.recommend-hint{
+    margin-right: 5px;
 }
 
 // recommendations panel

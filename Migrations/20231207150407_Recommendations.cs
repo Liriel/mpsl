@@ -1,6 +1,19 @@
--- drop view if exists Recommendations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
--- create view Recommendations as 
+#nullable disable
+
+namespace mps.Migrations
+{
+    /// <inheritdoc />
+    public partial class Recommendations : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+            // in any case drop the view
+            migrationBuilder.Sql("drop view if exists Recommendations");
+
+            string sql = @"create view Recommendations as 
 select t.Id, t.ShoppingListId, t.Name, count(*) as [Count], max(t.CheckDate) as [LastCheckDate], avg(t.diff) as [AvgDiff],
     JulianDay('now') - JulianDay(max(t.CheckDate)) as [Since],
     abs(avg(t.diff) - (JulianDay('now') - JulianDay(max(t.CheckDate)))) as [Weight],
@@ -13,4 +26,14 @@ from (
     where i.Status = 3 -- only use items currently not active
 )t
 group by t.Id, t.ShoppingListId, t.Name
-having count(*) > 2;
+having count(*) > 2;";
+            migrationBuilder.Sql(sql);
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+            migrationBuilder.Sql("drop view if exists Recommendations");
+        }
+    }
+}

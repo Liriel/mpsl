@@ -59,6 +59,14 @@
         </div>
 
         <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
+            <!-- Show Recommendations Link (mobile only) -->
+            <div class="recommend-container" *ngIf="(this.isMobile|async)===true">
+                <div mat-ripple class="recommend-ripple-container">
+                    <span class="recommend-hint">Show Recommendations</span>
+                    <mat-icon>online_prediction</mat-icon>
+                </div>
+                <div class="spacer"></div>
+            </div>
             <form class="add-form" [formGroup]="formGroup">
                 <mat-form-field style="flex:1;">
                     <mat-label>Item</mat-label>
@@ -92,7 +100,7 @@
         </div>
     </div>
 
-    <div class="panel-container" >
+    <div class="panel-container" *ngIf="(this.isMobile|async)===false">
         <div class="header panel-header">
             <span class="title">Recommendations</span>
         </div>

@@ -14,6 +14,7 @@ import { ConnectionState } from '../services/ConnectionState';
 import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
 import { ShoppingList } from '../models/ShoppingList';
+import { IAppUiService, IAppUiServiceToken } from '../services';
 
 @Component({
   selector: 'app-shopping-list',
@@ -51,6 +52,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   public ConnectionState: typeof ConnectionState = ConnectionState;
   public OnFormReset: Subject<any> = new Subject();
 
+  // breakpoint observer
+  public isMobile: Observable<boolean>;
+
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl(''),
@@ -66,6 +70,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
     @Inject(INotificationServiceToken) private notificationService: INotificationService,
+    @Inject(IAppUiServiceToken) private appUiSvc: IAppUiService,
     private route: ActivatedRoute,
     private dialog: MatDialog
   ) {
@@ -76,6 +81,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
     this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
     this.ConnState = merge(this.notificationService.ConnectionState, this.windowConnState);
+    this.isMobile = this.appUiSvc.IsMobile;
   }
 
   private OnItemRemoved(item: RemovedItem): void {

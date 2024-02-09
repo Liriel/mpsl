@@ -48,6 +48,17 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         return PageAndProjectResult(q, skip, take);
     }
 
+    [HttpGet("{shoppingListId}/recommendations")]
+    public IEnumerable<RecommendationViewModel> GetRecommendations(int shoppingListId)
+    {
+        var q = from r in this.repo.Recommendations
+            where r.ShoppingListId == shoppingListId
+            orderby r.Rank
+            select r;
+
+        return this.mapper.ProjectTo<RecommendationViewModel>(q.Take(100)); 
+    }
+
     [HttpGet("{shoppingListId}/item")]
     public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId)
     {

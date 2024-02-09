@@ -14,6 +14,7 @@ namespace mps.Model
         public DbSet<ShoppingList> ShoppingLists { get; set; }
         public DbSet<ShoppingListItem> ShoppingListItems { get; set; }
         public DbSet<Unit> Units { get; set; }
+        public DbSet<Recommendation> Recommendations { get; set; }
         public DbSet<ItemHistory> ItemHistories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -33,6 +34,10 @@ namespace mps.Model
                 new Unit { Id = 3, ShortName = "kg", Name = "Kilo" },
                 new Unit { Id = 4, ShortName = "l", Name = "Liter" },
             });
+
+            modelBuilder.Entity<Recommendation>()
+                .HasNoKey()
+                .ToView("Recommendations");
         }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)

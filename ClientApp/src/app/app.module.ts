@@ -25,7 +25,7 @@ import { IRepoToken } from './services/IRepo';
 import { UserListComponent } from './user-list/user-list.component';
 import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
-import { AuthService, BreakpoingAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
+import { AuthService, BreakpointAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
 import { HomeComponent } from './home/home.component';
 import { HttpClientModule } from '@angular/common/http';
 import { INotificationServiceToken } from './services/INotificationService';
@@ -35,6 +35,7 @@ import { LoginComponent } from './login/login.component';
 import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { RecommendationsComponent } from './recommendations/recommendations.component';
+import { MatRippleModule } from '@angular/material/core';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -68,6 +69,7 @@ import { RecommendationsComponent } from './recommendations/recommendations.comp
     MatIconModule,
     MatDialogModule,
     MatMenuModule,
+    MatRippleModule,
     MatListModule,
     MatExpansionModule,
     MatCardModule,
@@ -85,7 +87,7 @@ import { RecommendationsComponent } from './recommendations/recommendations.comp
     { provide: IConfigServiceToken, useClass: StaticConfigService },
     { provide: ILoggerToken, useClass: ConsoleLogger },
     { provide: IAuthServiceToken, useClass: AuthService},
-    { provide: IAppUiServiceToken, useClass: BreakpoingAppUiService},
+    { provide: IAppUiServiceToken, useClass: BreakpointAppUiService},
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig
