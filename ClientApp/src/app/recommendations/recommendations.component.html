@@ -1,8 +1,14 @@
 <div class="container" [app-loading]="isLoading|async">
     <div *ngFor="let item of items; trackBy: getItemId" class="item">
-        <div class="item-info">
-            <div class="item-header">{{item.name}}</div>
-            <div class="item-hint">n days ago</div>
+        <div class="item-row">
+            <div class="item-info" (click)="addItem(item)">
+                <div class="item-header">{{item.name}}</div>
+                <div class="item-hint">{{item.lastCheckDate|dfnsParseIso|dfnsFormatDistanceToNow:timeAgoOptions}}</div>
+            </div>
+            <mat-icon class="added-icon" [@fadeIn]="!item.added ? 'pending' : 'done'">check_circle</mat-icon>
+        </div>
+        <div class="pb-container">
+            <mat-progress-bar *ngIf="item.isProcessing===true" mode="indeterminate"></mat-progress-bar>
         </div>
     </div>
 </div>

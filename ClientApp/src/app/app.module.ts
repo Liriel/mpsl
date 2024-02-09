@@ -16,7 +16,7 @@ import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-
+import { MatProgressBarModule } from '@angular/material/progress-bar';
 
 // import * as Hammer from 'hammerjs';
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
@@ -37,6 +37,7 @@ import { environment } from '../environments/environment';
 import { RecommendationsComponent } from './recommendations/recommendations.component';
 import { MatRippleModule } from '@angular/material/core';
 import { RecommendationsPageComponent } from './recommendations-page/recommendations-page.component';
+import { DateFnsModule } from 'ngx-date-fns';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -76,6 +77,8 @@ import { RecommendationsPageComponent } from './recommendations-page/recommendat
     MatExpansionModule,
     MatCardModule,
     MatProgressSpinnerModule,
+    MatProgressBarModule,
+    DateFnsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,
       // Register the ServiceWorker as soon as the application is stable
