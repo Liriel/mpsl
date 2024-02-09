@@ -62,7 +62,7 @@ export class RecommendationsComponent implements OnInit, AfterViewInit {
       return;
 
     item.isProcessing = true;
-    let shoppingListItem = new ShoppingListItem({ name: item.name, amount: 1, unitShortName: "", shoppingListId: this.shoppingListId });
+    let shoppingListItem = new ShoppingListItem({ name: item.name, shoppingListId: this.shoppingListId });
 
     this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", shoppingListItem).subscribe(() => {
       item.isProcessing = false;
