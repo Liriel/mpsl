@@ -19,7 +19,12 @@ import { IAppUiService, IAppUiServiceToken } from '../services';
 @Component({
   selector: 'app-shopping-list',
   templateUrl: './shopping-list.component.html',
-  styleUrls: ['./shopping-list.component.scss', './dot-pulse.scss', '../shared-list-item.scss'],
+  styleUrls: [
+    './shopping-list.component.scss', 
+    './dot-pulse.scss', 
+    '../shared-list-item.scss',
+    '../shared-page.scss'
+  ],
   animations: [
     trigger("flyInOut", [
       state("start", style({ left: 0 })),

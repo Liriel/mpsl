@@ -61,7 +61,7 @@
         <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
             <!-- Show Recommendations Link (mobile only) -->
             <div class="recommend-container" *ngIf="(this.isMobile|async)===true">
-                <div mat-ripple class="recommend-ripple-container">
+                <div mat-ripple class="recommend-ripple-container" routerLink="recommendations">
                     <span class="recommend-hint">Show Recommendations</span>
                     <mat-icon>online_prediction</mat-icon>
                 </div>

@@ -1,0 +1,11 @@
+<div class="container">
+    <div class="header-footer header">
+        <button mat-icon-button type="button" class="toolbar-button" routerLink="/list/{{shoppingListId}}">
+            <mat-icon>navigate_before</mat-icon>
+        </button>
+        <span class="title">Recommendations</span>
+    </div>
+    <div class="content">
+        <app-recommendations [shoppingListId]="shoppingListId"></app-recommendations>
+    </div>
+</div>
