@@ -36,6 +36,7 @@ import { ServiceWorkerModule } from '@angular/service-worker';
 import { environment } from '../environments/environment';
 import { RecommendationsComponent } from './recommendations/recommendations.component';
 import { MatRippleModule } from '@angular/material/core';
+import { RecommendationsPageComponent } from './recommendations-page/recommendations-page.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -53,7 +54,8 @@ import { MatRippleModule } from '@angular/material/core';
     HomeComponent,
     LoadingComponent,
     LoginComponent,
-    RecommendationsComponent
+    RecommendationsComponent,
+    RecommendationsPageComponent
   ],
   imports: [
     HttpClientModule,
