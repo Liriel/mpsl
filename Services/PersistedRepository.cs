@@ -22,6 +22,7 @@ namespace mps.Services
         public IQueryable<ShoppingList> ShoppingLists => this.context.ShoppingLists;
         public IQueryable<ShoppingListItem> ShoppingListItems => this.context.ShoppingListItems;
         public IQueryable<Unit> Units => this.context.Units;
+        public IQueryable<Recommendation> Recommendations => this.context.Recommendations;
         public IQueryable<ItemHistory> ItemHistories => this.context.ItemHistories;
         public IQueryable<ApplicationUser> Users => this.context.Users;
         public IQueryable<IdentityRole> Roles => this.context.Roles;

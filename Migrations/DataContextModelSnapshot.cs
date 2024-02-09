@@ -15,7 +15,11 @@ namespace mps.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "6.0.11");
+            modelBuilder
+                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("Proxies:ChangeTracking", false)
+                .HasAnnotation("Proxies:CheckEquality", false)
+                .HasAnnotation("Proxies:LazyLoading", true);
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
@@ -220,11 +224,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "90fa7c0d-fed5-4b49-bf0e-40dc51e9f884",
+                            ConcurrencyStamp = "2f35f45a-7e9d-40ed-9bd9-aad98fcb0fff",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "f5f731cc-43b3-4140-9145-1603a91bfd21",
+                            SecurityStamp = "84591c13-42ea-4ad2-b26d-5590d1ca96b2",
                             ShowShortnameInList = false,
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
@@ -256,6 +260,23 @@ namespace mps.Migrations
                     b.HasIndex("UnitId");
 
                     b.ToTable("ItemHistories");
+                });
+
+            modelBuilder.Entity("mps.Model.Recommendations", b =>
+                {
+                    b.Property<int>("ShoppingListId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShoppingListItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasIndex("ShoppingListId");
+
+                    b.HasIndex("ShoppingListItemId");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("Recommendations", (string)null);
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>
@@ -467,6 +488,25 @@ namespace mps.Migrations
                     b.Navigation("ShoppingListItem");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("mps.Model.Recommendations", b =>
+                {
+                    b.HasOne("mps.Model.ShoppingList", "ShoppingList")
+                        .WithMany()
+                        .HasForeignKey("ShoppingListId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("mps.Model.ShoppingListItem", "ShoppingListItem")
+                        .WithMany()
+                        .HasForeignKey("ShoppingListItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ShoppingList");
+
+                    b.Navigation("ShoppingListItem");
                 });
 
             modelBuilder.Entity("mps.Model.ShoppingList", b =>

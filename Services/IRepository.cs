@@ -9,6 +9,7 @@ namespace mps.Services
         IQueryable<ShoppingList> ShoppingLists { get; }
         IQueryable<ShoppingListItem> ShoppingListItems { get; }
         IQueryable<Unit> Units { get; }
+        IQueryable<Recommendation> Recommendations{ get; }
         IQueryable<ItemHistory> ItemHistories { get; }
         IQueryable<ApplicationUser> Users { get; }
         IQueryable<IdentityRole> Roles { get; }
