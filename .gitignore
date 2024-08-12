@@ -39,3 +39,4 @@ RaspberryPi/appsettings.json
 Client/dist
 .vs/
 cert/
+startContainer.sh
