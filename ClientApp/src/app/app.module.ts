@@ -38,6 +38,7 @@ import { RecommendationsComponent } from './recommendations/recommendations.comp
 import { MatRippleModule } from '@angular/material/core';
 import { RecommendationsPageComponent } from './recommendations-page/recommendations-page.component';
 import { DateFnsModule } from 'ngx-date-fns';
+import { CreateShoppingListDialogComponent } from './home/create-shopping-list-dialog.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -56,7 +57,8 @@ import { DateFnsModule } from 'ngx-date-fns';
     LoadingComponent,
     LoginComponent,
     RecommendationsComponent,
-    RecommendationsPageComponent
+    RecommendationsPageComponent,
+    CreateShoppingListDialogComponent
   ],
   imports: [
     HttpClientModule,

@@ -25,6 +25,9 @@
             <div *ngFor="let item of shoppingLists" routerLink="/list/{{item.id}}" class="list-item">
                 {{item.name}}
             </div>
+            <button mat-fab color="primary" class="fab-add-list" (click)="openCreateListDialog()">
+                <mat-icon>add</mat-icon>
+            </button>
         </div>
 
         <div class="spacer"></div>
