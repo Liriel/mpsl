@@ -1,0 +1,23 @@
+<div mat-dialog-content [app-loading]="isLoading|async">
+  <form class="form-container" [formGroup]="this.formGroup" (ngSubmit)="save()">
+    <mat-form-field class="full-width">
+      <mat-label>Shopping List Name</mat-label>
+      <input matInput formControlName="name" placeholder="Enter shopping list name" cdkFocusInitial>
+      <mat-error *ngIf="formGroup.controls['name'].hasError('maxlength')">
+        <strong>Name</strong> must not be longer than
+        <strong>{{formGroup.controls['name'].errors["maxlength"].requiredLength}}</strong> characters
+      </mat-error>
+      <mat-error *ngIf="formGroup.controls['name'].hasError('required')">
+        <strong>Name</strong> is required
+      </mat-error>
+      <mat-error *ngIf="nameExistsError">
+        {{nameExistsError}}
+      </mat-error>
+    </mat-form-field>
+
+    <div mat-dialog-actions class="flex-row">
+      <button mat-button (click)="onNoClick()">Cancel</button>
+      <button mat-raised-button color="primary" type="submit" [disabled]="!formGroup.valid || isLoading.value">Create</button>
+    </div>
+  </form>
+</div>
