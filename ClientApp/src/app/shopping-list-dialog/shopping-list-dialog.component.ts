@@ -1,4 +1,4 @@
-import { Component, Inject } from '@angular/core';
+import { Component, Inject, ChangeDetectorRef } from '@angular/core';
 import { FormControl, FormGroup, Validators } from '@angular/forms';
 import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog';
 import { BehaviorSubject } from 'rxjs';
@@ -21,7 +21,8 @@ export class ShoppingListDialogComponent {
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
     public dialogRef: MatDialogRef<ShoppingListDialogComponent>,
-    @Inject(MAT_DIALOG_DATA) public data: any
+    @Inject(MAT_DIALOG_DATA) public data: any,
+    private cdr: ChangeDetectorRef
   ) {}
 
   onNoClick(): void {
@@ -36,12 +37,14 @@ export class ShoppingListDialogComponent {
     // First check if name already exists
     this.isLoading.next(true);
     this.nameExistsError = null;
+    this.cdr.markForCheck(); // Trigger change detection when clearing error
 
     this.repo.Get<any>(`api/shoppinglist?name=${encodeURIComponent(name)}`).subscribe({
       next: (result) => {
         // Check if any shopping list with this name already exists
         if (result && result.results && result.results.length > 0) {
           this.nameExistsError = 'A shopping list with this name already exists';
+          this.cdr.markForCheck(); // Trigger change detection for OnPush components
           this.isLoading.next(false);
           return;
         }
