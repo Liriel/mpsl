@@ -23,6 +23,7 @@
 
 .content-container{
     display: flex;
+    position: relative;
 }
 
 .content{
@@ -44,4 +45,20 @@
 
 .info-container{
     margin-bottom: 40px;
+}
+
+.fab-create {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 1000;
+}
+
+/* On desktop, position relative to the content container */
+@media (min-width: 768px) {
+    .fab-create {
+        position: absolute;
+        bottom: 16px;
+        right: 16px;
+    }
 }
