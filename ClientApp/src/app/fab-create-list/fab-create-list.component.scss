@@ -1,0 +1,28 @@
+@use "variables" as vars;
+
+.fab-create-list {
+  position: fixed;
+  z-index: 1000;
+
+  &.mobile {
+    bottom: 16px;
+    right: 16px;
+  }
+
+  &.desktop {
+    bottom: 40px;
+    
+    // Center aligned with content on mobile-sized desktop
+    @media only screen and (max-width: vars.$max-width-bp) {
+      left: 50%;
+      transform: translateX(-50%);
+    }
+    
+    // Right aligned within content area on larger desktop
+    @media only screen and (min-width: vars.$max-width-bp) {
+      position: absolute;
+      right: calc(50% - vars.$max-width-bp/2 + 24px);
+      transform: none;
+    }
+  }
+}

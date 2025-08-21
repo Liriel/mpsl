@@ -15,15 +15,26 @@ export class HomeComponent implements OnInit {
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
   ) { 
-    this.repo.GetEntities<ShoppingList>("ShoppingList").subscribe(
-      result =>{
-        this.shoppingLists = result.results;
-        this.isLoading.next(false);
-      }
-    )
+    this.loadShoppingLists();
   }
 
   ngOnInit(): void {
+  }
+
+  private loadShoppingLists() {
+    this.isLoading.next(true);
+    this.repo.GetEntities<ShoppingList>("ShoppingList").subscribe(
+      result => {
+        this.shoppingLists = result.results;
+        this.isLoading.next(false);
+      }
+    );
+  }
+
+  onListCreated(newList: ShoppingList) {
+    if (newList) {
+      this.loadShoppingLists();
+    }
   }
 
 }

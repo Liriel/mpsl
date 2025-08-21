@@ -23,15 +23,26 @@
 
 .content-container{
     display: flex;
+    position: relative;
 }
 
 .content{
     max-width: vars.$max-width-bp;
+    padding-bottom: 80px; // Add space for FAB in desktop mode
+    
+    @media only screen and (max-width: vars.$max-width-bp) {
+        padding-bottom: 40px; // Less space needed in mobile
+    }
 }
 
 .list-item{
     font-size: 20px;
     padding-bottom: 10px;
+    cursor: pointer;
+    
+    &:hover {
+        background-color: rgba(0, 0, 0, 0.04);
+    }
 }
 
 .list-item:not(:last-child){

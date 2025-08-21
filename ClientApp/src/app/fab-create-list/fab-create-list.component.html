@@ -1,0 +1,9 @@
+<button mat-fab 
+        color="accent" 
+        class="fab-create-list" 
+        [class.mobile]="isMobile$ | async"
+        [class.desktop]="!(isMobile$ | async)"
+        (click)="openCreateDialog()"
+        aria-label="Create new shopping list">
+  <mat-icon>add</mat-icon>
+</button>

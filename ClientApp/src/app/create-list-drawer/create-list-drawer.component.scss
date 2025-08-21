@@ -1,0 +1,31 @@
+.create-list-drawer {
+  padding: 20px;
+  min-height: 200px;
+}
+
+.drawer-header {
+  margin-bottom: 20px;
+  
+  h2 {
+    margin: 0;
+    font-weight: 400;
+    font-size: 20px;
+  }
+}
+
+.drawer-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.drawer-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 16px;
+}

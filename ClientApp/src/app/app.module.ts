@@ -17,6 +17,8 @@ import { MatExpansionModule } from '@angular/material/expansion';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 // import * as Hammer from 'hammerjs';
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
@@ -37,6 +39,8 @@ import { environment } from '../environments/environment';
 import { RecommendationsComponent } from './recommendations/recommendations.component';
 import { MatRippleModule } from '@angular/material/core';
 import { RecommendationsPageComponent } from './recommendations-page/recommendations-page.component';
+import { FabCreateListComponent } from './fab-create-list/fab-create-list.component';
+import { CreateListDrawerComponent } from './create-list-drawer/create-list-drawer.component';
 import { DateFnsModule } from 'ngx-date-fns';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
@@ -56,7 +60,9 @@ import { DateFnsModule } from 'ngx-date-fns';
     LoadingComponent,
     LoginComponent,
     RecommendationsComponent,
-    RecommendationsPageComponent
+    RecommendationsPageComponent,
+    FabCreateListComponent,
+    CreateListDrawerComponent
   ],
   imports: [
     HttpClientModule,
@@ -78,6 +84,8 @@ import { DateFnsModule } from 'ngx-date-fns';
     MatCardModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
+    MatBottomSheetModule,
+    MatFormFieldModule,
     DateFnsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,
