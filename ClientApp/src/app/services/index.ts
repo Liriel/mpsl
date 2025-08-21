@@ -8,3 +8,5 @@ export * from "./StaticConfigService";
 export * from "./WebRepo";
 export * from "./IAppUiService";
 export * from "./BreakpointAppUiService";
+export * from "./IThemeService";
+export * from "./ThemeService";

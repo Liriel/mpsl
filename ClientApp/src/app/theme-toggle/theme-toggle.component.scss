@@ -1,0 +1,13 @@
+.theme-toggle-button {
+  color: var(--mps-text-primary);
+  
+  &:hover {
+    background-color: var(--mps-hover);
+  }
+  
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}

@@ -1,0 +1,7 @@
+<button mat-icon-button 
+        (click)="toggleTheme()"
+        [matTooltip]="getThemeTooltip((themeMode$ | async) || 'auto')"
+        class="theme-toggle-button"
+        aria-label="Toggle theme">
+  <mat-icon>{{ getThemeIcon((themeMode$ | async) || 'auto') }}</mat-icon>
+</button>

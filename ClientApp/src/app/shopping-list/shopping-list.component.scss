@@ -28,7 +28,7 @@
 }
 
 .item:not(:last-child) {
-    border-bottom: 1px solid rgb(145, 146, 148);
+    border-bottom: 1px solid var(--mps-divider);
 }
 
 .avatar {
@@ -64,7 +64,7 @@
 .panel-header{
     margin-top: 65px;
     .title{
-        border-bottom: thin solid;
+        border-bottom: thin solid var(--mps-divider);
     }
 }
 

@@ -1,20 +1,21 @@
-@use '@angular/material' as mat;
-@use 'theme' as t;
+// MPS Theme Variables
+// Using CSS custom properties for theme-aware styling
 
-$ui-accent: mat.get-color-from-palette(t.$theme-accent);
-$ui-primary: mat.get-color-from-palette(t.$theme-primary);
-$background: map-get(t.$theme, background);
-$foreground: map-get(t.$theme, foreground);
-$background-color: mat.get-color-from-palette($background, background);
-$background-primary-color: mat.get-color-from-palette($background, primary);
-$foreground-text-color: mat.get-color-from-palette($foreground, text);
-$ui-raised-border: mat.get-color-from-palette($foreground, divider);
+// Colors - now use CSS custom properties that change with theme
+$ui-accent: var(--mps-accent);
+$ui-primary: var(--mps-primary);
+$background-color: var(--mps-background);
+$background-primary-color: var(--mps-surface);
+$foreground-text-color: var(--mps-text-primary);
+$ui-raised-border: var(--mps-border);
 
-// breakpoint
+// Layout breakpoints (theme-independent)
 $max-width-bp: 600px;
-
-// max content with in desktop mode
 $max-content-width: 1024px;
-
-// content padding
 $content-padding: 15px;
+
+// Additional theme-aware variables
+$text-secondary-color: var(--mps-text-secondary);
+$divider-color: var(--mps-divider);
+$hover-color: var(--mps-hover);
+$selected-color: var(--mps-selected);

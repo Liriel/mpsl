@@ -1,8 +1,8 @@
 @use "variables" as vars;
 
 @mixin scrollbars($size: 10px,
-    $foreground-color: #999,
-    $background-color: #333) {
+    $foreground-color: var(--mps-text-secondary),
+    $background-color: var(--mps-background)) {
 
     // For Chrome & Safari
     &::-webkit-scrollbar {
@@ -71,13 +71,15 @@
 }
 
 .content {
-    @include scrollbars(3px, rgb(156, 156, 156), rgb(233, 233, 233));
-    border: 1px solid rgb(210, 219, 221);
+    @include scrollbars(3px, var(--mps-text-secondary), var(--mps-background));
+    border: 1px solid var(--mps-border);
     border-radius: 5px;
     max-width: 400px;
     width: calc(100% - 2 * vars.$content-padding - 2px);
-    box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+    box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.1), 
+                0px 1px 2px 0px rgba(0, 0, 0, 0.06);
     padding: vars.$content-padding;
+    background-color: var(--mps-surface);
 
     overflow: auto;
 

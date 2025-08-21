@@ -19,6 +19,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 // import * as Hammer from 'hammerjs';
 import { HammerGestureConfig, HAMMER_GESTURE_CONFIG, HammerModule } from '@angular/platform-browser';
@@ -27,7 +28,7 @@ import { IRepoToken } from './services/IRepo';
 import { UserListComponent } from './user-list/user-list.component';
 import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
-import { AuthService, BreakpointAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo } from './services';
+import { AuthService, BreakpointAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo, ThemeService, IThemeServiceToken } from './services';
 import { HomeComponent } from './home/home.component';
 import { HttpClientModule } from '@angular/common/http';
 import { INotificationServiceToken } from './services/INotificationService';
@@ -41,6 +42,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { RecommendationsPageComponent } from './recommendations-page/recommendations-page.component';
 import { FabCreateListComponent } from './fab-create-list/fab-create-list.component';
 import { CreateListDrawerComponent } from './create-list-drawer/create-list-drawer.component';
+import { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 import { DateFnsModule } from 'ngx-date-fns';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
@@ -62,7 +64,8 @@ import { DateFnsModule } from 'ngx-date-fns';
     RecommendationsComponent,
     RecommendationsPageComponent,
     FabCreateListComponent,
-    CreateListDrawerComponent
+    CreateListDrawerComponent,
+    ThemeToggleComponent
   ],
   imports: [
     HttpClientModule,
@@ -86,6 +89,7 @@ import { DateFnsModule } from 'ngx-date-fns';
     MatProgressBarModule,
     MatBottomSheetModule,
     MatFormFieldModule,
+    MatTooltipModule,
     DateFnsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,
@@ -101,6 +105,7 @@ import { DateFnsModule } from 'ngx-date-fns';
     { provide: ILoggerToken, useClass: ConsoleLogger },
     { provide: IAuthServiceToken, useClass: AuthService},
     { provide: IAppUiServiceToken, useClass: BreakpointAppUiService},
+    { provide: IThemeServiceToken, useClass: ThemeService},
     {
       provide: HAMMER_GESTURE_CONFIG,
       useClass: MyHammerConfig

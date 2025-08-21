@@ -2,9 +2,16 @@
 
 .header-row {
     display: flex;
+    align-items: center;
     background-color: vars.$ui-primary;
     color: vars.$foreground-text-color;
-    padding-top: 10px;
+    padding: 10px 16px;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    margin-right: 8px;
 }
 
 .header{
@@ -37,11 +44,17 @@
 
 .list-item{
     font-size: 20px;
-    padding-bottom: 10px;
+    padding: 12px 0;
     cursor: pointer;
+    border-radius: 4px;
+    transition: background-color 150ms ease-in-out;
     
     &:hover {
-        background-color: rgba(0, 0, 0, 0.04);
+        background-color: var(--mps-hover);
+        padding-left: 8px;
+        padding-right: 8px;
+        margin-left: -8px;
+        margin-right: -8px;
     }
 }
 

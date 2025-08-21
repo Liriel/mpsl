@@ -1,19 +1,70 @@
 @use '@angular/material' as mat;
 @use "theme" as theme;
 
-
-@include mat.all-component-typographies();
+// Include the common styles for Angular Material
 @include mat.core();
 
-// Include theme styles for core and each component used in your app.
-// Alternatively, you can import and @include the theme mixins for each component
-// that you are using.
-@include mat.all-component-themes(theme.$theme);
+// Define base styles that are theme-independent
+@include mat.all-component-typographies();
 
-html, body { height: 100%; }
-body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+// Apply light theme by default
+@include mat.all-component-themes(theme.$light-theme);
 
-// hide scrollbar in autocomplete
-.mat-mdc-autocomplete-panel{
-    scrollbar-width: none;
+// Override with dark theme when dark-theme class is present
+.dark-theme {
+  @include mat.all-component-colors(theme.$dark-theme);
+}
+
+// Base styles
+html, body { 
+  height: 100%; 
+  margin: 0; 
+  font-family: Roboto, "Helvetica Neue", sans-serif;
+  transition: background-color 200ms ease-in-out, color 200ms ease-in-out;
+}
+
+// Custom CSS properties for theme-aware styling
+// Light theme (default)
+:root {
+  --mps-background: #fafafa;
+  --mps-surface: #ffffff;
+  --mps-primary: #{mat.get-color-from-palette(theme.$theme-primary, default)};
+  --mps-accent: #{mat.get-color-from-palette(theme.$theme-accent, default)};
+  --mps-warn: #{mat.get-color-from-palette(theme.$theme-warn, default)};
+  --mps-text-primary: rgba(0, 0, 0, 0.87);
+  --mps-text-secondary: rgba(0, 0, 0, 0.6);
+  --mps-divider: rgba(0, 0, 0, 0.12);
+  --mps-border: rgba(0, 0, 0, 0.12);
+  --mps-hover: rgba(0, 0, 0, 0.04);
+  --mps-selected: rgba(0, 0, 0, 0.08);
+}
+
+// Dark theme custom properties
+.dark-theme {
+  --mps-background: #303030;
+  --mps-surface: #424242;
+  --mps-text-primary: rgba(255, 255, 255, 0.87);
+  --mps-text-secondary: rgba(255, 255, 255, 0.6);
+  --mps-divider: rgba(255, 255, 255, 0.12);
+  --mps-border: rgba(255, 255, 255, 0.12);
+  --mps-hover: rgba(255, 255, 255, 0.04);
+  --mps-selected: rgba(255, 255, 255, 0.08);
+}
+
+// Apply background colors to body
+body {
+  background-color: var(--mps-background);
+  color: var(--mps-text-primary);
+}
+
+// Hide scrollbar in autocomplete
+.mat-mdc-autocomplete-panel {
+  scrollbar-width: none;
+}
+
+// Smooth transitions for theme changes
+* {
+  transition: background-color 200ms ease-in-out, 
+              color 200ms ease-in-out, 
+              border-color 200ms ease-in-out;
 }
