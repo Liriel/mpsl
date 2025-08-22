@@ -17,33 +17,33 @@ import { ShoppingList } from '../models/ShoppingList';
 import { IAppUiService, IAppUiServiceToken } from '../services';
 
 @Component({
-  selector: 'app-shopping-list',
-  templateUrl: './shopping-list.component.html',
-  styleUrls: [
-    './shopping-list.component.scss', 
-    './dot-pulse.scss', 
-    '../shared-list-item.scss',
-    '../shared-page.scss'
-  ],
-  animations: [
-    trigger("flyInOut", [
-      state("start", style({ left: 0 })),
-      state("success", style({ left: 0 })),
-      state("left", style({ left: "-100%" })),
-      state("right", style({ left: "100%" })),
-
-      transition("* => start", [animate("300ms ease-in")]),
-      transition("* => success", [animate("10ms ease-in")]),
-      transition("* => left", [animate("300ms ease-out")]),
-      transition("* => right", [animate("300ms ease-out")])
-    ]),
-    trigger("fadeInOut", [
-      state("0", style({ opacity: "1" })),
-      transition("* => 1", [
-        animate("500ms ease-out", style({ opacity: "0" }))
-      ])
-    ])
-  ]
+    selector: 'app-shopping-list',
+    templateUrl: './shopping-list.component.html',
+    styleUrls: [
+        './shopping-list.component.scss',
+        './dot-pulse.scss',
+        '../shared-list-item.scss',
+        '../shared-page.scss'
+    ],
+    animations: [
+        trigger("flyInOut", [
+            state("start", style({ left: 0 })),
+            state("success", style({ left: 0 })),
+            state("left", style({ left: "-100%" })),
+            state("right", style({ left: "100%" })),
+            transition("* => start", [animate("300ms ease-in")]),
+            transition("* => success", [animate("10ms ease-in")]),
+            transition("* => left", [animate("300ms ease-out")]),
+            transition("* => right", [animate("300ms ease-out")])
+        ]),
+        trigger("fadeInOut", [
+            state("0", style({ opacity: "1" })),
+            transition("* => 1", [
+                animate("500ms ease-out", style({ opacity: "0" }))
+            ])
+        ])
+    ],
+    standalone: false
 })
 export class ShoppingListComponent implements OnInit, AfterViewInit {
 

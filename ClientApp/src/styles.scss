@@ -2,7 +2,8 @@
 @use "theme" as theme;
 
 // Include the common styles for Angular Material
-@include mat.core();
+@include mat.elevation-classes();
+@include mat.app-background();
 
 // Define base styles that are theme-independent
 @include mat.all-component-typographies();
@@ -28,9 +29,9 @@ html, body {
 :root {
   --mps-background: #fafafa;
   --mps-surface: #ffffff;
-  --mps-primary: #{mat.get-color-from-palette(theme.$theme-primary, default)};
+  --mps-primary: #{mat.m2-get-color-from-palette(theme.$theme-primary, default)};
   --mps-accent: #9c27b0;
-  --mps-warn: #{mat.get-color-from-palette(theme.$theme-warn, default)};
+  --mps-warn: #{mat.m2-get-color-from-palette(theme.$theme-warn, default)};
   --mps-text-primary: rgba(0, 0, 0, 0.87);
   --mps-text-secondary: rgba(0, 0, 0, 0.6);
   --mps-divider: rgba(0, 0, 0, 0.12);

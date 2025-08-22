@@ -7,9 +7,10 @@ import { Observable } from 'rxjs';
 import { IThemeService, IThemeServiceToken, ThemeMode } from '../services/IThemeService';
 
 @Component({
-  selector: 'app-theme-toggle',
-  templateUrl: './theme-toggle.component.html',
-  styleUrls: ['./theme-toggle.component.scss']
+    selector: 'app-theme-toggle',
+    templateUrl: './theme-toggle.component.html',
+    styleUrls: ['./theme-toggle.component.scss'],
+    standalone: false
 })
 export class ThemeToggleComponent {
   currentTheme$: Observable<'light' | 'dark'>;

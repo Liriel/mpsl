@@ -7,18 +7,19 @@ import { ShoppingListItem } from '../models';
 import { deAT } from 'date-fns/locale';
 
 @Component({
-  selector: 'app-recommendations',
-  templateUrl: './recommendations.component.html',
-  styleUrls: ['./recommendations.component.scss', '../shared-list-item.scss'],
-  animations: [
-    trigger("fadeIn", [
-      state("pending", style({ opacity: "0" })),
-      state("done", style({ opacity: "1" })),
-      transition("pending => done", [
-        animate("250ms ease-in")
-      ])
-    ])
-  ]
+    selector: 'app-recommendations',
+    templateUrl: './recommendations.component.html',
+    styleUrls: ['./recommendations.component.scss', '../shared-list-item.scss'],
+    animations: [
+        trigger("fadeIn", [
+            state("pending", style({ opacity: "0" })),
+            state("done", style({ opacity: "1" })),
+            transition("pending => done", [
+                animate("250ms ease-in")
+            ])
+        ])
+    ],
+    standalone: false
 })
 export class RecommendationsComponent implements OnInit, AfterViewInit {
 

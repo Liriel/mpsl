@@ -12,9 +12,10 @@ import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
 
 @Component({
-  selector: 'app-create-list-drawer',
-  templateUrl: './create-list-drawer.component.html',
-  styleUrls: ['./create-list-drawer.component.scss']
+    selector: 'app-create-list-drawer',
+    templateUrl: './create-list-drawer.component.html',
+    styleUrls: ['./create-list-drawer.component.scss'],
+    standalone: false
 })
 export class CreateListDrawerComponent implements OnInit {
   createForm: FormGroup;

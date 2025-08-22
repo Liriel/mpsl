@@ -5,11 +5,12 @@ import { Router } from '@angular/router';
 import { IAppUiServiceToken, IAppUiService, IAuthServiceToken, IAuthService } from './services';
 
 @Component({
-  selector: 'app-root',
-  template: `
+    selector: 'app-root',
+    template: `
     <router-outlet></router-outlet>
   `,
-  styles: []
+    styles: [],
+    standalone: false
 })
 export class AppComponent {
   public title = 'mpsClient';

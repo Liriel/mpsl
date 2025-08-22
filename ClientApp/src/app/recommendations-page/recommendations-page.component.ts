@@ -3,12 +3,13 @@ import { ActivatedRoute } from '@angular/router';
 import { IRepoToken, IRepo } from '../services';
 
 @Component({
-  selector: 'app-recommendations-page',
-  templateUrl: './recommendations-page.component.html',
-  styleUrls: [
-    './recommendations-page.component.scss',
-    '../shared-page.scss'
-  ],
+    selector: 'app-recommendations-page',
+    templateUrl: './recommendations-page.component.html',
+    styleUrls: [
+        './recommendations-page.component.scss',
+        '../shared-page.scss'
+    ],
+    standalone: false
 })
 export class RecommendationsPageComponent {
   public shoppingListId: number;

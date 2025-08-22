@@ -9,31 +9,30 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { BehaviorSubject } from 'rxjs';
 
 @Component({
-  selector: 'app-item-dialog',
-  templateUrl: './item-dialog.component.html',
-  styleUrls: ['./item-dialog.component.scss'],
-  animations: [
-    trigger("flyInOut", [
-      state("in", style({ left: 0 })),
-      state("out", style({ left: "200%" })),
-
-      transition("* => out", [animate("300ms ease-in")]),
-      transition("* => in", [animate("100ms ease-in")])
-    ]),
-    trigger("flyOutIn", [
-      state("in", style({ left: "-150%" })),
-      state("out", style({ left: 0 })),
-
-      transition("* => out", [animate("300ms ease-in")]),
-      transition("* => in", [animate("100ms ease-in")])
-    ]),
-    trigger("fadeInOut", [
-      state("0", style({ opacity: "1" })),
-      transition("* => 1", [
-        animate("500ms ease-out", style({ opacity: "0" }))
-      ])
-    ])
-  ]
+    selector: 'app-item-dialog',
+    templateUrl: './item-dialog.component.html',
+    styleUrls: ['./item-dialog.component.scss'],
+    animations: [
+        trigger("flyInOut", [
+            state("in", style({ left: 0 })),
+            state("out", style({ left: "200%" })),
+            transition("* => out", [animate("300ms ease-in")]),
+            transition("* => in", [animate("100ms ease-in")])
+        ]),
+        trigger("flyOutIn", [
+            state("in", style({ left: "-150%" })),
+            state("out", style({ left: 0 })),
+            transition("* => out", [animate("300ms ease-in")]),
+            transition("* => in", [animate("100ms ease-in")])
+        ]),
+        trigger("fadeInOut", [
+            state("0", style({ opacity: "1" })),
+            transition("* => 1", [
+                animate("500ms ease-out", style({ opacity: "0" }))
+            ])
+        ])
+    ],
+    standalone: false
 })
 export class ItemDialogComponent {
   public item: ShoppingListItem;

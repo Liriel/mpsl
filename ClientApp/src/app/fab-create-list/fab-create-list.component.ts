@@ -9,9 +9,10 @@ import { CreateListDrawerComponent } from '../create-list-drawer/create-list-dra
 import { ShoppingList } from '../models/ShoppingList';
 
 @Component({
-  selector: 'app-fab-create-list',
-  templateUrl: './fab-create-list.component.html',
-  styleUrls: ['./fab-create-list.component.scss']
+    selector: 'app-fab-create-list',
+    templateUrl: './fab-create-list.component.html',
+    styleUrls: ['./fab-create-list.component.scss'],
+    standalone: false
 })
 export class FabCreateListComponent {
   @Output() listCreated = new EventEmitter<ShoppingList>();
