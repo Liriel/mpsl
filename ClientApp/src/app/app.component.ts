@@ -3,6 +3,7 @@ import { MatIconRegistry } from '@angular/material/icon';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { IAppUiServiceToken, IAppUiService, IAuthServiceToken, IAuthService } from './services';
+import { IThemeService, IThemeServiceToken } from './services/IThemeService';
 
 @Component({
     selector: 'app-root',
@@ -22,6 +23,7 @@ export class AppComponent {
     private router: Router,
     @Inject(IAppUiServiceToken) private appUiService: IAppUiService,
     @Inject(IAuthServiceToken) private authService: IAuthService,
+    @Inject(IThemeServiceToken) private themeService: IThemeService,
     iconRegistry: MatIconRegistry,
     sanitizer: DomSanitizer
   ){
