@@ -174,4 +174,54 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
 
         return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
     }
+
+    /// <summary>
+    /// Get de-clutter candidates for a shopping list.
+    /// Returns items that have been purchased rarely and/or haven't been purchased recently.
+    /// </summary>
+    /// <param name="shoppingListId">The shopping list to analyze.</param>
+    /// <param name="minMonthsSinceLastPurchase">Minimum months since last purchase to be considered stale (default: 6).</param>
+    /// <param name="maxPurchaseCount">Maximum purchase count to be considered rarely purchased (default: 2).</param>
+    /// <returns>List of de-clutter candidate items with purchase statistics.</returns>
+    [HttpGet("{shoppingListId}/declutter")]
+    public IActionResult GetDeclutterCandidates(
+        int shoppingListId,
+        [FromQuery] int minMonthsSinceLastPurchase = 6,
+        [FromQuery] int maxPurchaseCount = 2)
+    {
+        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
+        if (shoppingList == null)
+            return new BadRequestObjectResult("Invalid shopping list");
+
+        var declutterService = this.HttpContext.RequestServices.GetRequiredService<IDeclutterService>();
+        var candidates = declutterService.GetDeclutterCandidates(
+            shoppingListId, 
+            minMonthsSinceLastPurchase, 
+            maxPurchaseCount);
+
+        var viewModels = this.mapper.Map<IEnumerable<DeclutterCandidateViewModel>>(candidates);
+        return Ok(viewModels);
+    }
+
+    /// <summary>
+    /// Bulk delete shopping list items (typically used for de-cluttering).
+    /// </summary>
+    /// <param name="shoppingListId">The shopping list that owns the items.</param>
+    /// <param name="itemIds">Array of item IDs to delete.</param>
+    /// <returns>Number of items successfully deleted.</returns>
+    [HttpPost("{shoppingListId}/declutter")]
+    public IActionResult BulkDeleteItems(int shoppingListId, [FromBody] int[] itemIds)
+    {
+        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
+        if (shoppingList == null)
+            return new BadRequestObjectResult("Invalid shopping list");
+
+        if (itemIds == null || itemIds.Length == 0)
+            return new BadRequestObjectResult("No items specified");
+
+        var declutterService = this.HttpContext.RequestServices.GetRequiredService<IDeclutterService>();
+        int deletedCount = declutterService.BulkDeleteItems(shoppingListId, itemIds);
+
+        return Ok(new { DeletedCount = deletedCount });
+    }
 }

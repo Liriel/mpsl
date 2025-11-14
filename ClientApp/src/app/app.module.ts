@@ -44,6 +44,12 @@ import { FabCreateListComponent } from './fab-create-list/fab-create-list.compon
 import { CreateListDrawerComponent } from './create-list-drawer/create-list-drawer.component';
 import { ThemeToggleComponent } from './theme-toggle/theme-toggle.component';
 import { DateFnsModule } from 'ngx-date-fns';
+import { DeclutterComponent } from './declutter/declutter.component';
+import { MatTableModule } from '@angular/material/table';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { ConfirmDeleteDialogComponent } from './shared/confirm-delete-dialog/confirm-delete-dialog.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -65,7 +71,9 @@ import { DateFnsModule } from 'ngx-date-fns';
     RecommendationsPageComponent,
     FabCreateListComponent,
     CreateListDrawerComponent,
-    ThemeToggleComponent
+    ThemeToggleComponent,
+    DeclutterComponent,
+    ConfirmDeleteDialogComponent
   ],
   imports: [
     HttpClientModule,
@@ -90,6 +98,10 @@ import { DateFnsModule } from 'ngx-date-fns';
     MatBottomSheetModule,
     MatFormFieldModule,
     MatTooltipModule,
+    MatTableModule,
+    MatCheckboxModule,
+    MatSnackBarModule,
+    MatToolbarModule,
     DateFnsModule,
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: environment.production,

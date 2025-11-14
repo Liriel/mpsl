@@ -14,6 +14,19 @@
                 <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
                     <mat-icon>refresh</mat-icon>
                 </button>
+                <button mat-icon-button type="button" class="toolbar-button" [matMenuTriggerFor]="menu">
+                    <mat-icon>more_vert</mat-icon>
+                </button>
+                <mat-menu #menu="matMenu">
+                    <button mat-menu-item routerLink="recommendations">
+                        <mat-icon>online_prediction</mat-icon>
+                        <span>Recommendations</span>
+                    </button>
+                    <button mat-menu-item routerLink="declutter">
+                        <mat-icon>cleaning_services</mat-icon>
+                        <span>Declutter List</span>
+                    </button>
+                </mat-menu>
             </div>
         </div>
 

@@ -1,0 +1,25 @@
+mat-dialog-content {
+  p {
+    margin-bottom: 12px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .item-count {
+    font-weight: bold;
+    color: var(--mps-primary);
+  }
+
+  .warning-text {
+    color: var(--mps-text-secondary);
+    font-style: italic;
+    margin-top: 16px;
+  }
+}
+
+mat-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+}

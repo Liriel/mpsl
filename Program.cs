@@ -57,6 +57,7 @@ builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntitySe
 builder.Services.AddTransient<IEntityService<Unit>, EntityService<Unit>>();
 builder.Services.AddTransient<IEntityService<ShoppingListItem>, ShoppingListItemEntityService>();
 builder.Services.AddTransient<IUnitService, UnitService>();
+builder.Services.AddTransient<IDeclutterService, DeclutterService>();
 builder.Services.AddTransient<AppDbInitializer>();
 builder.Services.AddSignalR();
 builder.Services.AddMvc();

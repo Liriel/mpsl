@@ -1,0 +1,183 @@
+<div class="page-container">
+  <mat-toolbar color="primary">
+    <button mat-icon-button (click)="goBack()">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span>Declutter: {{ shoppingListName }}</span>
+  </mat-toolbar>
+
+  <div class="content-container">
+    <!-- Filter Section -->
+    <mat-card class="filter-card">
+      <mat-card-header>
+        <mat-card-title>Filter Settings</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="filter-controls">
+          <mat-form-field appearance="outline">
+            <mat-label>Months Since Last Purchase</mat-label>
+            <input matInput type="number" [(ngModel)]="minMonthsSinceLastPurchase" min="1" max="120">
+            <mat-hint>Items not purchased in this many months</mat-hint>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Max Purchase Count</mat-label>
+            <input matInput type="number" [(ngModel)]="maxPurchaseCount" min="0" max="100">
+            <mat-hint>Items purchased this many times or fewer</mat-hint>
+          </mat-form-field>
+
+          <button mat-raised-button color="primary" (click)="applyFilters()">
+            <mat-icon>filter_list</mat-icon>
+            Apply Filters
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Results Section -->
+    <mat-card class="results-card">
+      <mat-card-header>
+        <mat-card-title>
+          Declutter Candidates
+          <span class="candidate-count" *ngIf="!isLoading">({{ candidates.length }} items)</span>
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div *ngIf="isLoading" class="loading-container">
+          <mat-spinner></mat-spinner>
+        </div>
+
+        <div *ngIf="!isLoading && candidates.length === 0" class="no-results">
+          <mat-icon>check_circle</mat-icon>
+          <p>No declutter candidates found. Your list is clean!</p>
+        </div>
+
+        <div *ngIf="!isLoading && candidates.length > 0">
+          <!-- Action Buttons -->
+          <div class="action-buttons">
+            <button mat-button (click)="selectAll()">
+              <mat-icon>select_all</mat-icon>
+              <span>All</span>
+            </button>
+            <button mat-button (click)="selectNone()">
+              <mat-icon>deselect</mat-icon>
+              <span>None</span>
+            </button>
+            <button mat-raised-button color="warn" (click)="deleteSelected()" [disabled]="selection.selected.length === 0">
+              <mat-icon>delete</mat-icon>
+              <span>Delete ({{ selection.selected.length }})</span>
+            </button>
+          </div>
+
+          <!-- Mobile Card View -->
+          <div *ngIf="isMobile" class="mobile-card-list">
+            <mat-card *ngFor="let candidate of candidates" 
+                      class="candidate-card"
+                      [class.selected]="selection.isSelected(candidate)"
+                      (click)="selection.toggle(candidate)">
+              <mat-card-content>
+                <div class="card-header">
+                  <span class="item-avatar">{{ candidate.shortName }}</span>
+                  <div class="item-name">
+                    <strong>{{ candidate.name }}</strong>
+                  </div>
+                  <mat-checkbox (click)="$event.stopPropagation()"
+                                (change)="$event ? selection.toggle(candidate) : null"
+                                [checked]="selection.isSelected(candidate)">
+                  </mat-checkbox>
+                </div>
+                
+                <div class="card-details">
+                  <div class="detail-row">
+                    <mat-icon class="detail-icon">shopping_cart</mat-icon>
+                    <span class="detail-label">Purchased:</span>
+                    <span class="detail-value">{{ candidate.purchaseCount }} times</span>
+                  </div>
+                  
+                  <div class="detail-row">
+                    <mat-icon class="detail-icon">event</mat-icon>
+                    <span class="detail-label">Last purchase:</span>
+                    <span class="detail-value">{{ formatDate(candidate.lastPurchaseDate) }}</span>
+                  </div>
+                  
+                  <div class="detail-row">
+                    <mat-icon class="detail-icon">schedule</mat-icon>
+                    <span class="detail-label">Time since:</span>
+                    <span class="detail-value">{{ formatDaysAgo(candidate.daysSinceLastPurchase) }}</span>
+                  </div>
+                </div>
+              </mat-card-content>
+            </mat-card>
+          </div>
+
+          <!-- Desktop Table View -->
+          <div *ngIf="!isMobile" class="table-container">
+            <table mat-table [dataSource]="candidates" class="declutter-table">
+              <!-- Checkbox Column -->
+              <ng-container matColumnDef="select">
+                <th mat-header-cell *matHeaderCellDef>
+                  <mat-checkbox (change)="$event ? toggleAllRows() : null"
+                                [checked]="selection.hasValue() && isAllSelected()"
+                                [indeterminate]="selection.hasValue() && !isAllSelected()">
+                  </mat-checkbox>
+                </th>
+                <td mat-cell *matCellDef="let row">
+                  <mat-checkbox (click)="$event.stopPropagation()"
+                                (change)="$event ? selection.toggle(row) : null"
+                                [checked]="selection.isSelected(row)">
+                  </mat-checkbox>
+                </td>
+              </ng-container>
+
+              <!-- Short Name Column -->
+              <ng-container matColumnDef="shortName">
+                <th mat-header-cell *matHeaderCellDef> Avatar </th>
+                <td mat-cell *matCellDef="let candidate">
+                  <span class="item-avatar">{{ candidate.shortName }}</span>
+                </td>
+              </ng-container>
+
+              <!-- Name Column -->
+              <ng-container matColumnDef="name">
+                <th mat-header-cell *matHeaderCellDef> Name </th>
+                <td mat-cell *matCellDef="let candidate">
+                  <strong>{{ candidate.name }}</strong>
+                </td>
+              </ng-container>
+
+              <!-- Purchase Count Column -->
+              <ng-container matColumnDef="purchaseCount">
+                <th mat-header-cell *matHeaderCellDef> Times Purchased </th>
+                <td mat-cell *matCellDef="let candidate">
+                  {{ candidate.purchaseCount }}
+                </td>
+              </ng-container>
+
+              <!-- Last Purchase Date Column -->
+              <ng-container matColumnDef="lastPurchaseDate">
+                <th mat-header-cell *matHeaderCellDef> Last Purchased </th>
+                <td mat-cell *matCellDef="let candidate">
+                  {{ formatDate(candidate.lastPurchaseDate) }}
+                </td>
+              </ng-container>
+
+              <!-- Days Since Purchase Column -->
+              <ng-container matColumnDef="daysSinceLastPurchase">
+                <th mat-header-cell *matHeaderCellDef> Time Since </th>
+                <td mat-cell *matCellDef="let candidate">
+                  {{ formatDaysAgo(candidate.daysSinceLastPurchase) }}
+                </td>
+              </ng-container>
+
+              <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+                  (click)="selection.toggle(row)"
+                  [class.selected]="selection.isSelected(row)">
+              </tr>
+            </table>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

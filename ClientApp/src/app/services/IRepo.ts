@@ -28,4 +28,11 @@ export interface IRepo {
   ClaimAdmin(): Observable<boolean>;
   PromoteUser(userId: string): Observable<boolean>;
   DemoteUser(userId: string): Observable<boolean>;
+
+  GetDeclutterCandidates(
+    shoppingListId: number,
+    minMonthsSinceLastPurchase?: number,
+    maxPurchaseCount?: number
+  ): Observable<any[]>;
+  BulkDeleteItems(shoppingListId: number, itemIds: number[]): Observable<{ deletedCount: number }>;
 }

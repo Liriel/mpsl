@@ -3,3 +3,4 @@ export * from "./ModelBase";
 export * from "./ShoppingListItem";
 export * from "./UserInfo";
 export * from "./DataResult";
+export * from "./DeclutterCandidate";

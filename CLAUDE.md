@@ -67,12 +67,46 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 - All entities track modification user/timestamp
 - SQLite database with Entity Framework Code First
 - Recommendation algorithm in `recommend.sql`
+- Items are unique per shopping list (composite unique index on Name + ShoppingListId)
+- ItemHistory records purchase events for analytics and decluttering
 
 ### Frontend Architecture
 - Service-based with dependency injection
 - Repository pattern via `WebRepo` service
 - PWA capabilities with service worker
 - Real-time updates via SignalR client
+
+## Features
+
+### De-clutter Feature
+The declutter feature helps users identify and remove stale or rarely-used items:
+
+**Business Logic:**
+- **Minimum Age**: Items must be at least 30 days old to be considered for decluttering (prevents newly added items from appearing)
+- **Rarely Purchased**: Items purchased `maxPurchaseCount` times or fewer (default: ≤2)
+- **Stale Items**: Items not purchased in `minMonthsSinceLastPurchase` months (default: ≥6 months)
+- **Never Purchased**: Items with no history records (but must be 30+ days old)
+- Items matching ANY criteria (after age check) are shown as candidates
+
+**API Endpoints:**
+- `GET /api/ShoppingList/{id}/declutter?minMonthsSinceLastPurchase=6&maxPurchaseCount=2`
+  - Returns declutter candidates with purchase statistics
+- `POST /api/ShoppingList/{id}/declutter` (body: `int[]` itemIds)
+  - Bulk deletes specified items
+  - Returns `{ deletedCount: number }`
+
+**Frontend:**
+- Access via menu (⋮) in shopping list toolbar → "Declutter List"
+- Material table with selectable rows
+- Configurable filters for thresholds
+- Shows: item name, avatar, purchase count, last purchase date, days since purchase
+- Bulk selection and deletion with confirmation
+
+**Implementation:**
+- Backend: `DeclutterService` in `Services/` directory
+- Frontend: `DeclutterComponent` in `ClientApp/src/app/declutter/`
+- Query uses LINQ to join ShoppingListItems with ItemHistory
+- Deletes preserve ItemHistory records for future analytics
 
 ## Development Setup
 
@@ -123,3 +157,5 @@ Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8:
 - All API responses are JSON (no MVC views)
 - HTTPS certificates auto-generated via `aspnetcore-https.js`
 - Tests currently have minimal coverage and should be expanded
+- The app supports multiple themes using angular material themeing mechanics
+- Responsive design with a mobile first mindset is encouraged

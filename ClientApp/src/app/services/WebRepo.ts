@@ -95,4 +95,24 @@ export class WebRepo implements IRepo {
     this.logger.Debug("DELETE REQ to " + reqUrl);
     return this.http.delete<T>(reqUrl, { headers: this.headers, withCredentials: true });
   }
+
+  public GetDeclutterCandidates(
+    shoppingListId: number,
+    minMonthsSinceLastPurchase: number = 6,
+    maxPurchaseCount: number = 2
+  ): Observable<any[]> {
+    let params: HttpParams = new HttpParams();
+    params = params.append("minMonthsSinceLastPurchase", minMonthsSinceLastPurchase.toString());
+    params = params.append("maxPurchaseCount", maxPurchaseCount.toString());
+
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/declutter";
+    this.logger.Debug("GET Declutter Candidates REQ to " + reqUrl);
+    return this.http.get<any[]>(reqUrl, { params: params, withCredentials: true });
+  }
+
+  public BulkDeleteItems(shoppingListId: number, itemIds: number[]): Observable<{ deletedCount: number }> {
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/declutter";
+    this.logger.Debug("POST Bulk Delete Items REQ to " + reqUrl);
+    return this.http.post<{ deletedCount: number }>(reqUrl, itemIds, { headers: this.headers, withCredentials: true });
+  }
 }

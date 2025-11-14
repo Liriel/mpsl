@@ -34,6 +34,13 @@ namespace mps.Infrastructure
             CreateMap<Unit, UnitEditViewModel>();
             CreateMap<UnitEditViewModel, Unit>()
                 .ForMember(dst => dst.Id, opt => opt.Ignore());
+
+            // Declutter mappings
+            CreateMap<Services.DeclutterCandidate, DeclutterCandidateViewModel>()
+                .ForMember(dst => dst.Id, opt => opt.MapFrom(src => src.Item.Id))
+                .ForMember(dst => dst.ShoppingListId, opt => opt.MapFrom(src => src.Item.ShoppingListId))
+                .ForMember(dst => dst.Name, opt => opt.MapFrom(src => src.Item.Name))
+                .ForMember(dst => dst.ShortName, opt => opt.MapFrom(src => src.Item.ShortName));
         }
 
     }

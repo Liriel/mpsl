@@ -1,0 +1,29 @@
+<h2 mat-dialog-title>
+  @if(data?.customTitle) {
+    {{data.customTitle}}
+  } @else {
+    Confirm Deletion
+  }
+</h2>
+
+<mat-dialog-content>
+  @if(data?.customMessage) {
+    <p>{{data.customMessage}}</p>
+  } @else {
+    <p>
+      Are you sure you want to delete 
+      <span class="item-count">{{data.itemCount}}</span> 
+      {{data.entityType}}{{data.itemCount !== 1 ? 's' : ''}}?
+    </p>
+    <p class="warning-text">
+      This action cannot be undone.
+    </p>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions>
+  <button mat-button [mat-dialog-close]="false">Cancel</button>
+  <button mat-raised-button color="warn" [mat-dialog-close]="true" cdkFocusInitial>
+    Delete
+  </button>
+</mat-dialog-actions>
