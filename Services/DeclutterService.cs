@@ -101,14 +101,12 @@ namespace mps.Services
                     if (itemAgeDays < 30)
                         return false;
                     
-                    // Include if any of these conditions are met:
+                    // Include if ALL of these conditions are met:
                     return (
-                        // Never purchased (but old enough)
-                        (x.PurchaseCount == 0) ||
-                        // Or rarely purchased
-                        (x.PurchaseCount <= maxPurchaseCount) ||
-                        // Or not purchased recently
-                        (x.LastPurchaseDate.HasValue && x.LastPurchaseDate.Value < minDate)
+                        // Rarely purchased (or never purchased)
+                        (x.PurchaseCount <= maxPurchaseCount) &&
+                        // AND either never purchased OR not purchased recently
+                        (!x.LastPurchaseDate.HasValue || x.LastPurchaseDate.Value < minDate)
                     );
                 })
                 .OrderBy(x => x.LastPurchaseDate ?? DateTime.MinValue)

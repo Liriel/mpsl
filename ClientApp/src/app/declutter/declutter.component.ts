@@ -5,7 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { SelectionModel } from '@angular/cdk/collections';
 import { IRepo, IRepoToken } from '../services/IRepo';
 import { IAppUiService, IAppUiServiceToken } from '../services';
-import { DeclutterCandidate } from '../models';
+import { DeclutterCandidate, ShoppingList } from '../models';
 import { ConfirmDeleteDialogComponent } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 import { ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.model';
 
@@ -41,11 +41,21 @@ export class DeclutterComponent implements OnInit {
 
   ngOnInit(): void {
     this.shoppingListId = parseInt(this.route.snapshot.paramMap.get('id') || '0', 10);
-    this.shoppingListName = this.route.snapshot.paramMap.get('name') || 'Shopping List';
     
     // Detect mobile view
     this.checkMobileView();
     window.addEventListener('resize', () => this.checkMobileView());
+    
+    // Load shopping list name
+    this.repo.GetEntity<ShoppingList>('ShoppingList', this.shoppingListId).subscribe({
+      next: (shoppingList) => {
+        this.shoppingListName = shoppingList.name;
+      },
+      error: (error) => {
+        console.error('Error loading shopping list:', error);
+        this.shoppingListName = 'Shopping List';
+      }
+    });
     
     this.loadCandidates();
   }

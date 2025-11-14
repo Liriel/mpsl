@@ -30,7 +30,7 @@ import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
 import { AuthService, BreakpointAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo, ThemeService, IThemeServiceToken } from './services';
 import { HomeComponent } from './home/home.component';
-import { HttpClientModule } from '@angular/common/http';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { INotificationServiceToken } from './services/INotificationService';
 import { SignalRNotificationService } from './services/SignalRNotificationService';
 import { LoadingComponent } from './loading/loading.component';
@@ -76,7 +76,6 @@ import { ConfirmDeleteDialogComponent } from './shared/confirm-delete-dialog/con
     ConfirmDeleteDialogComponent
   ],
   imports: [
-    HttpClientModule,
     BrowserModule,
     AppRoutingModule,
     HammerModule,
@@ -111,6 +110,7 @@ import { ConfirmDeleteDialogComponent } from './shared/confirm-delete-dialog/con
     })
   ],
   providers: [
+    provideHttpClient(withInterceptorsFromDi()),
     { provide: IRepoToken, useClass: WebRepo },
     { provide: INotificationServiceToken, useClass: SignalRNotificationService },
     { provide: IConfigServiceToken, useClass: StaticConfigService },
