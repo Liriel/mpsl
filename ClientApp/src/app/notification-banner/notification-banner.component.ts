@@ -18,7 +18,10 @@ export class NotificationBannerComponent implements OnInit {
   ngOnInit(): void {
     this.isSupported = this.pushService.isSupported();
 
-    if (this.isSupported) {
+    // Check if user previously dismissed the banner
+    const wasDismissed = localStorage.getItem('notification-banner-dismissed') === 'true';
+
+    if (this.isSupported && !wasDismissed) {
       this.pushService.permission$.subscribe(permission => {
         this.permission = permission;
         this.updateBannerVisibility();
@@ -32,16 +35,30 @@ export class NotificationBannerComponent implements OnInit {
   }
 
   private updateBannerVisibility(): void {
-    // Show banner if notifications are supported, not denied, and not subscribed
+    // Check if banner was dismissed
+    const wasDismissed = localStorage.getItem('notification-banner-dismissed') === 'true';
+    
+    // Show banner if:
+    // - Notifications are supported
+    // - Permission not denied
+    // - Not subscribed
+    // - Not dismissed before
     this.showBanner = this.isSupported && 
                       this.permission !== 'denied' && 
-                      !this.isSubscribed;
+                      !this.isSubscribed &&
+                      !wasDismissed;
   }
 
   async enableNotifications(): Promise<void> {
+    console.log('Enabling notifications...');
     const success = await this.pushService.subscribe();
-    if (!success) {
+    if (success) {
+      console.log('Notifications enabled successfully');
+      this.showBanner = false;
+    } else {
       console.error('Failed to enable notifications');
+      // Show error message to user (you could add a snackbar here)
+      alert('Failed to enable notifications. Please check browser console for details.');
     }
   }
 

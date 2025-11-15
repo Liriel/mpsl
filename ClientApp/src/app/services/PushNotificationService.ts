@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+import { Injectable, ApplicationRef } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { SwPush } from '@angular/service-worker';
 import { Observable, BehaviorSubject, fromEvent, merge } from 'rxjs';
-import { map, distinctUntilChanged } from 'rxjs/operators';
+import { map, distinctUntilChanged, filter, take, concat } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { PushSubscription as PushSubscriptionModel } from '../models/PushNotification';
 
@@ -25,11 +25,42 @@ export class PushNotificationService {
 
   constructor(
     private http: HttpClient,
-    private swPush: SwPush
+    private swPush: SwPush,
+    private appRef: ApplicationRef
   ) {
     this.checkPermission();
-    this.checkSubscription();
     this.initPageVisibilityTracking();
+    
+    // Wait for app to be stable before checking subscription
+    this.waitForAppStable().then(() => {
+      console.log('App is stable, checking push subscription...');
+      this.checkSubscription();
+    });
+  }
+
+  /**
+   * Wait for Angular app to be stable before initializing push notifications
+   */
+  private async waitForAppStable(): Promise<void> {
+    return new Promise((resolve) => {
+      // Wait for app to be stable (all async tasks completed)
+      // Use concat to handle the case where the app is already stable
+      const isStable$ = this.appRef.isStable.pipe(
+        filter(stable => stable === true),
+        take(1)
+      );
+
+      isStable$.subscribe(() => {
+        console.log('Angular app has stabilized');
+        resolve();
+      });
+
+      // Fallback timeout in case isStable never fires
+      setTimeout(() => {
+        console.log('Fallback: Proceeding after timeout');
+        resolve();
+      }, 5000);
+    });
   }
 
   /**
@@ -69,8 +100,24 @@ export class PushNotificationService {
    */
   private async checkSubscription(): Promise<void> {
     try {
-      const subscription = await this.swPush.subscription.toPromise();
-      this.isSubscribedSubject.next(subscription !== null);
+      // Wait for service worker to be ready
+      if (!this.swPush.isEnabled) {
+        console.log('Service Worker not enabled, skipping subscription check');
+        this.isSubscribedSubject.next(false);
+        return;
+      }
+
+      // Use firstValueFrom instead of deprecated toPromise()
+      const subscription = await new Promise<PushSubscription | null>((resolve) => {
+        this.swPush.subscription.subscribe({
+          next: (sub) => resolve(sub),
+          error: () => resolve(null)
+        });
+      });
+
+      const isSubscribed = subscription !== null;
+      console.log('Subscription check:', isSubscribed ? 'Active subscription found' : 'No subscription');
+      this.isSubscribedSubject.next(isSubscribed);
     } catch (error) {
       console.error('Error checking subscription:', error);
       this.isSubscribedSubject.next(false);
@@ -102,18 +149,44 @@ export class PushNotificationService {
         return false;
       }
 
+      // Check if already subscribed
+      const existingSubscription = await new Promise<PushSubscription | null>((resolve) => {
+        this.swPush.subscription.subscribe({
+          next: (sub) => resolve(sub),
+          error: () => resolve(null)
+        });
+      });
+
+      if (existingSubscription) {
+        console.log('Already subscribed to push notifications');
+        // Still send to backend in case it wasn't saved before
+        try {
+          const subscriptionData = this.convertSubscription(existingSubscription);
+          await this.http.post(`${this.API_URL}/subscribe`, subscriptionData).toPromise();
+          this.isSubscribedSubject.next(true);
+          return true;
+        } catch (error) {
+          console.error('Error saving existing subscription to backend:', error);
+        }
+      }
+
       // Request permission if not granted
       if (Notification.permission !== 'granted') {
         const permission = await this.requestPermission();
         if (permission !== 'granted') {
+          console.log('Notification permission denied');
           return false;
         }
       }
 
+      console.log('Requesting push subscription with VAPID key...');
+      
       // Subscribe to push notifications
       const subscription = await this.swPush.requestSubscription({
         serverPublicKey: this.VAPID_PUBLIC_KEY
       });
+
+      console.log('Push subscription obtained, sending to backend...');
 
       // Send subscription to backend
       const subscriptionData = this.convertSubscription(subscription);
@@ -125,6 +198,9 @@ export class PushNotificationService {
 
     } catch (error) {
       console.error('Error subscribing to push notifications:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      }
       return false;
     }
   }
