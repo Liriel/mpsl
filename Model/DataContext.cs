@@ -16,6 +16,7 @@ namespace mps.Model
         public DbSet<Unit> Units { get; set; }
         public DbSet<Recommendation> Recommendations { get; set; }
         public DbSet<ItemHistory> ItemHistories { get; set; }
+        public DbSet<PushSubscription> PushSubscriptions { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

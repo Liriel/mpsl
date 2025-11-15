@@ -1,0 +1,15 @@
+<div *ngIf="showBanner" class="notification-banner">
+  <div class="banner-content">
+    <mat-icon>notifications</mat-icon>
+    <div class="banner-text">
+      <strong>Stay updated!</strong>
+      <span>Enable notifications to know when others add items to your lists</span>
+    </div>
+    <div class="banner-actions">
+      <button mat-button (click)="enableNotifications()">Enable</button>
+      <button mat-icon-button (click)="dismissBanner()" aria-label="Dismiss notification banner">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

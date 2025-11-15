@@ -53,6 +53,8 @@ builder.Services.AddCors(o => o.AddPolicy("CorsPolicy", builder =>
 builder.Services.AddScoped<IRepository, PersistedRepository>();
 builder.Services.AddScoped<IUserIdentityService, HttpContextIdentityService>();
 builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
+builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+builder.Services.AddScoped<IWebPushNotificationService, WebPushNotificationService>();
 builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntityService>();
 builder.Services.AddTransient<IEntityService<Unit>, EntityService<Unit>>();
 builder.Services.AddTransient<IEntityService<ShoppingListItem>, ShoppingListItemEntityService>();

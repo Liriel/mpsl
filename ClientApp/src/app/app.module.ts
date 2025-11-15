@@ -50,6 +50,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { ConfirmDeleteDialogComponent } from './shared/confirm-delete-dialog/confirm-delete-dialog.component';
+import { NotificationBannerComponent } from './notification-banner/notification-banner.component';
 
 @Injectable() export class MyHammerConfig extends HammerGestureConfig {
   override = <any>{
@@ -73,7 +74,8 @@ import { ConfirmDeleteDialogComponent } from './shared/confirm-delete-dialog/con
     CreateListDrawerComponent,
     ThemeToggleComponent,
     DeclutterComponent,
-    ConfirmDeleteDialogComponent
+    ConfirmDeleteDialogComponent,
+    NotificationBannerComponent
   ],
   imports: [
     BrowserModule,

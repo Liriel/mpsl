@@ -4,7 +4,8 @@
 
 export const environment = {
   ServerUrl: "https://localhost:5001",
-  production: false
+  production: false,
+  vapidPublicKey: "BCZxeUF1n8siWOVn24cyDu52ZaEkYvZkQaciuOpjsZPyj6rbDYdLm0O0g5Ej7auF9nNtK2eAXrKFXrwHrZnFa8Q"
 };
 
 /*

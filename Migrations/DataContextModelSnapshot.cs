@@ -224,11 +224,11 @@ namespace mps.Migrations
                         {
                             Id = "00000000-0000-0000-0000-000000000000",
                             AccessFailedCount = 0,
-                            ConcurrencyStamp = "2f35f45a-7e9d-40ed-9bd9-aad98fcb0fff",
+                            ConcurrencyStamp = "8b5f3885-4d7c-43b2-ba57-af2b2093c367",
                             EmailConfirmed = false,
                             LockoutEnabled = true,
                             PhoneNumberConfirmed = false,
-                            SecurityStamp = "84591c13-42ea-4ad2-b26d-5590d1ca96b2",
+                            SecurityStamp = "2f2066e0-3ab9-47f7-a357-0f5bdf9b0eb7",
                             ShowShortnameInList = false,
                             TwoFactorEnabled = false,
                             UserName = "SYSTEM"
@@ -262,13 +262,68 @@ namespace mps.Migrations
                     b.ToTable("ItemHistories");
                 });
 
-            modelBuilder.Entity("mps.Model.Recommendations", b =>
+            modelBuilder.Entity("mps.Model.PushSubscription", b =>
                 {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Auth")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Endpoint")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("P256dh")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("PushSubscriptions");
+                });
+
+            modelBuilder.Entity("mps.Model.Recommendation", b =>
+                {
+                    b.Property<float>("AvgDiff")
+                        .HasColumnType("REAL");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("LastCheckDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<float>("Rank")
+                        .HasColumnType("REAL");
+
                     b.Property<int>("ShoppingListId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShoppingListItemId")
-                        .HasColumnType("INTEGER");
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("Id");
+
+                    b.Property<float>("Weight")
+                        .HasColumnType("REAL");
 
                     b.HasIndex("ShoppingListId");
 
@@ -490,7 +545,18 @@ namespace mps.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("mps.Model.Recommendations", b =>
+            modelBuilder.Entity("mps.Model.PushSubscription", b =>
+                {
+                    b.HasOne("mps.Model.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("mps.Model.Recommendation", b =>
                 {
                     b.HasOne("mps.Model.ShoppingList", "ShoppingList")
                         .WithMany()

@@ -7,11 +7,17 @@ namespace mps.Services
     {
         private readonly IUserIdentityService identityService;
         private readonly INotificationService notificationService;
+        private readonly IWebPushNotificationService webPushService;
 
-        public ShoppingListItemEntityService(IRepository repo, IUserIdentityService identityService, INotificationService notificationService) : base(repo)
+        public ShoppingListItemEntityService(
+            IRepository repo, 
+            IUserIdentityService identityService, 
+            INotificationService notificationService,
+            IWebPushNotificationService webPushService) : base(repo)
         {
             this.notificationService = notificationService;
             this.identityService = identityService;
+            this.webPushService = webPushService;
         }
 
         public override EntityOperationResult<ShoppingListItem> AddOrUpdate(ShoppingListItem entity)
@@ -37,9 +43,31 @@ namespace mps.Services
 
             // broadcast removed if the item has been archived
             if (entity.Status == ItemState.Archived)
+            {
                 this.notificationService.BroadCastItemRemoved(entity);
+            }
             else
+            {
                 this.notificationService.BroadCastItemChanged(entity);
+
+                // Send batched push notification for new items (not for updates)
+                if (entity.Id != 0 && entity.AddedByUserId != null)
+                {
+                    var shoppingList = this.repo.Find<ShoppingList>(entity.ShoppingListId);
+                    var addedByUser = this.repo.Users.FirstOrDefault(u => u.Id == entity.AddedByUserId);
+                    
+                    if (shoppingList != null && addedByUser != null)
+                    {
+                        // Fire and forget - don't await
+                        _ = this.webPushService.SendBatchedShoppingListNotificationAsync(
+                            shoppingList.Id,
+                            shoppingList.Name,
+                            addedByUser.Id,
+                            addedByUser.ShortName ?? addedByUser.UserName
+                        );
+                    }
+                }
+            }
 
             return result;
         }

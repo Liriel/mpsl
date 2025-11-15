@@ -77,6 +77,38 @@ namespace mps.Services
             this.context.Remove<T>(entity);
         }
 
+        public void Delete<T>(T entity) where T : EntityBase
+        {
+            this.context.Remove<T>(entity);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            var currentUser = this.GetUserByName(this.identityService.CurrentUserName);
+            if (currentUser == null)
+            {
+                currentUser = this.Users.Single(u => u.Id == Constants.SYSUSER_ID);
+            }
+
+            var timestamp = DateTime.Now;
+            foreach (EntityEntry dbEntityEntry in this.context.ChangeTracker.Entries())
+            {
+                var entity = dbEntityEntry.Entity as ITrackLastChange;
+                if (entity == null)
+                {
+                    continue;
+                }
+
+                if ((dbEntityEntry.State == EntityState.Modified) || (dbEntityEntry.State == EntityState.Added))
+                {
+                    entity.LastChangeByUserId = currentUser.Id;
+                    entity.LastChangedDate = timestamp;
+                }
+            }
+
+            await this.context.SaveChangesAsync();
+        }
+
         public T Find<T>(int id) where T : EntityBase
         {
             var result = this.context.Find(typeof(T), id);

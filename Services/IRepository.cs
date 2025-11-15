@@ -25,6 +25,10 @@ namespace mps.Services
 
         void SaveChanges();
 
+        Task SaveChangesAsync();
+
         IQueryable<T> GetEntities<T>() where T : EntityBase;
+
+        void Delete<T>(T entity) where T : EntityBase;
     }
 }
