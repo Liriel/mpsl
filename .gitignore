@@ -40,3 +40,5 @@ Client/dist
 .vs/
 cert/
 startContainer.sh
+# personal Claude Code permissions; shared ones live in .claude/settings.json
+.claude/settings.local.json
