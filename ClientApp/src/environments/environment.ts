@@ -3,9 +3,12 @@
 // The list of file replacements can be found in `angular.json`.
 
 export const environment = {
-  ServerUrl: "https://localhost:5001",
+  // empty = same-origin: every API/SignalR call goes to the Angular dev server and is forwarded to
+  // the backend by ClientApp/proxy.conf.js, so dev matches production (no CORS, no cross-origin
+  // credentials, relative links such as <a href="Account/SignIn"> resolve correctly).
+  ServerUrl: "",
   production: false,
-  vapidPublicKey: "BCZxeUF1n8siWOVn24cyDu52ZaEkYvZkQaciuOpjsZPyj6rbDYdLm0O0g5Ej7auF9nNtK2eAXrKFXrwHrZnFa8Q"
+  vapidPublicKey: "BEa_VDNyon1zoaJ7333Cc-EcdEeRyva4rSgSR7OXycZNPOMR7vjBIa84FWEBSNSrMkRM_VbyPwmeUbHwp-i6QOY"
 };
 
 /*

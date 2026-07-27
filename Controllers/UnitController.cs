@@ -8,7 +8,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = "ApprovedUser")]
 [Route("api/[controller]")]
 public class UnitController : EntityController<Unit, UnitEditViewModel, UnitViewModel>
 {

@@ -9,7 +9,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = "ApprovedUser")]
 [Route("api/[controller]")]
 public class ItemController : EntityController<ShoppingListItem, ShoppingListItemEditViewModel, ShoppingListItemViewModel>
 {
@@ -19,9 +19,10 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
     private readonly IUnitService unitService;
     private readonly INotificationService notificationService;
     private readonly IUserIdentityService userIdentityService;
+    private readonly IShoppingListAccessService accessService;
 
     public ItemController(IEntityService<ShoppingListItem> entitySvc, IRepository repo, ILogger<ItemController> logger, IMapper mapper, IUnitService unitService,
-        INotificationService notificationService, IUserIdentityService userIdentityService)
+        INotificationService notificationService, IUserIdentityService userIdentityService, IShoppingListAccessService accessService)
         : base(entitySvc, repo, logger, mapper)
     {
         this.userIdentityService = userIdentityService;
@@ -30,6 +31,7 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
         this.repo = repo;
         this.logger = logger;
         this.mapper = mapper;
+        this.accessService = accessService;
     }
 
     protected override void PostMapping(ShoppingListItemEditViewModel viewModel, ShoppingListItem model)
@@ -37,15 +39,19 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
         model.Unit = this.unitService.GetOrCreateUnit(viewModel.UnitShortName);
     }
 
+    protected override bool CanAccess(ShoppingListItem entity) =>
+        this.accessService.CanAccessItem(entity.Id, this.User);
+
     [HttpPut("{itemId}/toggle")]
     public IActionResult ToggleStatus(int itemId)
     {
-
-        // TODO: check access
         var item = this.repo.Find<ShoppingListItem>(itemId);
 
         if (item == null)
             return new NotFoundObjectResult("item not found");
+
+        if (!this.accessService.CanAccessItem(itemId, this.User))
+            return Forbid();
 
         if (item.Status == ItemState.Archived)
             return new BadRequestObjectResult("cant toggle archived items");

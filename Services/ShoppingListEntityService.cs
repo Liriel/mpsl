@@ -1,4 +1,3 @@
-using System.Linq;
 using mps.Model;
 using mps.Services;
 using mps.Infrastructure;
@@ -22,12 +21,6 @@ namespace mps.Services
             }
 
             return base.AddOrUpdate(entity);
-        }
-
-        public override IQueryable<ShoppingList> GetFilteredEntities()
-        {
-            // TODO: add filter
-            return base.GetFilteredEntities();
         }
     }
 }

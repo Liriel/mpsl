@@ -78,12 +78,6 @@ namespace mps.Services
             return base.Delete(entity);
         }
 
-        public override IQueryable<ShoppingListItem> GetFilteredEntities()
-        {
-            // TODO: add filter
-            return base.GetFilteredEntities();
-        }
-
         public override EntityOperationResult<ShoppingListItem> Validate(ShoppingListItem entity)
         {
             if (this.repo.Find<ShoppingList>(entity.ShoppingListId) == null && entity.ShoppingList == null)

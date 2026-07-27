@@ -1,30 +1,37 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using mps.Infrastructure;
 using mps.Services;
 using mps.ViewModels;
 
 namespace mps.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = "ApprovedUser")]
 [Route("api/[controller]")]
 public class PushSubscriptionController : ControllerBase
 {
     private readonly IPushSubscriptionService subscriptionService;
     private readonly IUserIdentityService userIdentityService;
+    private readonly IWebPushNotificationService webPushService;
     private readonly ILogger<PushSubscriptionController> logger;
     private readonly IConfiguration configuration;
+    private readonly IRepository repo;
 
     public PushSubscriptionController(
         IPushSubscriptionService subscriptionService,
         IUserIdentityService userIdentityService,
+        IWebPushNotificationService webPushService,
         ILogger<PushSubscriptionController> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IRepository repo)
     {
         this.subscriptionService = subscriptionService;
         this.userIdentityService = userIdentityService;
+        this.webPushService = webPushService;
         this.logger = logger;
         this.configuration = configuration;
+        this.repo = repo;
     }
 
     /// <summary>
@@ -118,6 +125,73 @@ public class PushSubscriptionController : ControllerBase
         {
             this.logger.LogError(ex, "Error getting subscriptions");
             return StatusCode(500, new { error = "Failed to get subscriptions" });
+        }
+    }
+
+    /// <summary>
+    /// Get all subscriptions (admin only)
+    /// </summary>
+    [HttpGet("all-subscriptions")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> GetAllSubscriptions()
+    {
+        try
+        {
+            var subscriptions = await this.subscriptionService.GetAllSubscriptionsAsync();
+            
+            // Join with user data
+            var result = from s in subscriptions
+                         join u in this.repo.Users on s.UserId equals u.Id
+                         select new
+                         {
+                             s.Id,
+                             s.UserId,
+                             UserName = u.UserName,
+                             ShortName = u.ShortName,
+                             s.Endpoint,
+                             s.CreatedAt,
+                             s.UserAgent
+                         };
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error getting all subscriptions");
+            return StatusCode(500, new { error = "Failed to get all subscriptions" });
+        }
+    }
+
+    /// <summary>
+    /// Send a test notification (admin only)
+    /// </summary>
+    [HttpPost("test")]
+    [Authorize(Roles = "admin")]
+    public async Task<IActionResult> SendTestNotification([FromBody] TestNotificationRequest request)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
+        {
+            var success = await this.webPushService.SendTestNotificationAsync(
+                request.SubscriptionId,
+                request.Title,
+                request.Body
+            );
+
+            if (success)
+            {
+                this.logger.LogInformation($"Admin sent test notification to subscription {request.SubscriptionId}");
+                return Ok(new { success = true, message = "Test notification sent successfully" });
+            }
+
+            return NotFound(new { error = "Subscription not found" });
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, "Error sending test notification");
+            return StatusCode(500, new { error = "Failed to send test notification" });
         }
     }
 }

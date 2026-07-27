@@ -9,7 +9,7 @@ using mps.ViewModels;
 namespace mps.Controllers;
 
 [ApiController]
-[Authorize]
+[Authorize(Policy = "ApprovedUser")]
 [Route("api/[controller]")]
 public class ShoppingListController : EntityController<ShoppingList, ShoppingListEditViewModel, ShoppingListViewModel>
 {
@@ -19,9 +19,11 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly IUnitService unitService;
     private readonly IEntityService<ShoppingListItem> itemService;
     private readonly IUserIdentityService userIdentityService;
+    private readonly IShoppingListAccessService accessService;
+    private readonly IDeclutterService declutterService;
 
     public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService,
-        IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService)
+        IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService, IShoppingListAccessService accessService, IDeclutterService declutterService)
         : base(entitySvc, repo, logger, mapper)
     {
         this.userIdentityService = userIdentityService;
@@ -30,15 +32,22 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         this.repo = repo;
         this.logger = logger;
         this.mapper = mapper;
+        this.accessService = accessService;
+        this.declutterService = declutterService;
     }
+
+    protected override IQueryable<ShoppingList> ApplyAccessFilter(IQueryable<ShoppingList> query) =>
+        this.accessService.FilterAccessible(query, this.User);
+
+    protected override bool CanAccess(ShoppingList entity) =>
+        this.accessService.CanAccessList(entity.Id, this.User);
 
 
     [HttpGet] // Explicitly adding the attribute here "overrides" the EntityControllers index method
     public IActionResult FilteredIndex(string name, int skip = 0, int take = 100, string sort = null, SortDirection sortDirection = SortDirection.asc)
     {
-        var q = this.repo.GetEntities<ShoppingList>();
+        var q = this.accessService.FilterAccessible(this.repo.GetEntities<ShoppingList>(), this.User);
 
-        // TODO: filter for owned lists
         // HACK: it looks like string.Contains() is correctly translated here but sqlite
         // is case sensitive?
         if (!string.IsNullOrWhiteSpace(name))
@@ -49,19 +58,31 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     }
 
     [HttpGet("{shoppingListId}/recommendations")]
-    public IEnumerable<RecommendationViewModel> GetRecommendations(int shoppingListId)
+    public IActionResult GetRecommendations(int shoppingListId)
     {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
         var q = from r in this.repo.Recommendations
             where r.ShoppingListId == shoppingListId
             orderby r.Rank
             select r;
 
-        return this.mapper.ProjectTo<RecommendationViewModel>(q.Take(100)); 
+        return Ok(this.mapper.ProjectTo<RecommendationViewModel>(q.Take(100)));
     }
 
     [HttpGet("{shoppingListId}/item")]
-    public IEnumerable<ShoppingListItemViewModel> GetItems(int shoppingListId)
+    public IActionResult GetItems(int shoppingListId)
     {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
         DateTime minDate = DateTime.Now.AddHours(-1);
 
         // find old items
@@ -92,12 +113,18 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                 orderby i.AddDate
                 select i;
 
-        return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
+        return Ok(this.mapper.ProjectTo<ShoppingListItemViewModel>(q));
     }
 
     [HttpPost("{shoppingListId}/add")]
     public IActionResult AddItem(int shoppingListId, ShoppingListAddViewModel itemViewModel)
     {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
         WebOperationResult<ShoppingListAddViewModel, ShoppingListItem> result;
         if (ModelState.IsValid)
         {
@@ -148,7 +175,10 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
 
         if (shoppingList == null)
-            return new BadRequestObjectResult("Invalid shopping list");
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
 
         var item = shoppingList.Items.SingleOrDefault(i => i.Id == itemId);
         if (item == null)
@@ -161,8 +191,14 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     }
 
     [HttpGet("{shoppingListId}/search/{pattern?}")]
-    public IEnumerable<ShoppingListItemViewModel> SearchItems(int shoppingListId, string pattern = "")
+    public IActionResult SearchItems(int shoppingListId, string pattern = "")
     {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
         // replace umlauts
         pattern = NameHelper.GetNormalizedName(pattern);
 
@@ -172,7 +208,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
                 orderby i.Name
                 select i;
 
-        return this.mapper.ProjectTo<ShoppingListItemViewModel>(q);
+        return Ok(this.mapper.ProjectTo<ShoppingListItemViewModel>(q));
     }
 
     /// <summary>
@@ -189,14 +225,15 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         [FromQuery] int minMonthsSinceLastPurchase = 6,
         [FromQuery] int maxPurchaseCount = 2)
     {
-        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
-        if (shoppingList == null)
-            return new BadRequestObjectResult("Invalid shopping list");
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
 
-        var declutterService = this.HttpContext.RequestServices.GetRequiredService<IDeclutterService>();
-        var candidates = declutterService.GetDeclutterCandidates(
-            shoppingListId, 
-            minMonthsSinceLastPurchase, 
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
+        var candidates = this.declutterService.GetDeclutterCandidates(
+            shoppingListId,
+            minMonthsSinceLastPurchase,
             maxPurchaseCount);
 
         var viewModels = this.mapper.Map<IEnumerable<DeclutterCandidateViewModel>>(candidates);
@@ -212,15 +249,16 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     [HttpPost("{shoppingListId}/declutter")]
     public IActionResult BulkDeleteItems(int shoppingListId, [FromBody] int[] itemIds)
     {
-        var shoppingList = this.repo.Find<ShoppingList>(shoppingListId);
-        if (shoppingList == null)
-            return new BadRequestObjectResult("Invalid shopping list");
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
 
         if (itemIds == null || itemIds.Length == 0)
             return new BadRequestObjectResult("No items specified");
 
-        var declutterService = this.HttpContext.RequestServices.GetRequiredService<IDeclutterService>();
-        int deletedCount = declutterService.BulkDeleteItems(shoppingListId, itemIds);
+        int deletedCount = this.declutterService.BulkDeleteItems(shoppingListId, itemIds);
 
         return Ok(new { DeletedCount = deletedCount });
     }

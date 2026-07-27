@@ -10,6 +10,12 @@ namespace mps.Model
 
     public class DataContext : IdentityDbContext<ApplicationUser, IdentityRole, string>
     {
+        // parameterless: production path, falls back to the hardcoded data/mps.db below.
+        public DataContext() { }
+
+        // lets callers (tests, or any future config-driven connection string) supply options via
+        // DI - OnConfiguring below leaves them alone when this constructor was used.
+        public DataContext(DbContextOptions<DataContext> options) : base(options) { }
 
         public DbSet<ShoppingList> ShoppingLists { get; set; }
         public DbSet<ShoppingListItem> ShoppingListItems { get; set; }
@@ -43,12 +49,17 @@ namespace mps.Model
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            if (!Directory.Exists("data"))
-                Directory.CreateDirectory("data");
+            // tests (and any future config-driven connection string) configure the context
+            // themselves via AddDbContext/UseSqlite before it reaches here - don't override that.
+            if (!optionsBuilder.IsConfigured)
+            {
+                if (!Directory.Exists("data"))
+                    Directory.CreateDirectory("data");
 
-            string dbPath = Path.Combine("data", "mps.db");
-            optionsBuilder.UseLazyLoadingProxies();
-            optionsBuilder.UseSqlite("Data Source=" + dbPath);
+                string dbPath = Path.Combine("data", "mps.db");
+                optionsBuilder.UseLazyLoadingProxies();
+                optionsBuilder.UseSqlite("Data Source=" + dbPath);
+            }
         }
     }
 }

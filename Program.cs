@@ -23,6 +23,9 @@ builder.Services.AddAuthentication()
     microsoftOptions.TokenEndpoint = "https://login.microsoftonline.com/consumers/oauth2/v2.0/token";
 });
 
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy("ApprovedUser", p => p.RequireRole("user", "admin")));
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     // Cookie settings
@@ -36,6 +39,14 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.Events.OnRedirectToLogin = context =>
     {
         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+        return Task.CompletedTask;
+    };
+
+    // same for authenticated-but-not-approved callers: the access checks call Forbid(), which would
+    // otherwise redirect to the (empty) AccessDeniedPath and hand the SPA an HTML page instead of a status
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        context.Response.StatusCode = StatusCodes.Status403Forbidden;
         return Task.CompletedTask;
     };
 });
@@ -54,6 +65,7 @@ builder.Services.AddScoped<IRepository, PersistedRepository>();
 builder.Services.AddScoped<IUserIdentityService, HttpContextIdentityService>();
 builder.Services.AddScoped<INotificationService, SignalRNotificationService>();
 builder.Services.AddScoped<IPushSubscriptionService, PushSubscriptionService>();
+builder.Services.AddScoped<IShoppingListAccessService, ShoppingListAccessService>();
 builder.Services.AddScoped<IWebPushNotificationService, WebPushNotificationService>();
 builder.Services.AddTransient<IEntityService<ShoppingList>, ShoppingListEntityService>();
 builder.Services.AddTransient<IEntityService<Unit>, EntityService<Unit>>();
@@ -112,3 +124,6 @@ app.MapHub<LiveHub>("/live");
 app.MapFallbackToFile("index.html");;
 
 app.Run();
+
+// allows WebApplicationFactory<Program> to reference this entry point assembly from Tests/
+public partial class Program { }

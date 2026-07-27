@@ -1,9 +1,9 @@
 import { trigger, state, style, transition, animate } from '@angular/animations';
-import { AfterViewInit, Component, HostListener, Inject, OnInit } from '@angular/core';
+import { AfterViewInit, Component, HostListener, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, tap } from 'rxjs';
+import { BehaviorSubject, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
@@ -45,7 +45,7 @@ import { IAppUiService, IAppUiServiceToken } from '../services';
     ],
     standalone: false
 })
-export class ShoppingListComponent implements OnInit, AfterViewInit {
+export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public items: ShoppingListItem[];
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
@@ -71,6 +71,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   hideComplete: boolean = false;
 
   private windowConnState: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Connected);
+  private destroy$: Subject<void> = new Subject<void>();
 
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
@@ -83,8 +84,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
     this.shoppingListName = this.repo.GetEntity<ShoppingList>("ShoppingList", this.shoppingListId).pipe(
       map(r => r.name)
     );
-    this.notificationService.OnItemChanged(this.shoppingListId).subscribe(item => this.OnItemChanged(item));
-    this.notificationService.OnItemRemoved(this.shoppingListId).subscribe(item => this.OnItemRemoved(item));
+    this.notificationService.OnItemChanged(this.shoppingListId).pipe(takeUntil(this.destroy$)).subscribe(item => this.OnItemChanged(item));
+    this.notificationService.OnItemRemoved(this.shoppingListId).pipe(takeUntil(this.destroy$)).subscribe(item => this.OnItemRemoved(item));
     this.ConnState = merge(this.notificationService.ConnectionState, this.windowConnState);
     this.isMobile = this.appUiSvc.IsMobile;
   }
@@ -131,6 +132,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
   }
 
   ngOnInit(): void {
+    this.notificationService.JoinList(this.shoppingListId)
+      .catch(err => console.error('could not join the list group', err));
 
     this.filteredItems = merge(this.formGroup.get("name").valueChanges, this.OnFormReset).pipe(
       startWith(''),
@@ -151,6 +154,14 @@ export class ShoppingListComponent implements OnInit, AfterViewInit {
 
   public async ngAfterViewInit(): Promise<void> {
     await this.refresh();
+  }
+
+  public ngOnDestroy(): void {
+    // may reject if the connection already dropped - nothing to clean up in that case
+    this.notificationService.LeaveList(this.shoppingListId)
+      .catch(err => console.error('could not leave the list group', err));
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   public refresh():void{

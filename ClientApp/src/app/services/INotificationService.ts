@@ -11,4 +11,6 @@ export interface INotificationService{
     OnItemChanged(shoppingListId: number): Observable<ShoppingListItem>;
     OnItemRemoved(shoppingListId: number): Observable<RemovedItem>;
     Reconnect():Promise<void>;
+    JoinList(shoppingListId: number): Promise<void>;
+    LeaveList(shoppingListId: number): Promise<void>;
 }

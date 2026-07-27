@@ -23,14 +23,12 @@ public class SignalRNotificationService : INotificationService
     {
         string groupName = $"sl{item.ShoppingListId}";
         var itemViewModel = this.mapper.Map<ShoppingListItemViewModel>(item);
-        // await this.hubContext.Clients.Group(groupName).SendAsync("OnItemChanged", itemViewModel);
-        await this.hubContext.Clients.All.SendAsync("OnItemChanged", itemViewModel);
+        await this.hubContext.Clients.Group(groupName).SendAsync("OnItemChanged", itemViewModel);
     }
 
     public async Task BroadCastItemRemoved(ShoppingListItem item)
     {
         string groupName = $"sl{item.ShoppingListId}";
-        // await this.hubContext.Clients.Group(groupName).SendAsync("OnItemChanged", new { item.Id, item.ShoppingListId });
-        await this.hubContext.Clients.All.SendAsync("OnItemRemoved", new { item.Id, item.ShoppingListId });
+        await this.hubContext.Clients.Group(groupName).SendAsync("OnItemRemoved", new { item.Id, item.ShoppingListId });
     }
 }

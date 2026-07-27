@@ -24,7 +24,7 @@ namespace mps.Controllers
     /// specific services have done their thing.
     /// </remarks>
     [Route("api/[controller]")]
-    [Authorize]
+    [Authorize(Policy = "ApprovedUser")]
     [ApiController]
     public class EntityController<TEntity, TEditViewModel, TListViewModel> : Controller
         where TEntity : EntityBase
@@ -46,9 +46,21 @@ namespace mps.Controllers
         [HttpGet(Order = 1)]
         public virtual IActionResult Index(int skip = 0, int take = 100, string sort = null, SortDirection sortDirection = SortDirection.asc)
         {
-            var q = this.ApplySort(this.repo.GetEntities<TEntity>(), sort, sortDirection);
+            var q = this.ApplySort(this.ApplyAccessFilter(this.repo.GetEntities<TEntity>()), sort, sortDirection);
             return PageAndProjectResult(q, skip, take);
         }
+
+        /// <summary>
+        /// Narrows an entity query down to the rows the current caller may see. Defaults to no-op;
+        /// override in a derived controller to enforce access (see <see cref="ShoppingListController"/>).
+        /// </summary>
+        protected virtual IQueryable<TEntity> ApplyAccessFilter(IQueryable<TEntity> query) => query;
+
+        /// <summary>
+        /// Determines whether the current caller may act on a single already-loaded entity. Defaults
+        /// to allow; override in a derived controller to enforce access.
+        /// </summary>
+        protected virtual bool CanAccess(TEntity entity) => true;
 
         internal IActionResult PageAndProjectResult(IQueryable<TEntity> query, int skip = 0, int take = 100)
         {
@@ -84,9 +96,17 @@ namespace mps.Controllers
         }
 
         [HttpGet("{id}")]
-        public TEditViewModel Get(int id)
+        public IActionResult Get(int id)
         {
-            return this.mapper.ProjectTo<TEditViewModel>(this.repo.GetEntities<TEntity>().Where(s => s.Id == id)).SingleOrDefault();
+            var entity = this.repo.Find<TEntity>(id);
+            if (entity == null)
+                return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
+
+            if (!this.CanAccess(entity))
+                return Forbid();
+
+            var viewModel = this.mapper.ProjectTo<TEditViewModel>(this.ApplyAccessFilter(this.repo.GetEntities<TEntity>()).Where(s => s.Id == id)).SingleOrDefault();
+            return new OkObjectResult(viewModel);
         }
 
         [HttpPost(Order = 1)]
@@ -129,6 +149,9 @@ namespace mps.Controllers
                 if (entity == null)
                     return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
 
+                if (!this.CanAccess(entity))
+                    return Forbid();
+
                 this.mapper.Map<TEditViewModel, TEntity>(viewModel, entity);
                 this.PostMapping(viewModel, entity);
 
@@ -156,6 +179,9 @@ namespace mps.Controllers
             var entity = this.repo.Find<TEntity>(id);
             if (entity == null)
                 return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
+
+            if (!this.CanAccess(entity))
+                return Forbid();
 
             // TODO: implement delete callback in entity service
             this.repo.Remove(entity);

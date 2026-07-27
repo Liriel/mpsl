@@ -25,6 +25,14 @@ export class SignalRNotificationService implements INotificationService {
     private itemRemovedSubject: Subject<RemovedItem> = new Subject<RemovedItem>();
     private connStateSubject: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Closed);
 
+    // the connection is started asynchronously in the constructor - callers of JoinList/LeaveList
+    // await this so they can be invoked before the connection is actually up.
+    private startPromise: Promise<void>;
+
+    // group membership does not survive a reconnect, so we track what we joined and re-join
+    // whenever the connection comes back (onreconnected) or is manually restarted (Reconnect()).
+    private joinedLists: Set<number> = new Set<number>();
+
     constructor(
         @Inject(ILoggerToken) private logger: ILogger,
         @Inject(IConfigServiceToken) private config: IConfigService) {
@@ -50,9 +58,10 @@ export class SignalRNotificationService implements INotificationService {
         // connected
         this.hubConnection.onreconnected(() => {
             this.connStateSubject.next(ConnectionState.Connected);
+            this.rejoinLists();
         });
 
-        this.hubConnection
+        this.startPromise = this.hubConnection
             .start()
             .then(() => {
                 this.logger.Debug('Connection started!');
@@ -83,7 +92,29 @@ export class SignalRNotificationService implements INotificationService {
     }
 
     public async Reconnect():Promise<void>{
-        if(this.hubConnection.state == HubConnectionState.Disconnected)
-            await this.hubConnection.start();
+        if(this.hubConnection.state == HubConnectionState.Disconnected) {
+            this.startPromise = this.hubConnection.start();
+            await this.startPromise;
+            // group membership does not survive a reconnect - rejoin everything we had joined
+            this.rejoinLists();
+        }
+    }
+
+    public async JoinList(shoppingListId: number): Promise<void> {
+        await this.startPromise;
+        await this.hubConnection.invoke('JoinList', shoppingListId);
+        this.joinedLists.add(shoppingListId);
+    }
+
+    public async LeaveList(shoppingListId: number): Promise<void> {
+        await this.startPromise;
+        await this.hubConnection.invoke('LeaveList', shoppingListId);
+        this.joinedLists.delete(shoppingListId);
+    }
+
+    private rejoinLists(): void {
+        this.joinedLists.forEach(shoppingListId => {
+            this.hubConnection.invoke('JoinList', shoppingListId).catch(err => this.logger.Error(err));
+        });
     }
 }
