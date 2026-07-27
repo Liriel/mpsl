@@ -1,5 +1,5 @@
 export const environment = {
   ServerUrl: "",
   production: true,
-  vapidPublicKey: "BCZxeUF1n8siWOVn24cyDu52ZaEkYvZkQaciuOpjsZPyj6rbDYdLm0O0g5Ej7auF9nNtK2eAXrKFXrwHrZnFa8Q"
+  vapidPublicKey: "BEa_VDNyon1zoaJ7333Cc-EcdEeRyva4rSgSR7OXycZNPOMR7vjBIa84FWEBSNSrMkRM_VbyPwmeUbHwp-i6QOY"
 };

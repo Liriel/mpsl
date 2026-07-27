@@ -159,3 +159,4 @@ Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8:
 - Tests currently have minimal coverage and should be expanded
 - The app supports multiple themes using angular material themeing mechanics
 - Responsive design with a mobile first mindset is encouraged
+- do not deviate form the theme / default colors, font sizes and typography unless instructed otherwise

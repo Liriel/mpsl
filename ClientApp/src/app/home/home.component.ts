@@ -1,7 +1,7 @@
 import { Component, Inject, OnInit } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { ShoppingList } from '../models/ShoppingList';
-import { IRepoToken, IRepo } from '../services';
+import { IRepoToken, IRepo, IAuthServiceToken, IAuthService } from '../services';
 
 @Component({
     selector: 'app-home',
@@ -12,11 +12,16 @@ import { IRepoToken, IRepo } from '../services';
 export class HomeComponent implements OnInit {
   public shoppingLists: ShoppingList[];
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public isAdmin: boolean = false;
 
   constructor(
     @Inject(IRepoToken) private repo: IRepo,
+    @Inject(IAuthServiceToken) private authService: IAuthService,
   ) { 
     this.loadShoppingLists();
+    this.authService.UserInfo.subscribe(r => {
+      this.isAdmin = r.roles ? r.roles.includes("admin") : false;
+    });
   }
 
   ngOnInit(): void {

@@ -12,6 +12,7 @@ export class NotificationBannerComponent implements OnInit {
   isSubscribed = false;
   isSupported = false;
   permission: NotificationPermission = 'default';
+  private subscriptionChecked = false; // Track if we've checked the actual subscription status
 
   constructor(private pushService: PushNotificationService) {}
 
@@ -22,6 +23,7 @@ export class NotificationBannerComponent implements OnInit {
     const wasDismissed = localStorage.getItem('notification-banner-dismissed') === 'true';
 
     if (this.isSupported && !wasDismissed) {
+      // Get initial values from the service (which may already be set)
       this.pushService.permission$.subscribe(permission => {
         this.permission = permission;
         this.updateBannerVisibility();
@@ -29,6 +31,7 @@ export class NotificationBannerComponent implements OnInit {
 
       this.pushService.isSubscribed$.subscribe(isSubscribed => {
         this.isSubscribed = isSubscribed;
+        this.subscriptionChecked = true; // Mark that we've received the actual status
         this.updateBannerVisibility();
       });
     }
@@ -43,10 +46,12 @@ export class NotificationBannerComponent implements OnInit {
     // - Permission not denied
     // - Not subscribed
     // - Not dismissed before
+    // - We've checked the actual subscription status (avoid flickering)
     this.showBanner = this.isSupported && 
                       this.permission !== 'denied' && 
                       !this.isSubscribed &&
-                      !wasDismissed;
+                      !wasDismissed &&
+                      this.subscriptionChecked;
   }
 
   async enableNotifications(): Promise<void> {

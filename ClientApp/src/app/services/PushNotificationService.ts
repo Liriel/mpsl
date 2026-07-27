@@ -1,17 +1,17 @@
-import { Injectable, ApplicationRef } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, ApplicationRef, Inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
 import { Observable, BehaviorSubject, fromEvent, merge } from 'rxjs';
 import { map, distinctUntilChanged, filter, take, concat } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { PushSubscription as PushSubscriptionModel } from '../models/PushNotification';
+import { PushSubscription as PushSubscriptionModel, SubscriptionInfo, TestNotificationRequest, TestNotificationResponse } from '../models/PushNotification';
+import { IRepo } from './IRepo';
+import { IRepoToken } from './IRepo';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PushNotificationService {
   private readonly VAPID_PUBLIC_KEY = environment.vapidPublicKey;
-  private readonly API_URL = `${environment.ServerUrl}/api/PushSubscription`;
 
   private isSubscribedSubject = new BehaviorSubject<boolean>(false);
   public isSubscribed$ = this.isSubscribedSubject.asObservable();
@@ -24,7 +24,7 @@ export class PushNotificationService {
   public isPageVisible$ = this.isPageVisibleSubject.asObservable();
 
   constructor(
-    private http: HttpClient,
+    @Inject(IRepoToken) private repo: IRepo,
     private swPush: SwPush,
     private appRef: ApplicationRef
   ) {
@@ -162,7 +162,7 @@ export class PushNotificationService {
         // Still send to backend in case it wasn't saved before
         try {
           const subscriptionData = this.convertSubscription(existingSubscription);
-          await this.http.post(`${this.API_URL}/subscribe`, subscriptionData).toPromise();
+          await this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData).toPromise();
           this.isSubscribedSubject.next(true);
           return true;
         } catch (error) {
@@ -190,7 +190,7 @@ export class PushNotificationService {
 
       // Send subscription to backend
       const subscriptionData = this.convertSubscription(subscription);
-      await this.http.post(`${this.API_URL}/subscribe`, subscriptionData).toPromise();
+      await this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData).toPromise();
 
       this.isSubscribedSubject.next(true);
       console.log('Successfully subscribed to push notifications');
@@ -218,7 +218,7 @@ export class PushNotificationService {
 
         // Notify backend
         const subscriptionData = this.convertSubscription(subscription);
-        await this.http.post(`${this.API_URL}/unsubscribe`, subscriptionData).toPromise();
+        await this.repo.Post('api/PushSubscription', 'unsubscribe', subscriptionData).toPromise();
 
         this.isSubscribedSubject.next(false);
         console.log('Successfully unsubscribed from push notifications');
@@ -270,5 +270,24 @@ export class PushNotificationService {
    */
   public isSupported(): boolean {
     return this.swPush.isEnabled && 'Notification' in window;
+  }
+
+  /**
+   * Get all subscriptions (admin only)
+   */
+  public getAllSubscriptions(): Observable<SubscriptionInfo[]> {
+    return this.repo.Get<SubscriptionInfo[]>('api/PushSubscription', 'all-subscriptions');
+  }
+
+  /**
+   * Send a test notification (admin only)
+   */
+  public sendTestNotification(subscriptionId: number, title: string, body: string): Observable<TestNotificationResponse> {
+    const request: TestNotificationRequest = {
+      subscriptionId,
+      title,
+      body
+    };
+    return this.repo.Post<TestNotificationResponse>('api/PushSubscription', 'test', request);
   }
 }

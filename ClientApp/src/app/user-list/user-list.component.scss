@@ -1,5 +1,24 @@
 @use "variables" as vars;
 
+.admin-nav {
+  display: flex;
+  gap: 10px;
+  padding: 10px 20px;
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    
+    &.active {
+      background-color: #e9ecef;
+      font-weight: 600;
+    }
+  }
+}
+
 .avatar {
   border: 1px solid vars.$ui-raised-border;
   line-height: 40px;

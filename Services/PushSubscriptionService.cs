@@ -8,6 +8,8 @@ public interface IPushSubscriptionService
     Task<bool> UnsubscribeAsync(string userId, string endpoint);
     Task<IEnumerable<PushSubscription>> GetUserSubscriptionsAsync(string userId);
     Task<IEnumerable<PushSubscription>> GetAllSubscriptionsExceptUserAsync(string excludeUserId);
+    Task<IEnumerable<PushSubscription>> GetAllSubscriptionsAsync();
+    Task<PushSubscription> GetSubscriptionByIdAsync(int subscriptionId);
 }
 
 public class PushSubscriptionService : IPushSubscriptionService
@@ -87,6 +89,22 @@ public class PushSubscriptionService : IPushSubscriptionService
             this.repo.GetEntities<PushSubscription>()
                 .Where(s => s.UserId != excludeUserId)
                 .ToList()
+        );
+    }
+
+    public async Task<IEnumerable<PushSubscription>> GetAllSubscriptionsAsync()
+    {
+        return await Task.FromResult(
+            this.repo.GetEntities<PushSubscription>()
+                .ToList()
+        );
+    }
+
+    public async Task<PushSubscription> GetSubscriptionByIdAsync(int subscriptionId)
+    {
+        return await Task.FromResult(
+            this.repo.GetEntities<PushSubscription>()
+                .FirstOrDefault(s => s.Id == subscriptionId)
         );
     }
 }

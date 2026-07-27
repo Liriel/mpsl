@@ -18,6 +18,17 @@
     </mat-action-list>
 </mat-expansion-panel>
 
+<div class="admin-nav">
+    <button mat-button routerLink="/user" routerLinkActive="active">
+        <mat-icon>people</mat-icon>
+        Users
+    </button>
+    <button mat-button routerLink="/admin/notifications-test" routerLinkActive="active">
+        <mat-icon>notifications</mat-icon>
+        Notifications Test
+    </button>
+</div>
+
 <div class="user-container">
     <div class="user-list-container">
         <h3>Active Users ({{activeUsers?.length}})</h3>

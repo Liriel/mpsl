@@ -21,3 +21,25 @@ export interface ShoppingListNotificationData {
   itemCount: number;
   action: string;
 }
+
+export interface SubscriptionInfo {
+  id: number;
+  userId: string;
+  userName: string;
+  shortName?: string;
+  endpoint: string;
+  createdAt: Date;
+  userAgent?: string;
+}
+
+export interface TestNotificationRequest {
+  subscriptionId: number;
+  title: string;
+  body: string;
+}
+
+export interface TestNotificationResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}

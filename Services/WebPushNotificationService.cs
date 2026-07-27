@@ -13,6 +13,7 @@ public interface IWebPushNotificationService
     Task SendNotificationAsync(string userId, PushNotificationPayload payload);
     Task SendNotificationToAllExceptAsync(string excludeUserId, PushNotificationPayload payload);
     Task SendBatchedShoppingListNotificationAsync(int shoppingListId, string shoppingListName, string addedByUserId, string addedByUserName);
+    Task<bool> SendTestNotificationAsync(int subscriptionId, string title, string body);
 }
 
 public class WebPushNotificationService : IWebPushNotificationService
@@ -153,6 +154,38 @@ public class WebPushNotificationService : IWebPushNotificationService
         await Task.CompletedTask;
     }
 
+    public async Task<bool> SendTestNotificationAsync(int subscriptionId, string title, string body)
+    {
+        try
+        {
+            var subscription = await this.subscriptionService.GetSubscriptionByIdAsync(subscriptionId);
+            if (subscription == null)
+            {
+                this.logger.LogWarning($"Subscription {subscriptionId} not found");
+                return false;
+            }
+
+            var payload = new PushNotificationPayload
+            {
+                Title = title,
+                Body = body,
+                Icon = "/assets/icons/icon-192x192.png",
+                Badge = "/assets/icons/icon-72x72.png",
+                Tag = $"test-notification-{DateTime.UtcNow.Ticks}",
+                Data = new { Type = "test", Timestamp = DateTime.UtcNow }
+            };
+
+            await SendToSubscriptionAsync(subscription, payload);
+            this.logger.LogInformation($"Sent test notification to subscription {subscriptionId}");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, $"Error sending test notification to subscription {subscriptionId}");
+            return false;
+        }
+    }
+
     private async Task SendToSubscriptionAsync(PushSubscriptionModel subscription, PushNotificationPayload payload)
     {
         try
@@ -163,7 +196,10 @@ public class WebPushNotificationService : IWebPushNotificationService
                 subscription.Auth
             );
 
-            var payloadJson = JsonSerializer.Serialize(payload);
+            // Wrap payload in notification object as expected by Angular Service Worker
+            // and Web Push API standard
+            var wrappedPayload = new { notification = payload };
+            var payloadJson = JsonSerializer.Serialize(wrappedPayload);
 
             await this.webPushClient.SendNotificationAsync(
                 pushSubscription,
