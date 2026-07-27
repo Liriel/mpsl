@@ -47,11 +47,23 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
 - `outputPath` is `{ "base": "dist", "browser": "" }` **on purpose**. The default would emit to
   `dist/browser/`, but all three `Dockerfile.*` do `COPY ClientApp/dist/ ./wwwroot` and `mps.csproj`
   globs `$(SpaRoot)dist\**`. Leave the empty `browser` segment alone unless you update those too.
-- `externalDependencies` lists `eventsource`, `ws`, `abort-controller`, `fetch-cookie`, `node-fetch`
-  and `tough-cookie`. esbuild does not honour `@microsoft/signalr`'s `browser` field remapping of its
-  node-only dependencies and tries to bundle their node built-ins. SignalR guards those `require()`
-  calls behind `Platform.isNode`, so they are dead code in the browser. Removing this array breaks
-  the build.
+- **SignalR needs two separate workarounds — both are load-bearing.** SignalR's published `dist/esm`
+  build requires `ws`, `eventsource`, `node-fetch`, `fetch-cookie`, `tough-cookie` and
+  `abort-controller`, and its `browser` field only remaps the *source* path
+  (`./src/DynamicImports.ts`), so bundlers resolving the shipped build pull them in and drag node
+  built-ins (`url`, `http`, `https`, `events`, `util`) into a browser bundle. All of those requires
+  sit behind a `Platform.isNode` guard in `HttpConnection` and never run in a browser.
+  - `build.externalDependencies` lists the six packages. Without it, `ng build` fails outright with
+    `Could not resolve "url"`.
+  - `serve.prebundle.exclude` lists `@microsoft/signalr`. Without it, `ng serve` **builds fine but
+    serves a blank page**: Vite's dev-server dependency pre-bundler turns each externalised package
+    into a static `import * as m from "tough-cookie"` facade, which the browser cannot resolve
+    (`Failed to resolve module specifier`). Excluding SignalR from pre-bundling makes the dev server
+    bundle it through esbuild the same way the production build does, so the requires stay inside
+    the guarded branch.
+
+  Note the failure modes are asymmetric — a production build passing says nothing about whether
+  `ng serve` still boots. Check both after touching either option.
 - The production build warns that the initial bundle (~1.36 MB) exceeds the 1 MB budget. The error
   threshold is 1.5 MB, so it is a warning only.
 
