@@ -5,7 +5,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { ReactiveFormsModule } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { ShoppingList } from '../models/ShoppingList';
 import { IRepo, IRepoToken } from '../services';
 import { Observable, of } from 'rxjs';

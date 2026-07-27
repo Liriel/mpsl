@@ -2,32 +2,38 @@
   <div class="drawer-header">
     <h2>Create New Shopping List</h2>
   </div>
-  
+
   <form [formGroup]="createForm" (ngSubmit)="onSubmit()" class="drawer-form">
     <mat-form-field appearance="outline" class="full-width">
       <mat-label>List Name</mat-label>
-      <input matInput 
-             formControlName="name" 
-             placeholder="Enter list name"
-             autocomplete="off">
-      <mat-error *ngIf="nameControl?.invalid && nameControl?.touched">
-        {{ getErrorMessage() }}
-      </mat-error>
+      <input matInput
+        formControlName="name"
+        placeholder="Enter list name"
+        autocomplete="off">
+      @if (nameControl?.invalid && nameControl?.touched) {
+        <mat-error>
+          {{ getErrorMessage() }}
+        </mat-error>
+      }
     </mat-form-field>
-    
+
     <div class="drawer-actions">
-      <button mat-button 
-              type="button" 
-              (click)="onCancel()"
-              [disabled]="isLoading">
+      <button mat-button
+        type="button"
+        (click)="onCancel()"
+        [disabled]="isLoading">
         Cancel
       </button>
-      <button mat-raised-button 
-              color="primary" 
-              type="submit" 
-              [disabled]="createForm.invalid || isLoading">
-        <span *ngIf="!isLoading">Create List</span>
-        <span *ngIf="isLoading">Creating...</span>
+      <button mat-raised-button
+        color="primary"
+        type="submit"
+        [disabled]="createForm.invalid || isLoading">
+        @if (!isLoading) {
+          <span>Create List</span>
+        }
+        @if (isLoading) {
+          <span>Creating...</span>
+        }
       </button>
     </div>
   </form>

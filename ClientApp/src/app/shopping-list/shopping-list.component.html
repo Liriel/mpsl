@@ -1,122 +1,145 @@
 <div class="outer-container">
 
-    <div class="container" [app-loading]="isLoading|async">
-        <div class="header-footer header">
-            <button mat-icon-button type="button" class="toolbar-button" routerLink="/">
-                <mat-icon>navigate_before</mat-icon>
+  <div class="container" [app-loading]="isLoading|async">
+    <div class="header-footer header">
+      <button mat-icon-button type="button" class="toolbar-button" routerLink="/">
+        <mat-icon>navigate_before</mat-icon>
+      </button>
+      <span class="title">{{shoppingListName|async}}</span>
+      <div class="spacer"></div>
+      @if ((ConnState|async) == ConnectionState.Connected) {
+        <div class="toolbar">
+          <button mat-icon-button type="button" class="toolbar-button" (click)="hideComplete = !hideComplete">
+            <mat-icon [ngClass]="{'hide-complete': hideComplete}">check_circle_outline</mat-icon>
+          </button>
+          <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
+            <mat-icon>refresh</mat-icon>
+          </button>
+          <button mat-icon-button type="button" class="toolbar-button" [matMenuTriggerFor]="menu">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #menu="matMenu">
+            <button mat-menu-item routerLink="recommendations">
+              <mat-icon>online_prediction</mat-icon>
+              <span>Recommendations</span>
             </button>
-            <span class="title">{{shoppingListName|async}}</span>
+            <button mat-menu-item routerLink="declutter">
+              <mat-icon>cleaning_services</mat-icon>
+              <span>Declutter List</span>
+            </button>
+          </mat-menu>
+        </div>
+      }
+    </div>
+
+    <div class="content">
+      <!-- list items -->
+      @if ((ConnState|async) == ConnectionState.Connected) {
+        <div class="list">
+          @for (item of items; track getItemId($index, item)) {
+            @if (!item.done || !hideComplete) {
+              <div class="item" [ngClass]="{'done': item.done === true}">
+                <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
+                  (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
+                  [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
+                  (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
+                  (click)="openDialog(item)">
+                  <div class="avatar">{{item.shortName}}</div>
+                  <div class="item-info">
+                    <div class="item-header">{{item.name}}</div>
+                    @if (item.lastChangeByUserShowShortnameInList) {
+                      <div class="item-hint short-name">
+                        {{item.lastChangeByUserShortName}}{{item.hint != null ? ':': ''}}
+                        {{item.hint}}
+                      </div>
+                    }
+                    @if (!item.lastChangeByUserShowShortnameInList) {
+                      <div class="item-hint">{{item.hint}}
+                      </div>
+                    }
+                  </div>
+                  <div class="item-amount">{{item.amount}}</div>
+                  <div class="item-unit">{{item.unitShortName}}</div>
+                </div>
+              </div>
+            }
+          }
+        </div>
+      }
+
+      <!-- notification service connection lost info-->
+      @if ((ConnState|async) != ConnectionState.Connected) {
+        <div class="connection-info">
+          <div class="nc">
+            <mat-icon>sensors_off</mat-icon>
+          </div>
+          @if ((ConnState|async) == ConnectionState.Connecting) {
+            <h3>connecting</h3>
+            <div class="dot-pulse"></div>
+          }
+          @if ((ConnState|async) != ConnectionState.Connecting) {
+            <h3>connection lost</h3>
+          }
+        </div>
+      }
+    </div>
+
+    @if ((ConnState|async) == ConnectionState.Connected) {
+      <div class="header-footer">
+        <!-- Show Recommendations Link (mobile only) -->
+        @if ((this.isMobile|async)===true) {
+          <div class="recommend-container">
+            <div mat-ripple class="recommend-ripple-container" routerLink="recommendations">
+              <span class="recommend-hint">Show Recommendations</span>
+              <mat-icon>online_prediction</mat-icon>
+            </div>
             <div class="spacer"></div>
-            <div class="toolbar" *ngIf="(ConnState|async) == ConnectionState.Connected">
-                <button mat-icon-button type="button" class="toolbar-button" (click)="hideComplete = !hideComplete">
-                    <mat-icon [ngClass]="{'hide-complete': hideComplete}">check_circle_outline</mat-icon>
-                </button>
-                <button mat-icon-button type="button" class="toolbar-button" (click)="refresh()">
-                    <mat-icon>refresh</mat-icon>
-                </button>
-                <button mat-icon-button type="button" class="toolbar-button" [matMenuTriggerFor]="menu">
-                    <mat-icon>more_vert</mat-icon>
-                </button>
-                <mat-menu #menu="matMenu">
-                    <button mat-menu-item routerLink="recommendations">
-                        <mat-icon>online_prediction</mat-icon>
-                        <span>Recommendations</span>
-                    </button>
-                    <button mat-menu-item routerLink="declutter">
-                        <mat-icon>cleaning_services</mat-icon>
-                        <span>Declutter List</span>
-                    </button>
-                </mat-menu>
-            </div>
-        </div>
+          </div>
+        }
+        <form class="add-form" [formGroup]="formGroup">
+          <mat-form-field style="flex:1;">
+            <mat-label>Item</mat-label>
+            <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
+              [matAutocomplete]="autoItems">
+            <mat-autocomplete #autoItems="matAutocomplete">
+              @for (option of filteredItems | async; track option) {
+                <mat-option [value]="option">
+                  {{option}}
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <mat-form-field style="max-width: 50px;">
+            <!-- <mat-label>#</mat-label> -->
+            <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
+          </mat-form-field>
+          <mat-form-field style="max-width: 50px;">
+            <!-- <mat-label>Unit</mat-label> -->
+            <input type="text" aria-label="Unit" matInput formControlName="unitShortName"
+              [matAutocomplete]="autoUnits">
+            <mat-autocomplete #autoUnits="matAutocomplete">
+              @for (option of filteredUnits | async; track option) {
+                <mat-option [value]="option">
+                  {{option}}
+                </mat-option>
+              }
+            </mat-autocomplete>
+          </mat-form-field>
+          <button mat-icon-button color="primary" class="add-button" aria-label="Add to the shopping list"
+            (click)="save()">
+            <mat-icon>add</mat-icon>
+          </button>
+        </form>
+      </div>
+    }
+  </div>
 
-        <div class="content">
-            <!-- list items -->
-            <div class="list" *ngIf="(ConnState|async) == ConnectionState.Connected">
-                <ng-container *ngFor="let item of items; trackBy:getItemId">
-                    <div *ngIf="!item.done || !hideComplete" class="item" [ngClass]="{'done': item.done === true}">
-                        <div class="swipeable" [@flyInOut]="item.animateFlyInOut"
-                            (@flyInOut.done)="onSwipeComplete($event, item)" (swipeleft)="onSwipeLeft($event, item)"
-                            [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
-                            (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
-                            (click)="openDialog(item)">
-
-                            <div class="avatar">{{item.shortName}}</div>
-                            <div class="item-info">
-                                <div class="item-header">{{item.name}}</div>
-                                <div *ngIf="item.lastChangeByUserShowShortnameInList" class="item-hint short-name">
-                                    {{item.lastChangeByUserShortName}}{{item.hint != null ? ':': ''}}
-                                    {{item.hint}}
-                                </div>
-                                <div *ngIf="!item.lastChangeByUserShowShortnameInList" class="item-hint">{{item.hint}}
-                                </div>
-                            </div>
-                            <div class="item-amount">{{item.amount}}</div>
-                            <div class="item-unit">{{item.unitShortName}}</div>
-                        </div>
-                    </div>
-                </ng-container>
-            </div>
-
-            <!-- notification service connection lost info-->
-            <div class="connection-info" *ngIf="(ConnState|async) != ConnectionState.Connected">
-                <div class="nc">
-                    <mat-icon>sensors_off</mat-icon>
-                </div>
-                <ng-container *ngIf="(ConnState|async) == ConnectionState.Connecting">
-                    <h3>connecting</h3>
-                    <div class="dot-pulse"></div>
-                </ng-container>
-                <h3 *ngIf="(ConnState|async) != ConnectionState.Connecting">connection lost</h3>
-            </div>
-        </div>
-
-        <div class="header-footer" *ngIf="(ConnState|async) == ConnectionState.Connected">
-            <!-- Show Recommendations Link (mobile only) -->
-            <div class="recommend-container" *ngIf="(this.isMobile|async)===true">
-                <div mat-ripple class="recommend-ripple-container" routerLink="recommendations">
-                    <span class="recommend-hint">Show Recommendations</span>
-                    <mat-icon>online_prediction</mat-icon>
-                </div>
-                <div class="spacer"></div>
-            </div>
-            <form class="add-form" [formGroup]="formGroup">
-                <mat-form-field style="flex:1;">
-                    <mat-label>Item</mat-label>
-                    <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
-                        [matAutocomplete]="autoItems">
-                    <mat-autocomplete #autoItems="matAutocomplete">
-                        <mat-option *ngFor="let option of filteredItems | async" [value]="option">
-                            {{option}}
-                        </mat-option>
-                    </mat-autocomplete>
-                </mat-form-field>
-                <mat-form-field style="max-width: 50px;">
-                    <!-- <mat-label>#</mat-label> -->
-                    <input type="text" placeholder="1" aria-label="Amount" matInput formControlName="amount">
-                </mat-form-field>
-                <mat-form-field style="max-width: 50px;">
-                    <!-- <mat-label>Unit</mat-label> -->
-                    <input type="text" aria-label="Unit" matInput formControlName="unitShortName"
-                        [matAutocomplete]="autoUnits">
-                    <mat-autocomplete #autoUnits="matAutocomplete">
-                        <mat-option *ngFor="let option of filteredUnits | async" [value]="option">
-                            {{option}}
-                        </mat-option>
-                    </mat-autocomplete>
-                </mat-form-field>
-                <button mat-icon-button color="primary" class="add-button" aria-label="Add to the shopping list"
-                    (click)="save()">
-                    <mat-icon>add</mat-icon>
-                </button>
-            </form>
-        </div>
+  @if ((this.isMobile|async)===false) {
+    <div class="panel-container">
+      <div class="header panel-header">
+        <span class="title">Recommendations</span>
+      </div>
+      <app-recommendations [shoppingListId]="shoppingListId"></app-recommendations>
     </div>
-
-    <div class="panel-container" *ngIf="(this.isMobile|async)===false">
-        <div class="header panel-header">
-            <span class="title">Recommendations</span>
-        </div>
-        <app-recommendations [shoppingListId]="shoppingListId"></app-recommendations>
-    </div>
+  }
 </div>

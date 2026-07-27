@@ -11,30 +11,32 @@
 
 <div class="notifications-test-container">
   <h1>Push Notifications Test Interface</h1>
-  
+
   <!-- Message Banner -->
-  <div *ngIf="message" class="message-banner" [class.success]="messageType === 'success'" [class.error]="messageType === 'error'">
-    {{ message }}
-  </div>
+  @if (message) {
+    <div class="message-banner" [class.success]="messageType === 'success'" [class.error]="messageType === 'error'">
+      {{ message }}
+    </div>
+  }
 
   <!-- Test Form -->
   <div class="test-form">
     <h2>Test Notification Settings</h2>
     <div class="form-group">
       <label for="testTitle">Notification Title:</label>
-      <input 
-        id="testTitle" 
-        type="text" 
-        [(ngModel)]="testTitle" 
+      <input
+        id="testTitle"
+        type="text"
+        [(ngModel)]="testTitle"
         placeholder="Enter notification title"
         class="form-control"
-      />
+        />
     </div>
     <div class="form-group">
       <label for="testBody">Notification Body:</label>
-      <textarea 
-        id="testBody" 
-        [(ngModel)]="testBody" 
+      <textarea
+        id="testBody"
+        [(ngModel)]="testBody"
         placeholder="Enter notification message"
         rows="3"
         class="form-control"
@@ -47,56 +49,72 @@
     <div class="section-header">
       <h2>Active Subscriptions ({{ subscriptions.length }})</h2>
       <button (click)="loadSubscriptions()" [disabled]="loading" class="btn btn-secondary">
-        <span *ngIf="loading">Loading...</span>
-        <span *ngIf="!loading">Refresh</span>
+        @if (loading) {
+          <span>Loading...</span>
+        }
+        @if (!loading) {
+          <span>Refresh</span>
+        }
       </button>
     </div>
 
-    <div *ngIf="loading" class="loading-message">
-      Loading subscriptions...
-    </div>
+    @if (loading) {
+      <div class="loading-message">
+        Loading subscriptions...
+      </div>
+    }
 
-    <div *ngIf="!loading && subscriptions.length === 0" class="no-data-message">
-      No active subscriptions found.
-    </div>
+    @if (!loading && subscriptions.length === 0) {
+      <div class="no-data-message">
+        No active subscriptions found.
+      </div>
+    }
 
-    <table *ngIf="!loading && subscriptions.length > 0" class="subscriptions-table">
-      <thead>
-        <tr>
-          <th>User</th>
-          <th>Browser</th>
-          <th>Endpoint</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let subscription of subscriptions; trackBy: trackBySubscriptionId">
-          <td>
-            <div class="user-info">
-              <strong>{{ getUserDisplay(subscription) }}</strong>
-              <small>{{ subscription.userName }}</small>
-            </div>
-          </td>
-          <td>{{ getBrowserFromUserAgent(subscription.userAgent) }}</td>
-          <td>
-            <span class="endpoint" [title]="subscription.endpoint">
-              {{ getEndpointDisplay(subscription.endpoint) }}
-            </span>
-          </td>
-          <td>{{ formatDate(subscription.createdAt) }}</td>
-          <td>
-            <button 
-              (click)="sendTestNotification(subscription.id)" 
-              [disabled]="sending && selectedSubscriptionId === subscription.id"
-              class="btn btn-primary btn-small"
-            >
-              <span *ngIf="sending && selectedSubscriptionId === subscription.id">Sending...</span>
-              <span *ngIf="!(sending && selectedSubscriptionId === subscription.id)">Send Test</span>
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    @if (!loading && subscriptions.length > 0) {
+      <table class="subscriptions-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Browser</th>
+            <th>Endpoint</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (subscription of subscriptions; track trackBySubscriptionId($index, subscription)) {
+            <tr>
+              <td>
+                <div class="user-info">
+                  <strong>{{ getUserDisplay(subscription) }}</strong>
+                  <small>{{ subscription.userName }}</small>
+                </div>
+              </td>
+              <td>{{ getBrowserFromUserAgent(subscription.userAgent) }}</td>
+              <td>
+                <span class="endpoint" [title]="subscription.endpoint">
+                  {{ getEndpointDisplay(subscription.endpoint) }}
+                </span>
+              </td>
+              <td>{{ formatDate(subscription.createdAt) }}</td>
+              <td>
+                <button
+                  (click)="sendTestNotification(subscription.id)"
+                  [disabled]="sending && selectedSubscriptionId === subscription.id"
+                  class="btn btn-primary btn-small"
+                  >
+                  @if (sending && selectedSubscriptionId === subscription.id) {
+                    <span>Sending...</span>
+                  }
+                  @if (!(sending && selectedSubscriptionId === subscription.id)) {
+                    <span>Send Test</span>
+                  }
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
   </div>
 </div>

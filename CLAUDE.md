@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 MPS (Multiplayer Shopping List) is a real-time collaborative shopping list application with:
 - **Backend**: ASP.NET Core 8.0 with Entity Framework Core, SQLite, and SignalR
-- **Frontend**: Angular 17 with Angular Material UI
+- **Frontend**: Angular 21 with Angular Material UI
 - **Authentication**: ASP.NET Core Identity with Microsoft Account integration
 - **Deployment**: Multi-architecture Docker containers
 
@@ -33,13 +33,27 @@ npm install
 npm start              # Starts dev server on https://localhost:44443
 npm run build          # Development build
 npm run publish        # Production build for deployment
-npm test
 ```
+There is no working `npm test` — see Testing below.
 
 ### Deployment
 ```bash
 ./publish.sh           # Builds and deploys multi-arch Docker images
 ```
+
+### Frontend Build System
+The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
+
+- `outputPath` is `{ "base": "dist", "browser": "" }` **on purpose**. The default would emit to
+  `dist/browser/`, but all three `Dockerfile.*` do `COPY ClientApp/dist/ ./wwwroot` and `mps.csproj`
+  globs `$(SpaRoot)dist\**`. Leave the empty `browser` segment alone unless you update those too.
+- `externalDependencies` lists `eventsource`, `ws`, `abort-controller`, `fetch-cookie`, `node-fetch`
+  and `tough-cookie`. esbuild does not honour `@microsoft/signalr`'s `browser` field remapping of its
+  node-only dependencies and tries to bundle their node built-ins. SignalR guards those `require()`
+  calls behind `Platform.isNode`, so they are dead code in the browser. Removing this array breaks
+  the build.
+- The production build warns that the initial bundle (~1.36 MB) exceeds the 1 MB budget. The error
+  threshold is 1.5 MB, so it is a warning only.
 
 ## Architecture & Code Structure
 
@@ -90,7 +104,14 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 **Components → Services (InjectionToken) → `WebRepo` (HTTP) → Backend API**
 
 - Traditional **NgModule** architecture (not standalone components); everything is declared in
-  `AppModule`. Components carry `standalone: false`.
+  `AppModule`. Components carry `standalone: false`. Because of this, `provideZoneChangeDetection()`
+  is passed as `applicationProviders` to `bootstrapModule()` in `main.ts` — Angular 21 no longer
+  installs a change-detection scheduler for zone-based apps by default, and removing that line
+  silently stops the UI updating on SignalR pushes and other async work.
+- Templates use **built-in control flow** (`@if`/`@for`/`@else`), not `*ngIf`/`*ngFor`. Every `@for`
+  needs a `track`; prefer the model's `id` (all models implement `IEntity`) over `$index`.
+  `*matHeaderCellDef`/`*matCellDef`/`*matRowDef` are CDK table directives, not control flow — they
+  stay as-is.
 - **InjectionToken-based DI**: each service exports an `IXxxToken` constant and components inject via
   `@Inject(IRepoToken)` rather than the concrete class. Follow this pattern for new services.
 - **`WebRepo`** implements `IRepo`. Every request sets `withCredentials: true` for cookie auth;
@@ -199,8 +220,10 @@ window focus).
 - `Tests/TestAppFactory.cs` swaps in a temp SQLite file and a header-driven auth scheme, so tests
   never touch `data/mps.db`. Because that scheme replaces the cookie handler, cookie-specific
   behaviour needs a direct test (see `Tests/CookieAuthResponseTests.cs`).
-- Frontend: Angular testing (Jasmine/Karma), currently disabled in angular.json. `skipTests: true`
-  in the schematics, so `ng generate` does not create spec files.
+- Frontend: none. `angular.json` has no `test` target at all, so `npm test` (`ng test`) fails rather
+  than running zero tests. `skipTests: true` in the schematics, so `ng generate` does not create spec
+  files either. If frontend tests are ever added, Angular 21's default runner is **Vitest**, not
+  Karma.
 
 ### Code Formatting
 Uses EditorConfig in `ClientApp/.editorconfig`:
@@ -210,12 +233,18 @@ Uses EditorConfig in `ClientApp/.editorconfig`:
 
 TypeScript is `strict: true` but with `strictNullChecks`, `strictPropertyInitialization` and
 `noImplicitAny` relaxed to `false` — do not assume null safety is enforced. Angular template
-checking is strict (`strictTemplates`). Path aliases `@mps/infrastructure/*` and `@mps` are
-configured in `tsconfig.json` but currently unused; existing code uses relative imports.
+checking is strict (`strictTemplates`), and since v21 `typeCheckHostBindings` is on by default too.
+`moduleResolution` is `bundler`. Path aliases `@mps/infrastructure/*` and `@mps` are configured in
+`tsconfig.json` but currently unused; existing code uses relative imports.
 
 ### Styling
 - SCSS with Angular Material **M2** theming. Light/dark/auto themes via `--mps-*` CSS custom
   properties; the choice persists to the `mps-theme-mode` localStorage key.
+- The M2 API (`mat.m2-define-palette`, `mat.m2-define-light-theme`, `mat.m2-get-color-from-palette`,
+  `mat.$m2-*-palette`) is still exported by Material 21, so `src/theme/_theme.scss` and
+  `src/styles.scss` continue to work. Note that since Material 20.1 the M2 components no longer read
+  the background/foreground palettes for neutral colours — component neutrals now come from tokens,
+  so overriding those palettes will not shift them.
 - Shared partials: `shared-page.scss`, `shared-list-item.scss`.
 - Component animations use the `flyInOut` and `fadeInOut` triggers; HammerJS provides swipe gestures.
 
