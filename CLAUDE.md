@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 MPS (Multiplayer Shopping List) is a real-time collaborative shopping list application with:
-- **Backend**: ASP.NET Core 8.0 with Entity Framework Core, SQLite, and SignalR
+- **Backend**: ASP.NET Core 10.0 with Entity Framework Core, SQLite, and SignalR
 - **Frontend**: Angular 21 with Angular Material UI
 - **Authentication**: ASP.NET Core Identity with Microsoft Account integration
 - **Deployment**: Multi-architecture Docker containers
@@ -32,21 +32,46 @@ cd ClientApp
 npm install
 npm start              # Starts dev server on https://localhost:44443
 npm run build          # Development build
-npm run publish        # Production build for deployment
+npm run publish        # Production build (also what the Docker node stage runs)
 ```
 There is no working `npm test` — see Testing below.
 
 ### Deployment
 ```bash
+./runLocal.sh          # Builds Dockerfile.x64 and runs it on https://localhost:5001
 ./publish.sh           # Builds and deploys multi-arch Docker images
 ```
+`publish.sh` no longer builds the client first — each image builds its own SPA (see Deployment
+Architecture), so a stale or missing local `ClientApp/dist` cannot end up in a shipped image.
+
+`runLocal.sh` is the integration-test path: same image as production, foreground with logs, Ctrl-C to
+stop. `-p <port>` remaps the host port, `--no-build` reuses the existing `mpsl:local` image, `--fresh`
+drops the data/key volumes so migrations re-seed from scratch.
+
+- Serves **`https://localhost:5001`** — the redirect URI registered for the Microsoft app, and the
+  same origin `launchSettings.json` uses for a plain `dotnet run`, so sign-in works unchanged.
+  Changing the port breaks sign-in.
+- Kestrel gets the ASP.NET Core **development certificate as PEM** (`Certificates:Default:Path` +
+  `KeyPath`, no pfx password), exported to the gitignored `cert/local-dev.pem`/`.key` and re-exported
+  automatically once expired. `~/.aspnet/https` is deliberately left alone — `npm start` has its own
+  copy there. `cert/server.pfx` is an unrelated, long-expired certificate; ignore it. If the browser
+  complains, `dotnet dev-certs https --trust`.
+- Because the container is HTTPS-only, the image's `HEALTHCHECK` (plain HTTP on 8080) cannot apply;
+  the script overrides it with `--health-cmd`. Note Docker resets the other health options when
+  `--health-cmd` is given, hence the repeated `--health-start-period`.
+- Reads the Microsoft OAuth credentials from user secrets (or `Authentication__Microsoft__*` in the
+  environment) and refuses to start without them — the auth middleware validates those options on
+  *every* request, so a container without them answers 500 everywhere, `/health` included.
+- SQLite and the DataProtection keys live in named volumes (`mpsl-local-data`, `mpsl-local-keys`), so
+  the local `data/mps.db` is never touched and a login survives a restart.
 
 ### Frontend Build System
 The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
 
 - `outputPath` is `{ "base": "dist", "browser": "" }` **on purpose**. The default would emit to
-  `dist/browser/`, but all three `Dockerfile.*` do `COPY ClientApp/dist/ ./wwwroot` and `mps.csproj`
-  globs `$(SpaRoot)dist\**`. Leave the empty `browser` segment alone unless you update those too.
+  `dist/browser/`, but all three `Dockerfile.*` do `COPY --from=client /client/dist/ ./wwwroot/` and
+  `mps.csproj` globs `$(SpaRoot)dist\**` for local publishes. Leave the empty `browser` segment alone
+  unless you update those too.
 - **SignalR needs two separate workarounds — both are load-bearing.** SignalR's published `dist/esm`
   build requires `ws`, `eventsource`, `node-fetch`, `fetch-cookie`, `tough-cookie` and
   `abort-controller`, and its `browser` field only remaps the *source* path
@@ -110,6 +135,13 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 - Recommendation algorithm in `recommend.sql`
 - Items are unique per shopping list (composite unique index on Name + ShoppingListId)
 - ItemHistory records purchase events for analytics and decluttering
+- **`HasData` seeds must be deterministic.** Since EF Core 9, `Database.Migrate()` throws
+  `PendingModelChangesWarning` when the model differs from the migration snapshot, and a seed built
+  from `new ApplicationUser { … }` differs on every build because `IdentityUser`'s constructor
+  generates a fresh `SecurityStamp`/`ConcurrencyStamp`. `DataContext.OnModelCreating` therefore pins
+  both stamps of the SYSTEM user to the literals already baked into the snapshot. Never reintroduce a
+  `Guid.NewGuid()`/`DateTime.Now` into a seed — it takes the whole app down at startup, not just
+  migrations.
 
 ### Frontend Architecture
 
@@ -262,11 +294,35 @@ checking is strict (`strictTemplates`), and since v21 `typeCheckHostBindings` is
 
 ## Deployment Architecture
 
-Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8:
-- Alpine Linux base images for minimal footprint
-- Self-contained .NET deployments
-- Private registry at `peach.heisl.org`
-- Automated via `publish.sh` script
+Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8, modelled on the sibling
+`tempmon.Web` project. `Dockerfile.x64` (Alpine, `runtime-deps`), `Dockerfile.arm32v7` and
+`Dockerfile.arm64v8` (Ubuntu 24.04 Noble, `aspnet`). Each is a **three-stage build**:
+
+1. `client` — `node:22-alpine`, `npm ci` then `npm run publish`. **The SPA is built in the image, not
+   on the dev machine.** `package.json`/`package-lock.json` are copied before the rest of `ClientApp/`
+   so `npm ci` stays cached across source edits. JS output is arch-neutral, so this stage is identical
+   in all three files and runs natively on the build host even for the ARM images.
+2. `build` — .NET SDK, cross-publishes self-contained with `-r linux-musl-x64` / `linux-arm` /
+   `linux-arm64`, so the SDK image is always the host-arch one. `--no-restore` relies on the earlier
+   `dotnet restore -r <rid>` layer; if you add a RID, both lines must agree or publish re-restores.
+3. final — `COPY --from=build /app ./` then `COPY --from=client /client/dist/ ./wwwroot/`.
+
+Notes:
+- **.NET 10 ships no Debian base images at all** — `bookworm-slim` has no 10.x tag and there is no
+  released `trixie-slim` either, so the ARM images moved to Noble during the .NET 10 upgrade. The
+  published tags are Alpine, Noble, Resolute and Azure Linux; check
+  `mcr.microsoft.com/v2/dotnet/aspnet/tags/list` before assuming one exists.
+- Source is copied **one `COPY` per directory**. A single `COPY` listing several directories flattens
+  their contents into the destination (moby#15858); it happens to compile today because no two source
+  files share a basename, but it silently breaks the moment two do.
+- Each image has a `HEALTHCHECK` against `/health` (`MapHealthChecks` in `Program.cs`, anonymous and
+  registered above the SPA fallback so it returns a status rather than `index.html`). Port defaults to
+  8080 — the base images' `ASPNETCORE_HTTP_PORTS` — and is overridable via `HEALTH_PORT`. Alpine
+  probes with busybox `wget`; the Noble images ship neither `wget` nor `curl`, so they use bash's
+  `/dev/tcp`.
+- The ARM files open with `# check=skip=InvalidBaseImagePlatform`: the final stage pins an arm base
+  image while building on amd64, which is safe because only `COPY` runs there.
+- Private registry at `peach.heisl.org`; automated via `publish.sh`.
 
 ## Important Notes
 
@@ -277,6 +333,14 @@ Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8:
 - Tests cover authorization and hub scoping only; the rest of the codebase has none
 - `FINDINGS.md` records known architecture and implementation issues from a code review — check it
   before assuming a rough edge is intentional
+- **AutoMapper is pinned to 11.0.1 and its vulnerability warning is an accepted risk.** NU1903 /
+  CVE-2026-32933 (a `StackOverflowException` DoS on recursive object graphs) is only fixed in 15.1.1
+  and 16.1.1, both released after AutoMapper stopped being MIT-licensed, so there is no upgrade path.
+  A `NuGetAuditSuppress` item in `mps.csproj` (and a mirrored one in `Tests/Tests.csproj`, since NuGet
+  audits transitive packages by default from .NET 9 on) silences exactly that one advisory and nothing
+  else — the build is otherwise warning-free, so keep it that way rather than reaching for `NoWarn`.
+- `SQLitePCLRaw.bundle_e_sqlite3` is referenced explicitly only to lift EF Core's pinned 2.1.11 (which
+  bundles a SQLite affected by CVE-2025-6965) to 2.1.12. Drop it once EF Core ships a newer pin.
 - The app supports multiple themes using angular material themeing mechanics
 - Responsive design with a mobile first mindset is encouraged
 - do not deviate form the theme / default colors, font sizes and typography unless instructed otherwise

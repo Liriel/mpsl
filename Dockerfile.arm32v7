@@ -1,0 +1,65 @@
+# check=skip=InvalidBaseImagePlatform
+# The final stage pins an explicitly-arm base image while building on an amd64
+# host; nothing arm-native runs at build time (only COPY), so the mismatch is safe.
+# https://hub.docker.com/_/microsoft-dotnet
+
+# build the Angular SPA (runs on the build host; the JS output is arch-neutral)
+FROM node:22-alpine AS client
+WORKDIR /client
+COPY ClientApp/package.json ClientApp/package-lock.json ./
+RUN npm ci
+COPY ClientApp/ ./
+# "publish" is ng build --configuration production; emits to /client/dist
+# (angular.json outputPath is { base: "dist", browser: "" })
+RUN npm run publish
+
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /source
+
+# copy csproj and restore as distinct layers
+COPY *.csproj ./
+RUN dotnet restore -r linux-arm
+
+# copy everything else and build app
+COPY *.cs* app*.json ./
+# one COPY per directory keeps the tree intact - a single COPY with several
+# directory sources flattens their contents into the destination
+# https://github.com/moby/moby/issues/15858
+COPY Controllers/ ./Controllers/
+COPY Hubs/ ./Hubs/
+COPY Infrastructure/ ./Infrastructure/
+COPY Migrations/ ./Migrations/
+COPY Model/ ./Model/
+COPY Services/ ./Services/
+COPY ViewModels/ ./ViewModels/
+COPY wwwroot/ ./wwwroot/
+
+RUN dotnet publish -c release -o /app -r linux-arm --self-contained true --no-restore
+
+# final stage/image
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-arm32v7
+
+LABEL maintainer="lassi@heisl.org"
+LABEL version="0.2"
+LABEL description="multiplayer shopping list"
+
+WORKDIR /app
+COPY --from=build /app ./
+# built SPA -> wwwroot, served via UseStaticFiles + MapFallbackToFile("index.html")
+COPY --from=client /client/dist/ ./wwwroot/
+
+# See: https://github.com/dotnet/announcements/issues/20
+# Uncomment to enable globalization APIs (or delete)
+#ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+#RUN apk add --no-cache icu-libs
+#ENV LC_ALL=en_US.UTF-8
+#ENV LANG=en_US.UTF-8
+
+# check will be ok if app is able to serve requests.
+# The port must match the app's HTTP binding (ASPNETCORE_HTTP_PORTS, 8080 in these
+# base images); override via the HEALTH_PORT env var if that binding differs.
+# This base image (Ubuntu noble) has neither wget nor curl, so probe via
+# bash's /dev/tcp instead.
+HEALTHCHECK --start-period=30s CMD bash -c 'exec 3<>/dev/tcp/localhost/${HEALTH_PORT:-8080} && printf "GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && head -n1 <&3 | grep -q " 200 "' || exit 1
+
+ENTRYPOINT ["./mps"]

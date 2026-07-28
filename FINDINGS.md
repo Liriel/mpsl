@@ -241,7 +241,7 @@ directly — it was confirmed to fail with 302 before the fix.
 **Tests** — `Tests/` (new xUnit project, plus `mps.slnx`): 35 tests, all passing. The solution file
 is load-bearing: without it `dotnet test` at the repo root resolves `mps.csproj`, finds no test
 adapter and **exits 0 having run nothing**. It uses the `.slnx` format (SDK 9.0.200+); the Docker
-builds never copy it, so the runtime `sdk:8.0-alpine` image is unaffected.
+builds never copy it, so the `sdk:10.0-alpine` build image is unaffected.
 `AuthorizationTests` covers anonymous→401 / no-role→403 / approved→success across every controller
 and custom action, and confirms `/Account` and `/Account/Claim` still work for a role-less user.
 `LiveHubTests` covers anonymous and no-role rejection, `JoinList` on a nonexistent list, and group

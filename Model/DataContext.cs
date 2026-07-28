@@ -29,9 +29,19 @@ namespace mps.Model
             // https://stackoverflow.com/a/34013431/1859022
             base.OnModelCreating(modelBuilder);
 
-            // system user
+            // System user. IdentityUser's constructor generates a fresh SecurityStamp and
+            // ConcurrencyStamp on every model build, which makes the seed non-deterministic - EF Core
+            // 9+ throws PendingModelChangesWarning on Migrate() for that. Both stamps are therefore
+            // pinned to the values already baked into the migration snapshot; the system user never
+            // signs in, so neither stamp is rotated at runtime.
             modelBuilder.Entity<ApplicationUser>().HasData(new[]{
-                new ApplicationUser{ Id = Constants.SYSUSER_ID, UserName = "SYSTEM", LockoutEnabled = true }
+                new ApplicationUser{
+                    Id = Constants.SYSUSER_ID,
+                    UserName = "SYSTEM",
+                    LockoutEnabled = true,
+                    SecurityStamp = "2f2066e0-3ab9-47f7-a357-0f5bdf9b0eb7",
+                    ConcurrencyStamp = "8b5f3885-4d7c-43b2-ba57-af2b2093c367"
+                }
             });
 
             // units

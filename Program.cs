@@ -79,6 +79,9 @@ builder.Services.AddAutoMapper(typeof(MyProfile));
 
 builder.Services.AddControllers();
 
+// backs the container HEALTHCHECK in the Dockerfiles
+builder.Services.AddHealthChecks();
+
 // reverse proxy support
 // https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/proxy-load-balancer?view=aspnetcore-5.0
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -87,7 +90,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
         ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
 
     // HACK: allow RP traffic from anywhere
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
@@ -120,6 +123,10 @@ app.MapControllerRoute(
     pattern: "{controller}/{action=FilteredIndex}/{id?}");
 
 app.MapHub<LiveHub>("/live");
+
+// must stay anonymous - the container healthcheck has no credentials. Kept above the
+// SPA fallback so it answers with a status code instead of index.html.
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.MapFallbackToFile("index.html");;
 

@@ -23,10 +23,13 @@ files are created. New components need declaring in `AppModule`.
 ## Build
 
 - `npm run build` — development build
-- `npm run publish` — production build, consumed by `../publish.sh` and the Dockerfiles
+- `npm run publish` — production build; this is what the Dockerfiles' `node:22-alpine` stage runs
+
+Deployment images build the client themselves, so `../publish.sh` no longer needs a local production
+build first — running `npm run publish` by hand is only useful for inspecting the output.
 
 Artifacts land flat in `dist/` rather than the Angular default `dist/browser/`, because the
-Dockerfiles copy `ClientApp/dist/` straight into `wwwroot`. This is configured via `outputPath` in
+Dockerfiles copy that directory straight into `wwwroot`. This is configured via `outputPath` in
 `angular.json`.
 
 ## Tests

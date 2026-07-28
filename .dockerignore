@@ -1,4 +1,7 @@
 **/node_modules
 **/.angular
-/bin
-/obj
+/bin/*
+/obj/*
+# the SPA is built in the image's node stage; a stale local build would only
+# bloat the context and bust the cache
+/ClientApp/dist
