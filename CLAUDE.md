@@ -246,6 +246,31 @@ not to all clients. `LiveHub` requires the same `ApprovedUser` policy and expose
 reconnect, so the client re-joins on `onreconnected` and after `Reconnect()` (which runs on every
 window focus).
 
+**Web push** is separate from SignalR and deliberately much quieter. `IWebPushNotificationService.
+NotifyListActivity()` is a **leading-edge throttle**, not a debounce: the first "something new" on a
+list opens a collect window (`PushNotifications:CollectWindowSeconds`, default 10), one notification
+goes out summarizing what landed in it, then that `(list, actor)` pair stays silent for
+`PushNotifications:CooldownMinutes` (default 5) however much more that user adds. The body's count is
+"items in the collect window", not a running total.
+
+- The service is a **singleton** and resolves `IPushSubscriptionService` per send from
+  `IServiceScopeFactory` — the send happens long after the originating request scope is gone, so it
+  must not capture a scoped `DataContext`. Do not re-register it as scoped.
+- There is **no `CancellationTokenSource`** in the throttle, and an already-scheduled window must
+  never restart its timer. The previous implementation cancelled and reused a token, which made
+  adding 2+ items send nothing and permanently poisoned that key.
+- Entries are only removed from the throttle dictionary while holding that entry's own lock, and
+  `NotifyListActivity` re-checks the `Removed` flag after locking. A freshly created entry is
+  indistinguishable from a stale one, so without this another list's call can prune it mid-flight.
+- Only *new* items and items coming back onto the list notify — `ShoppingListItemEntityService`
+  captures the pre-save status **before** `base.AddOrUpdate`, because afterwards `entity.Id` is
+  always non-zero. Plain edits and check/uncheck are silent.
+- The audience is approved users only, via `IPushSubscriptionService.
+  GetSubscriptionsForApprovedUsersExceptAsync` — the push-side counterpart of
+  `IShoppingListAccessService` and the one place to change if per-list membership ever arrives.
+- `IWebPushSender` wraps `WebPushClient` purely so tests can record sends instead of hitting the
+  network; `TestAppFactory` registers a recording fake and can shorten both windows.
+
 ## Development Patterns
 
 ### Adding New Entities

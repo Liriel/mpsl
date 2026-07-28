@@ -1,7 +1,7 @@
 import { Injectable, ApplicationRef, Inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
-import { Observable, BehaviorSubject, fromEvent, merge } from 'rxjs';
-import { map, distinctUntilChanged, filter, take, concat } from 'rxjs/operators';
+import { Observable, BehaviorSubject, fromEvent, merge, firstValueFrom, of } from 'rxjs';
+import { map, distinctUntilChanged, filter, take, concat, catchError } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 import { PushSubscription as PushSubscriptionModel, SubscriptionInfo, TestNotificationRequest, TestNotificationResponse } from '../models/PushNotification';
 import { IRepo } from './IRepo';
@@ -107,13 +107,12 @@ export class PushNotificationService {
         return;
       }
 
-      // Use firstValueFrom instead of deprecated toPromise()
-      const subscription = await new Promise<PushSubscription | null>((resolve) => {
-        this.swPush.subscription.subscribe({
-          next: (sub) => resolve(sub),
-          error: () => resolve(null)
-        });
-      });
+      const subscription = await firstValueFrom(
+        this.swPush.subscription.pipe(
+          take(1),
+          catchError(() => of(null))
+        )
+      );
 
       const isSubscribed = subscription !== null;
       console.log('Subscription check:', isSubscribed ? 'Active subscription found' : 'No subscription');
@@ -150,19 +149,19 @@ export class PushNotificationService {
       }
 
       // Check if already subscribed
-      const existingSubscription = await new Promise<PushSubscription | null>((resolve) => {
-        this.swPush.subscription.subscribe({
-          next: (sub) => resolve(sub),
-          error: () => resolve(null)
-        });
-      });
+      const existingSubscription = await firstValueFrom(
+        this.swPush.subscription.pipe(
+          take(1),
+          catchError(() => of(null))
+        )
+      );
 
       if (existingSubscription) {
         console.log('Already subscribed to push notifications');
         // Still send to backend in case it wasn't saved before
         try {
           const subscriptionData = this.convertSubscription(existingSubscription);
-          await this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData).toPromise();
+          await firstValueFrom(this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData));
           this.isSubscribedSubject.next(true);
           return true;
         } catch (error) {
@@ -190,7 +189,7 @@ export class PushNotificationService {
 
       // Send subscription to backend
       const subscriptionData = this.convertSubscription(subscription);
-      await this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData).toPromise();
+      await firstValueFrom(this.repo.Post('api/PushSubscription', 'subscribe', subscriptionData));
 
       this.isSubscribedSubject.next(true);
       console.log('Successfully subscribed to push notifications');
@@ -210,15 +209,15 @@ export class PushNotificationService {
    */
   public async unsubscribe(): Promise<boolean> {
     try {
-      const subscription = await this.swPush.subscription.toPromise();
-      
+      const subscription = await firstValueFrom(this.swPush.subscription.pipe(take(1)));
+
       if (subscription) {
         // Unsubscribe from push service
         await this.swPush.unsubscribe();
 
         // Notify backend
         const subscriptionData = this.convertSubscription(subscription);
-        await this.repo.Post('api/PushSubscription', 'unsubscribe', subscriptionData).toPromise();
+        await firstValueFrom(this.repo.Post('api/PushSubscription', 'unsubscribe', subscriptionData));
 
         this.isSubscribedSubject.next(false);
         console.log('Successfully unsubscribed from push notifications');

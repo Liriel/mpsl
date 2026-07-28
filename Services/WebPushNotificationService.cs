@@ -11,42 +11,56 @@ namespace mps.Services;
 public interface IWebPushNotificationService
 {
     Task SendNotificationAsync(string userId, PushNotificationPayload payload);
-    Task SendNotificationToAllExceptAsync(string excludeUserId, PushNotificationPayload payload);
-    Task SendBatchedShoppingListNotificationAsync(int shoppingListId, string shoppingListName, string addedByUserId, string addedByUserName);
+
+    /// <summary>
+    /// Schedules a "someone is active on this list" push. Leading-edge throttle: the first call for a
+    /// given (list, actor) pair opens a short collect window, one notification goes out summarizing
+    /// everything that happened in that window, then the pair goes quiet for a cooldown no matter how
+    /// much more the actor does. Synchronous - it only schedules work, it never sends inline.
+    /// </summary>
+    void NotifyListActivity(int shoppingListId, string shoppingListName, string actorUserId, string actorName);
+
     Task<bool> SendTestNotificationAsync(int subscriptionId, string title, string body);
 }
 
 public class WebPushNotificationService : IWebPushNotificationService
 {
-    private readonly IPushSubscriptionService subscriptionService;
+    private readonly IServiceScopeFactory scopeFactory;
     private readonly ILogger<WebPushNotificationService> logger;
-    private readonly IConfiguration configuration;
-    private readonly WebPushClient webPushClient;
+    private readonly IWebPushSender webPushSender;
     private readonly VapidDetails vapidDetails;
+    private readonly TimeSpan collectWindow;
+    private readonly TimeSpan cooldown;
 
-    // Batch tracking: Key is "shoppingListId-userId", Value is batch info
-    private readonly ConcurrentDictionary<string, BatchInfo> pendingBatches = new();
+    // Activity tracking: Key is "shoppingListId-actorUserId", Value is the throttle state for that pair
+    private readonly ConcurrentDictionary<string, ActivityEntry> activity = new();
 
-    private class BatchInfo
+    private class ActivityEntry
     {
         public int ShoppingListId { get; set; }
         public string ShoppingListName { get; set; }
-        public string AddedByUserId { get; set; }
-        public string AddedByUserName { get; set; }
+        public string ActorUserId { get; set; }
+        public string ActorName { get; set; }
         public int ItemCount { get; set; }
-        public CancellationTokenSource CancellationToken { get; set; }
+        public bool Scheduled { get; set; }
+        public DateTime CooldownUntil { get; set; }
+
+        // Set (under this entry's lock) once PruneStaleEntries has removed it from the dictionary.
+        // Lets a thread that obtained this entry via GetOrAdd - before the removal - detect that it
+        // is now holding an orphaned instance and retry instead of scheduling/mutating a send that
+        // would never be looked at again.
+        public bool Removed { get; set; }
     }
 
     public WebPushNotificationService(
-        IPushSubscriptionService subscriptionService,
+        IServiceScopeFactory scopeFactory,
         ILogger<WebPushNotificationService> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IWebPushSender webPushSender)
     {
-        this.subscriptionService = subscriptionService;
+        this.scopeFactory = scopeFactory;
         this.logger = logger;
-        this.configuration = configuration;
-
-        this.webPushClient = new WebPushClient();
+        this.webPushSender = webPushSender;
 
         // Setup VAPID details from configuration
         var publicKey = configuration["VapidKeys:PublicKey"];
@@ -54,111 +68,181 @@ public class WebPushNotificationService : IWebPushNotificationService
         var subject = configuration["VapidKeys:Subject"];
 
         this.vapidDetails = new VapidDetails(subject, publicKey, privateKey);
+
+        var collectWindowSeconds = configuration.GetValue<double?>("PushNotifications:CollectWindowSeconds") ?? 10;
+        var cooldownMinutes = configuration.GetValue<double?>("PushNotifications:CooldownMinutes") ?? 5;
+
+        this.collectWindow = TimeSpan.FromSeconds(collectWindowSeconds);
+        this.cooldown = TimeSpan.FromMinutes(cooldownMinutes);
     }
 
     public async Task SendNotificationAsync(string userId, PushNotificationPayload payload)
     {
-        var subscriptions = await this.subscriptionService.GetUserSubscriptionsAsync(userId);
+        using var scope = this.scopeFactory.CreateScope();
+        var subscriptionService = scope.ServiceProvider.GetRequiredService<IPushSubscriptionService>();
+
+        var subscriptions = await subscriptionService.GetUserSubscriptionsAsync(userId);
 
         foreach (var subscription in subscriptions)
         {
-            await SendToSubscriptionAsync(subscription, payload);
+            await SendToSubscriptionAsync(subscriptionService, subscription, payload);
         }
     }
 
-    public async Task SendNotificationToAllExceptAsync(string excludeUserId, PushNotificationPayload payload)
+    public void NotifyListActivity(int shoppingListId, string shoppingListName, string actorUserId, string actorName)
     {
-        var subscriptions = await this.subscriptionService.GetAllSubscriptionsExceptUserAsync(excludeUserId);
+        var key = $"{shoppingListId}-{actorUserId}";
+        var now = DateTime.UtcNow;
+        var shouldSchedule = false;
+        ActivityEntry entry;
 
-        foreach (var subscription in subscriptions)
+        // A freshly created entry looks identical to a stale one (unscheduled, CooldownUntil ==
+        // MinValue), so it can be pruned by another key's NotifyListActivity call between GetOrAdd and
+        // this thread taking the lock. Retry against a fresh GetOrAdd if that happens instead of
+        // mutating/scheduling against an entry that is no longer reachable in the dictionary.
+        while (true)
         {
-            await SendToSubscriptionAsync(subscription, payload);
-        }
-    }
-
-    public async Task SendBatchedShoppingListNotificationAsync(
-        int shoppingListId,
-        string shoppingListName,
-        string addedByUserId,
-        string addedByUserName)
-    {
-        var batchKey = $"{shoppingListId}-{addedByUserId}";
-
-        // Cancel existing timer if one exists
-        if (pendingBatches.TryGetValue(batchKey, out var existingBatch))
-        {
-            existingBatch.CancellationToken.Cancel();
-            existingBatch.ItemCount++;
-        }
-        else
-        {
-            existingBatch = new BatchInfo
+            entry = this.activity.GetOrAdd(key, _ => new ActivityEntry
             {
                 ShoppingListId = shoppingListId,
                 ShoppingListName = shoppingListName,
-                AddedByUserId = addedByUserId,
-                AddedByUserName = addedByUserName,
-                ItemCount = 1,
-                CancellationToken = new CancellationTokenSource()
-            };
-            pendingBatches[batchKey] = existingBatch;
+                ActorUserId = actorUserId,
+                ActorName = actorName,
+                CooldownUntil = DateTime.MinValue
+            });
+
+            lock (entry)
+            {
+                if (entry.Removed)
+                {
+                    // orphaned - someone pruned it out from under us, go round again
+                    continue;
+                }
+
+                // keep the display name/list name fresh even if the entry was created by an older call
+                entry.ShoppingListName = shoppingListName;
+                entry.ActorName = actorName;
+
+                if (now < entry.CooldownUntil)
+                {
+                    // still cooling down from a previous notification - stay quiet
+                }
+                else if (!entry.Scheduled)
+                {
+                    entry.ItemCount = 1;
+                    entry.Scheduled = true;
+                    shouldSchedule = true;
+                }
+                else
+                {
+                    // already scheduled - fold this activity in, do NOT restart the timer
+                    entry.ItemCount++;
+                }
+
+                break;
+            }
         }
 
-        // Wait 30 seconds before sending (debounce)
-        _ = Task.Run(async () =>
+        if (shouldSchedule)
         {
-            try
+            _ = Task.Run(async () =>
             {
-                await Task.Delay(30000, existingBatch.CancellationToken.Token);
-
-                // Time elapsed without new items, send the notification
-                if (pendingBatches.TryRemove(batchKey, out var batch))
+                try
                 {
-                    var message = batch.ItemCount == 1
-                        ? $"{batch.AddedByUserName} added an item to {batch.ShoppingListName}"
-                        : $"{batch.AddedByUserName} added {batch.ItemCount} items to {batch.ShoppingListName}";
-
-                    var payload = new PushNotificationPayload
-                    {
-                        Title = "Shopping List Updated",
-                        Body = message,
-                        Icon = "/assets/icons/icon-192x192.png",
-                        Badge = "/assets/icons/icon-72x72.png",
-                        Tag = $"shopping-list-{batch.ShoppingListId}",
-                        Data = new ShoppingListNotificationData
-                        {
-                            ShoppingListId = batch.ShoppingListId,
-                            ShoppingListName = batch.ShoppingListName,
-                            AddedByUser = batch.AddedByUserName,
-                            ItemCount = batch.ItemCount,
-                            Action = "view"
-                        }
-                    };
-
-                    await SendNotificationToAllExceptAsync(batch.AddedByUserId, payload);
-                    this.logger.LogInformation($"Sent batched notification for {batch.ItemCount} items to list {batch.ShoppingListId}");
+                    await Task.Delay(this.collectWindow);
+                    await SendScheduledNotificationAsync(entry);
                 }
-            }
-            catch (TaskCanceledException)
-            {
-                // Timer was cancelled, new item was added
-                this.logger.LogDebug($"Batch notification timer cancelled for {batchKey}");
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogError(ex, $"Error sending batched notification for {batchKey}");
-                pendingBatches.TryRemove(batchKey, out _);
-            }
-        });
+                catch (Exception ex)
+                {
+                    this.logger.LogError(ex, $"Error sending list activity notification for {key}");
+                }
+            });
+        }
 
-        await Task.CompletedTask;
+        PruneStaleEntries(now);
+    }
+
+    private async Task SendScheduledNotificationAsync(ActivityEntry entry)
+    {
+        int itemCount;
+
+        lock (entry)
+        {
+            itemCount = entry.ItemCount;
+            entry.CooldownUntil = DateTime.UtcNow + this.cooldown;
+            entry.Scheduled = false;
+        }
+
+        try
+        {
+            var message = itemCount == 1
+                ? $"{entry.ActorName} added an item to {entry.ShoppingListName}"
+                : $"{entry.ActorName} added {itemCount} items to {entry.ShoppingListName}";
+
+            var payload = new PushNotificationPayload
+            {
+                Title = "Shopping List Updated",
+                Body = message,
+                Icon = "/assets/icons/icon-192x192.png",
+                Badge = "/assets/icons/icon-72x72.png",
+                Tag = $"shopping-list-{entry.ShoppingListId}",
+                Data = new ShoppingListNotificationData
+                {
+                    ShoppingListId = entry.ShoppingListId,
+                    ShoppingListName = entry.ShoppingListName,
+                    AddedByUser = entry.ActorName,
+                    ItemCount = itemCount,
+                    Action = "view"
+                }
+            };
+
+            using var scope = this.scopeFactory.CreateScope();
+            var subscriptionService = scope.ServiceProvider.GetRequiredService<IPushSubscriptionService>();
+
+            await SendToListAudienceAsync(subscriptionService, entry.ShoppingListId, entry.ActorUserId, payload);
+
+            this.logger.LogInformation($"Sent list activity notification for {itemCount} item(s) on list {entry.ShoppingListId}");
+        }
+        catch (Exception ex)
+        {
+            this.logger.LogError(ex, $"Error sending list activity notification for list {entry.ShoppingListId}");
+        }
+    }
+
+    /// <summary>
+    /// Prunes entries that are not currently scheduled and whose cooldown has already elapsed, so the
+    /// dictionary stays bounded by the number of (list, actor) pairs with genuinely recent activity.
+    /// </summary>
+    private void PruneStaleEntries(DateTime now)
+    {
+        foreach (var kvp in this.activity)
+        {
+            var entry = kvp.Value;
+
+            lock (entry)
+            {
+                if (entry.Scheduled || now < entry.CooldownUntil)
+                    continue;
+
+                // Removal only ever happens while holding the entry's own lock, so a thread that is
+                // mid-way through GetOrAdd + lock in NotifyListActivity for this same key either sees
+                // this entry before it disappears (blocks on the lock, then observes Removed) or sees
+                // it gone afterwards (GetOrAdd creates a fresh one). Either way it never mutates an
+                // entry that is no longer reachable from the dictionary.
+                entry.Removed = true;
+                this.activity.TryRemove(kvp.Key, out _);
+            }
+        }
     }
 
     public async Task<bool> SendTestNotificationAsync(int subscriptionId, string title, string body)
     {
+        using var scope = this.scopeFactory.CreateScope();
+        var subscriptionService = scope.ServiceProvider.GetRequiredService<IPushSubscriptionService>();
+
         try
         {
-            var subscription = await this.subscriptionService.GetSubscriptionByIdAsync(subscriptionId);
+            var subscription = await subscriptionService.GetSubscriptionByIdAsync(subscriptionId);
             if (subscription == null)
             {
                 this.logger.LogWarning($"Subscription {subscriptionId} not found");
@@ -175,7 +259,7 @@ public class WebPushNotificationService : IWebPushNotificationService
                 Data = new { Type = "test", Timestamp = DateTime.UtcNow }
             };
 
-            await SendToSubscriptionAsync(subscription, payload);
+            await SendToSubscriptionAsync(subscriptionService, subscription, payload);
             this.logger.LogInformation($"Sent test notification to subscription {subscriptionId}");
             return true;
         }
@@ -186,7 +270,17 @@ public class WebPushNotificationService : IWebPushNotificationService
         }
     }
 
-    private async Task SendToSubscriptionAsync(PushSubscriptionModel subscription, PushNotificationPayload payload)
+    private async Task SendToListAudienceAsync(IPushSubscriptionService subscriptionService, int shoppingListId, string excludeUserId, PushNotificationPayload payload)
+    {
+        var subscriptions = await subscriptionService.GetSubscriptionsForApprovedUsersExceptAsync(excludeUserId);
+
+        foreach (var subscription in subscriptions)
+        {
+            await SendToSubscriptionAsync(subscriptionService, subscription, payload);
+        }
+    }
+
+    private async Task SendToSubscriptionAsync(IPushSubscriptionService subscriptionService, PushSubscriptionModel subscription, PushNotificationPayload payload)
     {
         try
         {
@@ -201,7 +295,7 @@ public class WebPushNotificationService : IWebPushNotificationService
             var wrappedPayload = new { notification = payload };
             var payloadJson = JsonSerializer.Serialize(wrappedPayload);
 
-            await this.webPushClient.SendNotificationAsync(
+            await this.webPushSender.SendAsync(
                 pushSubscription,
                 payloadJson,
                 this.vapidDetails
@@ -218,7 +312,7 @@ public class WebPushNotificationService : IWebPushNotificationService
                 ex.StatusCode == System.Net.HttpStatusCode.NotFound)
             {
                 this.logger.LogInformation($"Removing invalid subscription {subscription.Id}");
-                await this.subscriptionService.UnsubscribeAsync(subscription.UserId, subscription.Endpoint);
+                await subscriptionService.UnsubscribeAsync(subscription.UserId, subscription.Endpoint);
             }
         }
         catch (Exception ex)

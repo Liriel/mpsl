@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using mps.Model;
 using mps.Infrastructure;
 
@@ -37,7 +38,14 @@ namespace mps.Services
                 }
             }
 
-            // call base implementation befor sending the broadcast to get all the 
+            // capture the pre-save status before base.AddOrUpdate saves - afterwards entity.Id is
+            // always non-zero, so this is the only point we can tell "new row" from "edit"
+            ItemState? previousStatus = entity.Id == 0
+                ? null
+                : this.repo.ShoppingListItems.AsNoTracking()
+                    .Where(i => i.Id == entity.Id).Select(i => (ItemState?)i.Status).FirstOrDefault();
+
+            // call base implementation befor sending the broadcast to get all the
             // changes (like the id on create)
             var result = base.AddOrUpdate(entity);
 
@@ -50,16 +58,20 @@ namespace mps.Services
             {
                 this.notificationService.BroadCastItemChanged(entity);
 
-                // Send batched push notification for new items (not for updates)
-                if (entity.Id != 0 && entity.AddedByUserId != null)
+                // Notify list activity only when something genuinely new landed on the list: a brand
+                // new row, or one coming back onto the list (e.g. re-adding a previously checked-off
+                // item). A plain edit (Open -> Open) stays silent.
+                var isNewOnList = previousStatus == null ||
+                    (previousStatus != ItemState.Open && entity.Status == ItemState.Open);
+
+                if (isNewOnList && entity.AddedByUserId != null)
                 {
                     var shoppingList = this.repo.Find<ShoppingList>(entity.ShoppingListId);
                     var addedByUser = this.repo.Users.FirstOrDefault(u => u.Id == entity.AddedByUserId);
-                    
+
                     if (shoppingList != null && addedByUser != null)
                     {
-                        // Fire and forget - don't await
-                        _ = this.webPushService.SendBatchedShoppingListNotificationAsync(
+                        this.webPushService.NotifyListActivity(
                             shoppingList.Id,
                             shoppingList.Name,
                             addedByUser.Id,

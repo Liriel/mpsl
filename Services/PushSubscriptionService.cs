@@ -7,7 +7,16 @@ public interface IPushSubscriptionService
     Task<PushSubscription> SubscribeAsync(string userId, string endpoint, string p256dh, string auth, string userAgent);
     Task<bool> UnsubscribeAsync(string userId, string endpoint);
     Task<IEnumerable<PushSubscription>> GetUserSubscriptionsAsync(string userId);
-    Task<IEnumerable<PushSubscription>> GetAllSubscriptionsExceptUserAsync(string excludeUserId);
+
+    /// <summary>
+    /// Push-side counterpart of <see cref="IShoppingListAccessService"/>: under today's admin-approved
+    /// household sharing every approved (role <c>user</c> or <c>admin</c>) account can see every list, so
+    /// the "audience" for a list-activity push is simply "every approved account except the actor". This
+    /// is the one place to change when per-list membership ever replaces household sharing, mirroring the
+    /// seam <see cref="IShoppingListAccessService"/> already provides for read/write access checks.
+    /// </summary>
+    Task<IEnumerable<PushSubscription>> GetSubscriptionsForApprovedUsersExceptAsync(string excludeUserId);
+
     Task<IEnumerable<PushSubscription>> GetAllSubscriptionsAsync();
     Task<PushSubscription> GetSubscriptionByIdAsync(int subscriptionId);
 }
@@ -83,11 +92,16 @@ public class PushSubscriptionService : IPushSubscriptionService
         );
     }
 
-    public async Task<IEnumerable<PushSubscription>> GetAllSubscriptionsExceptUserAsync(string excludeUserId)
+    public async Task<IEnumerable<PushSubscription>> GetSubscriptionsForApprovedUsersExceptAsync(string excludeUserId)
     {
+        var approvedUserIds = from ur in this.repo.UserRoles
+                               join r in this.repo.Roles on ur.RoleId equals r.Id
+                               where r.Name == "user" || r.Name == "admin"
+                               select ur.UserId;
+
         return await Task.FromResult(
             this.repo.GetEntities<PushSubscription>()
-                .Where(s => s.UserId != excludeUserId)
+                .Where(s => s.UserId != excludeUserId && approvedUserIds.Contains(s.UserId))
                 .ToList()
         );
     }

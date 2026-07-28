@@ -4,12 +4,13 @@ Static review of the MPS codebase (backend + Angular client), 2026-07-27, on bra
 at commit `39734b6`. Nothing was executed for the original review — all findings came from reading
 the source, so line numbers refer to that snapshot.
 
-**Status:** F1 and F3 are **fixed** (2026-07-27, uncommitted in the working tree) — see
-[Resolved](#resolved) at the bottom. Line numbers for those two no longer match the code.
-Everything else stands.
+**Status:** F1, F3 and F5 are **fixed** (F1/F3 on 2026-07-27, F5 on 2026-07-28; uncommitted in the
+working tree) — see [Resolved](#resolved) at the bottom. Line numbers for those three no longer match
+the code. Everything else stands.
 
 **Suggested order of attack for what remains:** F2 (rotate the leaked VAPID key — a credential
-operation, not a code change), then F5 if push notifications are misbehaving in practice.
+operation, not a code change; push notifications now work, so they are signed with a key that is
+public in git history), then F4.
 
 ---
 
@@ -74,7 +75,7 @@ concurrency token anywhere in the model.
 
 **Fix direction:** move archiving to a background job or an explicit idempotent command endpoint.
 
-### F5 — Push-notification batching is broken three ways
+### F5 — Push-notification batching is broken three ways — ✅ FIXED
 
 All in `Services/WebPushNotificationService.cs`:
 
@@ -260,3 +261,64 @@ particular the two-browser group-isolation and reconnect checks.
 "Invalid shopping list". Pre-existing and unrelated to F1/F3; real item creation goes through
 `ShoppingListController.AddItem`, which sets the id explicitly. The corresponding test asserts only
 the authorization boundary and documents this inline.
+
+### F5 — fixed 2026-07-28 (uncommitted, branch `notifications`)
+
+**The debounce was also the wrong mechanism, not just a buggy one.** It sent 30 s after the *last*
+item, so a notification only arrived once the other person had stopped — whereas the point of the
+feature is to tell you somebody *is* working on a list. It is now a **leading-edge throttle**: the
+first "something new" on a list opens a short collect window, one notification goes out summarizing
+it, then that (list, actor) pair is silent for a cooldown however much more they add. The body's
+count is therefore "items in the collect window", not a running total, by design.
+
+- `Services/WebPushNotificationService.cs` — rewritten. Registered **singleton** (`Program.cs`) with
+  DB access resolved per-send from `IServiceScopeFactory`, which fixes the per-request batch state
+  (1) and the `ObjectDisposedException` 30 s after scope disposal (3). `SendBatchedShoppingList-
+  NotificationAsync` is replaced by a synchronous `void NotifyListActivity(...)` — it only schedules,
+  so callers no longer need `_ = ...`. **There is no `CancellationTokenSource` anywhere in the new
+  design**: an already-scheduled window folds in the new item and never restarts its timer, so the
+  cancelled-token bug (2) cannot recur and no key can be poisoned. `VapidDetails` and the
+  `WebPushClient` are built once instead of per request.
+- Entry removal is only ever performed while holding that entry's own lock, and `NotifyListActivity`
+  re-checks a `Removed` flag after taking the lock and retries its `GetOrAdd` if it lost the race.
+  Without this, a freshly created entry (unscheduled, `CooldownUntil == MinValue`) is
+  indistinguishable from a stale one and could be pruned by a *different* list's call in the gap
+  between `GetOrAdd` and `lock`, orphaning it — which would silently defeat both the coalescing and
+  the cooldown.
+- `Services/ShoppingListItemEntityService.cs` — the pre-save status is captured **before**
+  `base.AddOrUpdate` (afterwards `entity.Id` is always non-zero, which is why the old `entity.Id != 0`
+  guard never excluded anything). It notifies for a new row or an item coming back onto the list
+  (`previous != Open && current == Open`), so a plain edit stays silent. `ItemController.ToggleStatus`
+  saves through `repo.SaveChanges()` directly and never reaches this service, so checking items off
+  never pushes.
+- `Services/PushSubscriptionService.cs` — `GetSubscriptionsForApprovedUsersExceptAsync` restricts the
+  audience to accounts in role `user`/`admin`, so role-less accounts awaiting approval no longer
+  receive list names. It is documented as the push-side counterpart of `IShoppingListAccessService`:
+  **the one place to change when per-list membership replaces household sharing.** The superseded
+  `GetAllSubscriptionsExceptUserAsync` was removed.
+- `Services/WebPushSender.cs` (new) — `IWebPushSender` seam around `WebPushClient` so tests can
+  record sends without a network call while still being able to throw `WebPushException` to exercise
+  the 410/404 subscription pruning.
+- Config: `PushNotifications:CollectWindowSeconds` (10) and `PushNotifications:CooldownMinutes` (5)
+  in `appsettings.json`, read as `double` so tests can use millisecond-scale windows.
+- Client — `PushNotificationService.unsubscribe()` awaited `swPush.subscription.toPromise()`, but
+  that observable never completes, so the promise never resolved and **push could not be turned off**.
+  Now `firstValueFrom(...pipe(take(1)))`; the two hand-rolled Promise wrappers and the `repo.Post`
+  `.toPromise()` calls in the same file were converted to match.
+
+**Tests** — `Tests/WebPushNotificationTests.cs` (new, 8 tests; suite is now 43). Throttle behaviour
+(burst coalescing with the count in the body, silence during cooldown, a second round after it) is
+tested against a directly constructed service with its own in-memory `IConfiguration`, which is far
+less timing-fragile than sharing one factory config; audience scoping and the disposed-scope
+regression run against the real DB through `TestAppFactory`. Positive assertions poll with a timeout
+rather than sleeping a fixed interval. `TestAppFactory` now registers a recording `IWebPushSender`
+(so no test can hit the network) and exposes settable window/cooldown properties — properties rather
+than constructor arguments because `IClassFixture<T>` requires a single public constructor.
+
+**Verified:** `dotnet build` clean (0 warnings), `dotnet test` 43/43 across four consecutive runs with
+no flakiness, `npx tsc --noEmit -p tsconfig.app.json` clean. **Not** exercised against a real browser
+or push service — the two-account end-to-end checks in
+`~/.claude/plans/gleaming-soaring-cupcake.md` are still worth doing before deploying.
+
+**Explicitly out of scope:** F2. Push notifications now genuinely send, signed with the VAPID private
+key that is still committed in `appsettings.json`.
