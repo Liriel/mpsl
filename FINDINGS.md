@@ -4,40 +4,19 @@ Static review of the MPS codebase (backend + Angular client), 2026-07-27, on bra
 at commit `39734b6`. Nothing was executed for the original review — all findings came from reading
 the source, so line numbers refer to that snapshot.
 
-**Status:** F1, F3, F5 and F6 are **fixed** (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28) — see
-[Resolved](#resolved) at the bottom. Line numbers for those no longer match the code. One row of F6
-(`DateTime.Now` vs `UtcNow`) was deliberately deferred. Everything else stands.
+**Status:** the original F1, F3, F5 and F6 were fixed (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28)
+and have been removed from this file; see commits `bd92e7c` and `09f32de` and the corresponding
+sections of `CLAUDE.md` for what the fixes established. Surviving findings keep their original
+identifiers rather than being renumbered, so the list starts at F2; the one row of F6 that was
+deferred rather than fixed is carried forward here as F7. Everything listed below still stands.
 
-**Suggested order of attack for what remains:** F2 (rotate the leaked VAPID key — a credential
-operation, not a code change; push notifications now work, so they are signed with a key that is
-public in git history), then F4.
+**Suggested order of attack:** F2 (rotate the leaked VAPID key — a credential operation, not a code
+change; push notifications now work, so they are signed with a key that is public in git history),
+then F4.
 
 ---
 
 ## Critical
-
-### F1 — Authorization is enforced only in the browser — ✅ FIXED
-
-**Any authenticated Microsoft account can read, modify and delete every shopping list in the system.**
-
-- Registration is open: `Controllers/AccountController.cs:687-699` auto-creates an account for any
-  successful Microsoft login (and ignores the `CreateAsync` result).
-- Every data endpoint is `[Authorize]` with **no role and no ownership filter** —
-  `Controllers/ShoppingListController.cs:12`, `Controllers/ItemController.cs:12`,
-  `Controllers/EntityContoller.cs:27`. The `user`/`admin` role model exists (`Promote`/`Demote` in
-  `AccountController`) but is checked *only* by `ClientApp/src/app/auth.guard.ts:20`. A demoted user
-  keeps full API access via curl.
-- The ownership plumbing exists but is never read: `ShoppingList.OwnerUserKey` is written at
-  `Services/ShoppingListEntityService.cs:20` and used nowhere. Three TODOs mark the hole:
-  `Services/ShoppingListEntityService.cs:27`, `Controllers/ShoppingListController.cs:221`,
-  `Controllers/ItemController.cs:452`.
-- `EntityController.Get/Put/Delete` are IDOR by construction — they resolve entities by id with no
-  scoping (`Controllers/EntityContoller.cs:87-165`).
-
-**Fix direction:** add an `[Authorize(Roles="user")]` baseline, then apply an ownership/membership
-predicate inside `GetFilteredEntities()` and on every `repo.Find<T>(id)` path. Note there is
-currently no list-sharing model at all (no `ShoppingListMember` entity), so deciding the sharing
-semantics is a prerequisite — today "multiplayer" is implemented as "everyone sees everything".
 
 ### F2 — VAPID private key committed to git
 
@@ -48,17 +27,6 @@ semantics is a prerequisite — today "multiplayer" is implemented as "everyone 
 keep only the public key in config. The public key is also duplicated into
 `ClientApp/src/environments/environment.ts` and `environment.prod.ts` — that part is fine, it is
 public by design, but it must be updated in lockstep when the pair is rotated.
-
-### F3 — SignalR hub is unauthenticated and broadcasts globally — ✅ FIXED
-
-`Hubs/LiveHub.cs:6` has `[Authorize]` commented out, and
-`Services/SignalRNotificationService.cs:26,34` sends to `Clients.All` with the group-scoped calls
-commented out. An anonymous client connecting to `/live` receives the full item payload (names,
-amounts, who checked what) for **every list in the system**.
-
-**Fix direction:** re-enable `[Authorize]`, and switch back to `Clients.Group($"sl{id}")` — this also
-requires adding join/leave calls in the hub, since the group name is currently computed and then
-discarded and no client ever joins a group.
 
 ---
 
@@ -75,46 +43,15 @@ concurrency token anywhere in the model.
 
 **Fix direction:** move archiving to a background job or an explicit idempotent command endpoint.
 
-### F5 — Push-notification batching is broken three ways — ✅ FIXED
+### F7 — `DateTime.Now` vs `DateTime.UtcNow` — deferred by decision
 
-All in `Services/WebPushNotificationService.cs`:
+Project-wide: domain code stamps `DateTime.Now` (local) while `PushSubscription`/notifications use
+`DateTime.UtcNow`. SQLite stores both as text, so a container timezone change silently corrupts
+staleness and recommendation math.
 
-1. **Lifetime mismatch.** Registered `Scoped` (`Program.cs:57`) but keeps batch state in the instance
-   field `pendingBatches` (line 31). Every HTTP request gets a fresh dictionary, so cross-request
-   debouncing never happens. Needs to be a singleton, with DB access resolved per-use from
-   `IServiceScopeFactory`.
-2. **Cancelled token is reused.** On the second item, line 100 cancels
-   `existingBatch.CancellationToken` but never replaces the CTS; line 110 then awaits
-   `Task.Delay(30000, <already-cancelled token>)`, which throws immediately. Adding 2+ items within
-   the window therefore sends **no** notification at all, and the entry is never removed from the
-   dictionary — that `shoppingListId-userId` key is poisoned permanently and leaks memory.
-3. **Disposed DbContext.** The delayed `Task.Run` closure calls `SendNotificationToAllExceptAsync` →
-   `IPushSubscriptionService` → `IRepository` → scoped `DataContext`, 30 s after the request scope was
-   disposed. Expect `ObjectDisposedException` even after fixing (2).
-
-Related:
-
-- `Services/ShoppingListItemEntityService.cs:61` guards with `entity.Id != 0` intending "new items
-  only", but it runs *after* `base.AddOrUpdate` has saved, so the id is always non-zero — push fires
-  on every edit too.
-- `WebPushClient` is newed per scope (line 51), creating a fresh `HttpClient` per request.
-- `SendNotificationToAllExceptAsync` notifies *every* user in the system about *every* list,
-  regardless of any relationship to that list — same blast radius as F3, and it leaks list names.
-
-### F6 — Assorted correctness bugs — ✅ FIXED (except the `DateTime.Now` row, deferred)
-
-| Where | Problem | Status |
-|---|---|---|
-| `Controllers/ShoppingListController.cs:288-291` | `SingleOrDefault` on `NormalizedName`, which has **no unique index** (the unique index is on `Name`+`ShoppingListId`, `Model/ShoppingListItem.cs:12`). "Öl" and "Oel" both normalize to `OEL` → `InvalidOperationException` → 500. | ✅ |
-| `Controllers/ItemController.cs:443-446` | `PostMapping` unconditionally sets `model.Unit = GetOrCreateUnit(viewModel.UnitShortName)`, so any edit that omits the unit silently clears it. | ✅ |
-| `Services/UnitService.cs:23-28` | Returns an unsaved, unattached `Unit` with `Id = 0` and no `Name`; the caller then does `item.UnitId = item.Unit?.Id` → 0 (`Controllers/ShoppingListController.cs:308`). Also `ShortName.ToLower()` compared with `SingleOrDefault` throws if the case-insensitive match hits two rows. | ✅ |
-| `Controllers/EntityContoller.cs:154-165` | Generic `Delete` bypasses `IEntityService`, so no broadcast and no service hooks (the TODO admits it). It also hard-deletes items, and `ItemHistories` cascades (`Migrations/20220914124713_InitialMigration.cs:240`) — contradicting the documented promise in `CLAUDE.md` and `DECLUTTER_FEATURE.md` that deletes preserve `ItemHistory` for analytics. | ✅ delete routed through the service; cascade **kept** and the docs corrected |
-| `Controllers/EntityContoller.cs:93-118` | Validation failures return **200 OK** with `Success=false`; other endpoints return 400 with a bare string. Clients cannot handle errors uniformly. | ✅ |
-| `Services/DeclutterService.cs:76-83` | `.AsEnumerable()` pulls every item of the list into memory, then touches `x.HistoryRecords` under lazy-loading proxies → one query per item (N+1). Should be a single grouped LINQ query. | ✅ |
-| `Services/DeclutterService.cs:114-127` | Criteria are combined with `&&`; `CLAUDE.md` states "Items matching ANY criteria are shown". Code and docs disagree on the feature's core semantics — decide which is intended. | ✅ resolved in favour of the docs (**OR**) |
-| `Services/DeclutterService.cs:139-152` | `itemService.Delete()` calls `SaveChanges()` per item (N round-trips + N broadcasts), then a redundant `SaveChanges()`. No ownership check beyond `shoppingListId`. | ✅ batched; the ownership question is F1's household-sharing model, unchanged |
-| `Services/PersistedRepository.cs:36-105` | The audit-stamping block is copy-pasted between `SaveChanges` and `SaveChangesAsync`, and each save issues an extra `Users` lookup by name. | ✅ |
-| project-wide | `DateTime.Now` (local) in domain code vs `DateTime.UtcNow` in `PushSubscription`/notifications. SQLite stores these as text; a container timezone change silently corrupts staleness and recommendation math. | ⏸ **deferred by decision** — switching reinterprets every existing local-time row as UTC, so it needs a backfill migration to be worth doing. Only bites if the container timezone changes. |
+Carried over from the original F6 table, where it was the one row left unfixed: switching
+reinterprets every existing local-time row as UTC, so it needs a backfill migration to be worth
+doing. Only bites if the container timezone changes.
 
 ---
 
@@ -131,9 +68,6 @@ Related:
   database, no `AddDbContext` options. Combined with the `EntityBase` / `ToView` / `JulianDay`
   SQLite specifics, the "TODO: change for mssql" note in `Model/EntityBase.cs:6` is not reachable
   from here.
-- ~~**Service locator in controllers**: `HttpContext.RequestServices.GetRequiredService<IDeclutterService>()`
-  at `Controllers/ShoppingListController.cs:376` and `:402`.~~ Fixed alongside F1 — `IDeclutterService`
-  is now constructor-injected.
 - **Fire-and-forget async**: `INotificationService.BroadCast*` returns `Task` and is called unawaited
   in `Controllers/ItemController.cs:475` and `Services/ShoppingListItemEntityService.cs:44,49,79`.
   Exceptions are unobserved and ordering is not guaranteed.
@@ -154,11 +88,9 @@ Related:
 
 ## Medium — frontend
 
-- **Subscription leaks**: still present in
-  `ClientApp/src/app/notification-banner/notification-banner.component.ts:28-37` (two subscriptions,
-  no `OnDestroy`), and `ClientApp/src/app/declutter/declutter.component.ts:52` adds a
-  `window.resize` listener that is never removed. *(The `ShoppingListComponent` case was fixed with
-  F3 — it now implements `OnDestroy` with `takeUntil`.)*
+- **Subscription leaks**: `ClientApp/src/app/notification-banner/notification-banner.component.ts:28-37`
+  (two subscriptions, no `OnDestroy`), and `ClientApp/src/app/declutter/declutter.component.ts:52`
+  adds a `window.resize` listener that is never removed.
 - **Race → runtime error**: `OnItemChanged`/`OnItemRemoved` dereference `this.items`
   (`shopping-list.component.ts:92,119`), which is `undefined` until the first `refresh()` resolves.
   A push arriving during initial load throws.
@@ -168,9 +100,10 @@ Related:
 - **Unencoded path parameters**: search patterns are concatenated straight into URLs
   (`shopping-list.component.ts:139,147`), so an item name containing `/`, `#` or `%` breaks or
   misroutes the request. `encodeURIComponent` is missing throughout `WebRepo`.
-- **No error handling on writes**: `save()`, the toggle call and the list loads `subscribe()` with no
-  error callback, and there is no HTTP interceptor — an expired session (401) silently does nothing
-  instead of routing to `/login`.
+- **No error handling on writes**: the list loads and the toggle call `subscribe()` with no error
+  callback, and there is no HTTP interceptor — an expired session (401) silently does nothing
+  instead of routing to `/login`. *(The three write paths that display validation errors — the item
+  dialog, the create-list drawer and the add box — were wired up with F6.)*
 - Service worker is force-enabled in dev (`ClientApp/src/app/app.module.ts:106`, the comment
   acknowledges it); no lazy-loaded routes (everything eager in one `AppModule`); `alert()` used for
   error UX in `notification-banner.component.ts:69` despite `MatSnackBar` being available.
@@ -179,10 +112,8 @@ Related:
 
 ## Low — hygiene and doc drift
 
-- ~~`CLAUDE.md` documents a `Tests/` XUnit project and `dotnet test`; **no test project exists**.~~
-  The `Tests/` project now exists (created with the F1/F3 fix, 35 tests) along with `mps.slnx`.
-  Coverage is limited to authorization and hub scoping — the rest of the codebase still has none,
-  and Angular tests remain disabled in `angular.json`.
+- Test coverage is limited to authorization, hub scoping, web push and the F6 correctness fixes — the
+  rest of the backend has none, and Angular tests remain disabled in `angular.json`.
 - `ViewModels/ShoppingListItemViewModel.cs:7` — `shoppingListId` breaks PascalCase among its siblings.
 - `Controllers/EntityContoller.cs` — filename typo. `AccountController` sits in namespace
   `tempmon.Web.Controllers`, left over from another project.
@@ -192,209 +123,7 @@ Related:
 - `Controllers/EntityContoller.cs:54-63` — `PageAndProjectResult` does not guard negative
   `skip`/`take` → `ArgumentOutOfRangeException` → 500.
 - Stray artifacts in the repo root: `.swp`, three feature markdown files, `_bmad-output/`.
-
----
-
-## Resolved
-
-### F1 + F3 — fixed 2026-07-27 (branch `notifications`)
-
-Access model implemented: **admin-approved household sharing** — any account in the `user` or
-`admin` role reaches every list, matching the existing approval UX; unapproved accounts are now
-rejected by the server, not just by the `AuthGuard`.
-
-**Authorization (F1)**
-- `Program.cs` — `ApprovedUser` policy (`RequireRole("user","admin")`). Deliberately *not* a global
-  `FallbackPolicy`: that would 401 the SPA's static files and `MapFallbackToFile` and lock everyone
-  out at the login page. `AccountController` is unchanged, so `Index`/`SignIn`/`SignInCallback`
-  stay anonymous and `Claim` stays a bare `[Authorize]` — a first user with no roles must still be
-  able to claim admin.
-- `Services/ShoppingListAccessService.cs` (new) — the single seam for access decisions. Takes
-  `ClaimsPrincipal` explicitly (controllers pass `this.User`, the hub passes `Context.User`) because
-  `IHttpContextAccessor` is unreliable inside SignalR invocations. **Swap this one class to move to
-  per-list ownership/membership; no call site should need to change.**
-- `Controllers/EntityContoller.cs` — virtual `ApplyAccessFilter`/`CanAccess` hooks enforced in
-  `Index`, `Get`, `Put` and `Delete`; overridden in `ShoppingListController` and `ItemController`.
-  Note `Get` now returns `IActionResult` (404 for missing, 403 for inaccessible) instead of the
-  view model directly.
-- `ShoppingListController` — access checks on all eight list-keyed actions, including `SearchItems`,
-  which previously leaked item names from any list. `ItemController.ToggleStatus` likewise.
-- Dead `GetFilteredEntities()` overrides removed from the two entity services — they carried the
-  "TODO: add filter" comments but had no caller, so enforcement now lives in exactly one place.
-
-**Realtime (F3)**
-- `Hubs/LiveHub.cs` — `[Authorize(Policy = "ApprovedUser")]` plus `JoinList`/`LeaveList`, each
-  verifying access before touching the group and throwing `HubException` otherwise.
-- `Services/SignalRNotificationService.cs` — broadcasts to `Clients.Group($"sl{id}")`, not
-  `Clients.All`.
-- Client — `JoinList`/`LeaveList` on `INotificationService`; the service awaits the connection
-  start, tracks joined ids and **re-joins on `onreconnected` and after `Reconnect()`**, because
-  group membership does not survive a reconnect and `Reconnect()` runs on every window focus.
-
-**One extra bug found and fixed during verification.** Every new check calls `Forbid()`, and the
-Identity cookie only overrode `OnRedirectToLogin` (→401) — so a forbid produced a **302 to the empty
-`AccessDeniedPath`**, handing the SPA `index.html` instead of a 403. Access was still denied, but
-the client could not tell. `Program.cs` now has an `OnRedirectToAccessDenied` handler returning 403.
-The endpoint tests could not catch this (they run on a header-driven test scheme whose forbid writes
-a plain 403), so `Tests/CookieAuthResponseTests.cs` asserts the production cookie configuration
-directly — it was confirmed to fail with 302 before the fix.
-
-**Tests** — `Tests/` (new xUnit project, plus `mps.slnx`): 35 tests, all passing. The solution file
-is load-bearing: without it `dotnet test` at the repo root resolves `mps.csproj`, finds no test
-adapter and **exits 0 having run nothing**. It uses the `.slnx` format (SDK 9.0.200+); the Docker
-builds never copy it, so the `sdk:10.0-alpine` build image is unaffected.
-`AuthorizationTests` covers anonymous→401 / no-role→403 / approved→success across every controller
-and custom action, and confirms `/Account` and `/Account/Claim` still work for a role-less user.
-`LiveHubTests` covers anonymous and no-role rejection, `JoinList` on a nonexistent list, and group
-isolation (an add to list 1 reaches only the connection joined to list 1). `DataContext` gained an
-`IsConfigured` guard and an options constructor so tests use a temp SQLite file instead of
-`data/mps.db`.
-
-**Verified:** `dotnet build` clean (only the pre-existing `NU1903` AutoMapper advisory),
-`dotnet test` 35/35, `npx tsc --noEmit -p tsconfig.app.json` clean. Not manually run against the
-real database or a browser — the end-to-end checks in the plan
-(`~/.claude/plans/purrfect-strolling-eagle.md`) are still worth doing before deploying, in
-particular the two-browser group-isolation and reconnect checks.
-
-**Known follow-up:** `POST api/Item` (generic create) can never succeed — AutoMapper ignores
-`ShoppingListId` (`Infrastructure/AutomapperConfiguration.cs`), so `Validate()` always rejects with
-"Invalid shopping list". Pre-existing and unrelated to F1/F3; real item creation goes through
-`ShoppingListController.AddItem`, which sets the id explicitly. The corresponding test asserts only
-the authorization boundary and documents this inline.
-
-### F5 — fixed 2026-07-28 (branch `notifications`)
-
-**The debounce was also the wrong mechanism, not just a buggy one.** It sent 30 s after the *last*
-item, so a notification only arrived once the other person had stopped — whereas the point of the
-feature is to tell you somebody *is* working on a list. It is now a **leading-edge throttle**: the
-first "something new" on a list opens a short collect window, one notification goes out summarizing
-it, then that (list, actor) pair is silent for a cooldown however much more they add. The body's
-count is therefore "items in the collect window", not a running total, by design.
-
-- `Services/WebPushNotificationService.cs` — rewritten. Registered **singleton** (`Program.cs`) with
-  DB access resolved per-send from `IServiceScopeFactory`, which fixes the per-request batch state
-  (1) and the `ObjectDisposedException` 30 s after scope disposal (3). `SendBatchedShoppingList-
-  NotificationAsync` is replaced by a synchronous `void NotifyListActivity(...)` — it only schedules,
-  so callers no longer need `_ = ...`. **There is no `CancellationTokenSource` anywhere in the new
-  design**: an already-scheduled window folds in the new item and never restarts its timer, so the
-  cancelled-token bug (2) cannot recur and no key can be poisoned. `VapidDetails` and the
-  `WebPushClient` are built once instead of per request.
-- Entry removal is only ever performed while holding that entry's own lock, and `NotifyListActivity`
-  re-checks a `Removed` flag after taking the lock and retries its `GetOrAdd` if it lost the race.
-  Without this, a freshly created entry (unscheduled, `CooldownUntil == MinValue`) is
-  indistinguishable from a stale one and could be pruned by a *different* list's call in the gap
-  between `GetOrAdd` and `lock`, orphaning it — which would silently defeat both the coalescing and
-  the cooldown.
-- `Services/ShoppingListItemEntityService.cs` — the pre-save status is captured **before**
-  `base.AddOrUpdate` (afterwards `entity.Id` is always non-zero, which is why the old `entity.Id != 0`
-  guard never excluded anything). It notifies for a new row or an item coming back onto the list
-  (`previous != Open && current == Open`), so a plain edit stays silent. `ItemController.ToggleStatus`
-  saves through `repo.SaveChanges()` directly and never reaches this service, so checking items off
-  never pushes.
-- `Services/PushSubscriptionService.cs` — `GetSubscriptionsForApprovedUsersExceptAsync` restricts the
-  audience to accounts in role `user`/`admin`, so role-less accounts awaiting approval no longer
-  receive list names. It is documented as the push-side counterpart of `IShoppingListAccessService`:
-  **the one place to change when per-list membership replaces household sharing.** The superseded
-  `GetAllSubscriptionsExceptUserAsync` was removed.
-- `Services/WebPushSender.cs` (new) — `IWebPushSender` seam around `WebPushClient` so tests can
-  record sends without a network call while still being able to throw `WebPushException` to exercise
-  the 410/404 subscription pruning.
-- Config: `PushNotifications:CollectWindowSeconds` (10) and `PushNotifications:CooldownMinutes` (5)
-  in `appsettings.json`, read as `double` so tests can use millisecond-scale windows.
-- Client — `PushNotificationService.unsubscribe()` awaited `swPush.subscription.toPromise()`, but
-  that observable never completes, so the promise never resolved and **push could not be turned off**.
-  Now `firstValueFrom(...pipe(take(1)))`; the two hand-rolled Promise wrappers and the `repo.Post`
-  `.toPromise()` calls in the same file were converted to match.
-
-**Tests** — `Tests/WebPushNotificationTests.cs` (new, 8 tests; suite is now 43). Throttle behaviour
-(burst coalescing with the count in the body, silence during cooldown, a second round after it) is
-tested against a directly constructed service with its own in-memory `IConfiguration`, which is far
-less timing-fragile than sharing one factory config; audience scoping and the disposed-scope
-regression run against the real DB through `TestAppFactory`. Positive assertions poll with a timeout
-rather than sleeping a fixed interval. `TestAppFactory` now registers a recording `IWebPushSender`
-(so no test can hit the network) and exposes settable window/cooldown properties — properties rather
-than constructor arguments because `IClassFixture<T>` requires a single public constructor.
-
-**Verified:** `dotnet build` clean (0 warnings), `dotnet test` 43/43 across four consecutive runs with
-no flakiness, `npx tsc --noEmit -p tsconfig.app.json` clean. **Not** exercised against a real browser
-or push service — the two-account end-to-end checks in
-`~/.claude/plans/gleaming-soaring-cupcake.md` are still worth doing before deploying.
-
-**Explicitly out of scope:** F2. Push notifications now genuinely send, signed with the VAPID private
-key that is still committed in `appsettings.json`.
-
-### F6 — fixed 2026-07-28 (branch `notifications`)
-
-Nine of the ten rows are fixed; the `DateTime.Now` row is deferred by decision (see the table).
-Three of the rows were judgement calls rather than defects, resolved as follows:
-
-- **Declutter criteria → OR.** The code's `&&` was replaced by the documented "matches ANY
-  criterion" semantics, so a frequently-but-long-ago purchased item is now a candidate where it
-  previously was not. This *widens* what the declutter screen offers.
-- **Deletes keep cascading `ItemHistory` away, and the docs were corrected instead.** Every consumer
-  reaches history through the owning item (`recommend.sql` inner-joins it, `DeclutterService` walks
-  `item.History`), so orphaned rows would be unreadable rather than useful, and `Archived` already
-  exists as the non-destructive "off the list" state. `CLAUDE.md` and `DECLUTTER_FEATURE.md` no
-  longer promise preservation.
-- **Rejected writes are now uniformly 400** carrying `{ success, entity, validationErrors }`.
-
-Changes:
-
-- `Controllers/ShoppingListController.cs` — the normalized-name lookup materialises all matches and
-  prefers the exact `Name` match, falling back to the oldest row; `AddItem` returns 400 through the
-  same result shape as everything else.
-- `Controllers/ItemController.cs`, `Controllers/ShoppingListController.cs` — a **null**
-  `UnitShortName` now means "not supplied" and leaves the stored unit alone; an empty string still
-  clears it. Both call sites hold the unit in a local: reading `model.Unit?.Id` back goes through the
-  lazy-loading proxy and **re-fetches the unit that was just cleared**, so `UnitId` could never
-  become null. This one only showed up under test.
-- `Services/UnitService.cs` — a newly created unit is persisted immediately (so callers get a real
-  `Id` instead of storing `UnitId = 0`) and gets a `Name`; the case-insensitive lookup orders and
-  takes the first rather than throwing on two matches.
-- `Controllers/EntityContoller.cs` — `Delete` goes through `IEntityService`, so the SignalR removal
-  broadcast fires. `Post`/`Put` return 400 via a `Failure(...)` helper for every rejection path,
-  including the previously bare-string ones; a service-level validation failure is wrapped in
-  `WebOperationResult` rather than leaking the raw `EntityOperationResult` (which carried the EF
-  entity, and with it the lazy-loading proxy graph).
-- `Program.cs` + `Infrastructure/ValidationFailureResult.cs` (new) — `[ApiController]` rejects an
-  invalid `ModelState` in a **filter, before the action runs**, so the controllers' own ModelState
-  branches were unreachable and the framework answered RFC 7807 ProblemDetails.
-  `InvalidModelStateResponseFactory` now emits the same shape. Suppressing the filter instead was
-  rejected: it would let every action in the app run on unvalidated input.
-- `Services/DeclutterService.cs` — one grouped LINQ query instead of `.AsEnumerable()` plus a lazy
-  `item.History` touch per row, with the 30-day age gate pushed into the `where`; `BulkDeleteItems`
-  delegates to the new `IEntityService<T>.DeleteRange`.
-- `Services/IEntityService.cs`, `Services/EntityService.cs`,
-  `Services/ShoppingListItemEntityService.cs` — `DeleteRange` saves once for the batch and then
-  broadcasts one removal per item, replacing N saves + N broadcasts.
-- `Services/PersistedRepository.cs` — the duplicated stamping block collapsed into
-  `StampChangedEntities()`; the user lookup is skipped entirely when nothing needs stamping and
-  cached per repository instance otherwise.
-- Client — `ServerValidation` (new) reads the 400 body, hands each error to
-  `FormHelper.ShowErrors` (which now **returns the errors it could not place** instead of dropping
-  them) and returns a summary of the rest. Wired into the item dialog, the create-list drawer and
-  the shopping list's add box, all three of which previously treated a rejected write as success or
-  did nothing at all. `RecommendationsComponent.addItem` now clears `isProcessing` on error — it
-  used to leave the row spinning forever, unable to retry.
-
-**Two adjacent bugs found by the new tests, fixed alongside** (same family, not in the original
-table):
-
-- `ViewModels/ShoppingListEditViewModel.cs` — `Name` was not `[Required]` although
-  `ShoppingList.Name` is, so `POST api/ShoppingList` with a null name passed `ModelState` and died at
-  the database as a **500**.
-- `Infrastructure/AutomapperConfiguration.cs` — `ShoppingListItemEditViewModel.ShortName` is
-  optional but `ShoppingListItem.ShortName` is `[Required]`, so **any `PUT api/item/{id}` that
-  omitted it nulled the column and 500'd**. The map now has a `Condition` skipping a null source.
-
-**Tests** — `Tests/CorrectnessTests.cs` (new, 11 tests; suite is now 54). Worth keeping because the
-declutter rewrite is only correct if it *translates* — an untranslatable `let`/subquery would throw
-at runtime, not at build. Covers: the duplicate-normalized-name 500 and exact-match preference; unit
-creation, preservation on an omitted field and clearing on an empty one; the declutter OR semantics
-and 30-day gate (`StaleOften` is a candidate only under OR), the reported statistics, and batched
-bulk delete; and the 400 contract for both a failed annotation and a non-zero id on POST.
-
-**Verified:** `dotnet build` clean (0 warnings), `dotnet test` 54/54, `npm run build` clean apart
-from the two pre-existing warnings (bundle budget, hammerjs CommonJS). **Not** exercised in a
-browser — the changed client paths (dialog/drawer/add-box error display) were type-checked and
-built, not clicked through.
+- **Known follow-up from F1:** `POST api/Item` (generic create) can never succeed — AutoMapper ignores
+  `ShoppingListId` (`Infrastructure/AutomapperConfiguration.cs`), so `Validate()` always rejects with
+  "Invalid shopping list". Real item creation goes through `ShoppingListController.AddItem`, which
+  sets the id explicitly; the authorization test documents this inline.
