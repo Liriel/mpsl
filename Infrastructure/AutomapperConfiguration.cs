@@ -24,6 +24,10 @@ namespace mps.Infrastructure
             CreateMap<ShoppingListItem, ShoppingListAddViewModel>();
             CreateMap<ShoppingListItemEditViewModel, ShoppingListItem>()
                 .ForMember(dst => dst.NormalizedName, opt => opt.MapFrom(src => NameHelper.GetNormalizedName(src.Name)))
+                // ShortName is [Required] on the entity but optional on the view model, and it is
+                // generated on create when left blank. An update that omits it must therefore keep
+                // the stored one rather than null it out and fail at the database.
+                .ForMember(dst => dst.ShortName, opt => opt.Condition((src, dst, srcMember) => srcMember != null))
                 .ForMember(dst => dst.ShoppingListId, opt => opt.Ignore())
                 .ForMember(dst => dst.Id, opt => opt.Ignore());
             CreateMap<ShoppingListAddViewModel, ShoppingListItem>()

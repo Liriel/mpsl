@@ -12,6 +12,8 @@ namespace mps.Services
     {
         private readonly DataContext context;
         private readonly IUserIdentityService identityService;
+        private string cachedUserName;
+        private string cachedUserId;
 
         public PersistedRepository(DataContext context, IUserIdentityService identityService)
         {
@@ -30,33 +32,7 @@ namespace mps.Services
 
         public void SaveChanges()
         {
-            // Updating the timestamp/user fields should probably be done in the service rather then the repo itself
-            // Therefore the repo should expose the change information. But since we don't want to tie the service to EF
-            // the functionality stays here for now.
-            var currentUser = this.GetUserByName(this.identityService.CurrentUserName);
-            if (currentUser == null)
-            {
-                // fallback to system user
-                currentUser = this.Users.Single(u => u.Id == Constants.SYSUSER_ID);
-            }
-
-            var timestamp = DateTime.Now;
-            foreach (EntityEntry dbEntityEntry in this.context.ChangeTracker.Entries())
-            {
-                var entity = dbEntityEntry.Entity as ITrackLastChange;
-                if (entity == null)
-                {
-                    continue;
-                }
-
-                if ((dbEntityEntry.State == EntityState.Modified) || (dbEntityEntry.State == EntityState.Added)){
-
-                    // set the last changed user
-                    entity.LastChangeByUserId = currentUser.Id;
-                    entity.LastChangedDate = timestamp;
-                }
-            }
-
+            this.StampChangedEntities();
             this.context.SaveChanges();
         }
 
@@ -84,29 +60,58 @@ namespace mps.Services
 
         public async Task SaveChangesAsync()
         {
-            var currentUser = this.GetUserByName(this.identityService.CurrentUserName);
-            if (currentUser == null)
-            {
-                currentUser = this.Users.Single(u => u.Id == Constants.SYSUSER_ID);
-            }
-
-            var timestamp = DateTime.Now;
-            foreach (EntityEntry dbEntityEntry in this.context.ChangeTracker.Entries())
-            {
-                var entity = dbEntityEntry.Entity as ITrackLastChange;
-                if (entity == null)
-                {
-                    continue;
-                }
-
-                if ((dbEntityEntry.State == EntityState.Modified) || (dbEntityEntry.State == EntityState.Added))
-                {
-                    entity.LastChangeByUserId = currentUser.Id;
-                    entity.LastChangedDate = timestamp;
-                }
-            }
-
+            this.StampChangedEntities();
             await this.context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Stamps every added or modified <see cref="ITrackLastChange"/> entity with the current
+        /// user and time.
+        /// </summary>
+        /// <remarks>
+        /// Updating the timestamp/user fields should probably be done in the service rather than the
+        /// repo itself, which would mean exposing the change information from the repo. But since we
+        /// don't want to tie the service to EF the functionality stays here for now.
+        /// </remarks>
+        private void StampChangedEntities()
+        {
+            var changed = this.context.ChangeTracker.Entries()
+                .Where(e => e.State == EntityState.Modified || e.State == EntityState.Added)
+                .Select(e => e.Entity as ITrackLastChange)
+                .Where(e => e != null)
+                .ToList();
+
+            // Resolving the user costs a query, so only pay for it when something needs stamping.
+            if (changed.Count == 0)
+                return;
+
+            var currentUserId = this.GetCurrentUserId();
+            var timestamp = DateTime.Now;
+
+            foreach (var entity in changed)
+            {
+                entity.LastChangeByUserId = currentUserId;
+                entity.LastChangedDate = timestamp;
+            }
+        }
+
+        /// <summary>
+        /// Resolves the id of the user to attribute changes to, falling back to the system user.
+        /// Cached for the lifetime of the (scoped) repository so repeated saves in one request do
+        /// not re-query the user table.
+        /// </summary>
+        private string GetCurrentUserId()
+        {
+            var userName = this.identityService.CurrentUserName;
+            if (this.cachedUserId != null && this.cachedUserName == userName)
+                return this.cachedUserId;
+
+            var currentUser = this.GetUserByName(userName);
+            this.cachedUserId = currentUser?.Id
+                ?? this.Users.Single(u => u.Id == Constants.SYSUSER_ID).Id;
+            this.cachedUserName = userName;
+
+            return this.cachedUserId;
         }
 
         public T Find<T>(int id) where T : EntityBase

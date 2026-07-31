@@ -40,5 +40,18 @@ namespace mps.Services
             this.repo.SaveChanges();
             return new EntityOperationResult<T> { Entity = entity, Success = true };
         }
+
+        public virtual int DeleteRange(IEnumerable<T> entities)
+        {
+            var toDelete = entities as IList<T> ?? entities.ToList();
+            if (toDelete.Count == 0)
+                return 0;
+
+            foreach (var entity in toDelete)
+                this.repo.Remove(entity);
+
+            this.repo.SaveChanges();
+            return toDelete.Count;
+        }
     }
 }

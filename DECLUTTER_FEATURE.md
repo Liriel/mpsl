@@ -102,7 +102,7 @@ Successfully implemented a comprehensive de-clutter feature for the MPS (Multipl
 - Documented business logic and thresholds
 - Listed API endpoints with parameters
 - Explained implementation details
-- Noted that ItemHistory is preserved after deletion
+- Noted that deleting an item deletes its ItemHistory with it
 
 ## Business Logic
 
@@ -117,9 +117,12 @@ An item is a declutter candidate if ANY of these conditions are true:
 - **maxPurchaseCount**: 2 purchases
 - Both are user-configurable in the UI
 
-### Data Preservation
-- Deleting items preserves their ItemHistory records
-- History remains available for future analytics and recommendations
+### Data Removal
+- Deleting an item deletes its ItemHistory records with it (the foreign key cascades)
+- This is intentional: both `recommend.sql` and `DeclutterService` reach history through the owning
+  item, so orphaned history rows could never be read back anyway
+- To take an item off the list *without* losing its history, archive it (the ⋮ → Remove action)
+  rather than deleting it
 
 ## User Workflow
 

@@ -24,8 +24,13 @@ export class FormHelper {
 
   // display server validation errors on the corresponding FormControl
   // the error type is "server"
-  public static ShowErrors(validationErrors: ValidationError[], formGroup: FormGroup) {
+  // returns the errors that could not be placed on a control, so the caller can still show them
+  // somewhere rather than dropping them
+  public static ShowErrors(validationErrors: ValidationError[], formGroup: FormGroup): ValidationError[] {
+    let unplaced: ValidationError[] = [];
+
     validationErrors.forEach(error => {
+      let placed = false;
 
       // check if the error is field specific
       if (error.fields && error.fields.length > 0) {
@@ -46,9 +51,16 @@ export class FormHelper {
             let ves: ValidationErrors = {};
             ves["server"] = error.message;
             formGroup.controls[fieldName].setErrors(ves);
+            placed = true;
           }
         });
       }
+
+      if (!placed) {
+        unplaced.push(error);
+      }
     });
+
+    return unplaced;
   }
 }

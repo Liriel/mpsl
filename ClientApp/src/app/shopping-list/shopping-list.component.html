@@ -130,6 +130,9 @@
             <mat-icon>add</mat-icon>
           </button>
         </form>
+        @if (addError) {
+          <mat-error class="add-error">{{addError}}</mat-error>
+        }
       </div>
     }
   </div>

@@ -13,6 +13,9 @@
           <strong>Name</strong> is required
         </mat-error>
       }
+      @if (formGroup.controls['name'].hasError('server')) {
+        <mat-error>{{formGroup.controls['name'].errors["server"]}}</mat-error>
+      }
     </mat-form-field>
 
     <mat-form-field class="full-width">
@@ -23,6 +26,9 @@
           <strong>Hint</strong> must not be longer than
           <strong>{{formGroup.controls['hint'].errors["maxlength"].requiredLength}}</strong> characters
         </mat-error>
+      }
+      @if (formGroup.controls['hint'].hasError('server')) {
+        <mat-error>{{formGroup.controls['hint'].errors["server"]}}</mat-error>
       }
     </mat-form-field>
 
@@ -36,6 +42,9 @@
             <strong>{{formGroup.controls['amount'].errors["min"].min}}</strong>
           </mat-error>
         }
+        @if (formGroup.controls['amount'].hasError('server')) {
+          <mat-error>{{formGroup.controls['amount'].errors["server"]}}</mat-error>
+        }
       </mat-form-field>
 
       <mat-form-field style="max-width: 75px;">
@@ -47,8 +56,15 @@
             formGroup.controls['unitShortName'].errors["maxlength"].requiredLength}}
           </mat-error>
         }
+        @if (formGroup.controls['unitShortName'].hasError('server')) {
+          <mat-error>{{formGroup.controls['unitShortName'].errors["server"]}}</mat-error>
+        }
       </mat-form-field>
     </div>
+
+    @if (saveError) {
+      <mat-error class="save-error">{{saveError}}</mat-error>
+    }
 
     <div mat-dialog-actions class="flex-row">
       <div [@flyInOut]="flyInOut" class="slider">

@@ -5,6 +5,7 @@ import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
+import { ServerValidation } from '../infrastructure/ServerValidation';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
 import { RemovedItem } from '../models/RemovedItem';
@@ -69,6 +70,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
   filteredItems: Observable<string[]>;
   filteredUnits: Observable<string[]>;
   hideComplete: boolean = false;
+  public addError: string = null;
 
   private windowConnState: BehaviorSubject<ConnectionState> = new BehaviorSubject<ConnectionState>(ConnectionState.Connected);
   private destroy$: Subject<void> = new Subject<void>();
@@ -187,9 +189,16 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
     let item = new ShoppingListItem({ name: "", amount: 0, unitShortName: "", shoppingListId: this.shoppingListId });
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
 
-    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe(result => {
-      this.formGroup.reset();
-      this.OnFormReset.next('');
+    this.addError = null;
+    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe({
+      next: result => {
+        this.formGroup.reset();
+        this.OnFormReset.next('');
+      },
+
+      // a rejected add answers 400 - keep what was typed and say why, rather than clearing the
+      // form as though the item had been added
+      error: error => this.addError = ServerValidation.Show(error, this.formGroup, "Could not add the item. Please try again.")
     });
   }
 

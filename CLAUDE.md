@@ -104,7 +104,9 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
   `ApplyAccessFilter()`/`CanAccess()` hooks to enforce access (see Authorization below).
 - **Repository Pattern**: `IRepository` and `PersistedRepository`. `SaveChanges()` automatically
   stamps `LastChangeByUserId`/`LastChangedDate` on any entity implementing `ITrackLastChange`.
-- **Generic Services**: `IEntityService<T>` (`Validate`/`AddOrUpdate`/`Delete`), registered transient.
+- **Generic Services**: `IEntityService<T>` (`Validate`/`AddOrUpdate`/`Delete`/`DeleteRange`),
+  registered transient. `EntityController.Delete` goes through the service, not `IRepository`
+  directly, so the type-specific hooks (notably the SignalR removal broadcast) run.
 - **Identity Services**: `IUserIdentityService` for user context, registered scoped. Not reliable
   inside SignalR hub invocations — use `Context.User` there.
 - **AutoMapper**: object mapping between models and ViewModels (`MyProfile`). Edit VMs extend
@@ -112,6 +114,22 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
 - **SignalR Hub**: `LiveHub` at `/live` for real-time notifications.
 - **Result types**: `EntityOperationResult<T>` in the service layer,
   `WebOperationResult<TEditVM, TEntity>` at the controller layer.
+- **One error shape for rejected writes.** A write that is refused answers **400** with the
+  `{ success, entity, validationErrors }` body — never 200 with `success: false`, and never a bare
+  string. That holds for data-annotation failures too: `[ApiController]` rejects an invalid
+  `ModelState` in a filter before the action runs, so `Program.cs` points
+  `ApiBehaviorOptions.InvalidModelStateResponseFactory` at `ValidationFailureResult` instead of
+  letting it emit RFC 7807 ProblemDetails. On the client, `ServerValidation.Show()` puts each error
+  on its `FormControl` (as the `server` error key) and returns whatever was left over for the
+  component to display. New write endpoints should follow the same convention.
+- **Keep an edit view model's constraints in step with the entity's.** A field that is `[Required]`
+  on the model but not on the VM turns a 400 into a 500 at the database
+  (`ShoppingListEditViewModel.Name` did exactly that).
+- **On update, `null` means "not supplied" and must not overwrite.** `UnitShortName` and `ShortName`
+  are both optional on the item edit VM but meaningful on the entity, so `PostMapping` skips a null
+  `UnitShortName` and the AutoMapper profile puts a `Condition` on `ShortName`; an *empty* string
+  still clears the unit. Beware reading the navigation back afterwards — `model.Unit?.Id` re-triggers
+  the lazy-loading proxy and resurrects the unit you just cleared, so keep it in a local.
 - **`NameHelper`**: normalizes German umlauts (ä→ae, ö→oe, ü→ue, ß→sz) and upper-cases. Search and
   duplicate detection go through the `NormalizedName` field, not `Name`.
 - **`AppDbInitializer`**: runs migrations and seeds the `user`/`admin` roles on startup.
@@ -200,8 +218,15 @@ The declutter feature helps users identify and remove stale or rarely-used items
 **Implementation:**
 - Backend: `DeclutterService` in `Services/` directory
 - Frontend: `DeclutterComponent` in `ClientApp/src/app/declutter/`
-- Query uses LINQ to join ShoppingListItems with ItemHistory
-- Deletes preserve ItemHistory records for future analytics
+- Candidates come from a **single grouped LINQ query**. Do not reintroduce an `.AsEnumerable()` before
+  the aggregation — under lazy-loading proxies, touching `item.History` per row costs a query each.
+- **Deleting an item deletes its `ItemHistory` too** (the FK cascades, see
+  `Migrations/20220914124713_InitialMigration.cs`). This is intentional: every consumer of
+  `ItemHistory` — `recommend.sql` and `DeclutterService` alike — reaches it through the item, so
+  orphaned history rows would be unreadable rather than useful. `Archived` is the state for "not
+  currently on the list"; a delete is a real delete.
+- Bulk delete goes through `IEntityService<T>.DeleteRange`, which saves once for the whole batch and
+  then broadcasts one removal per item.
 
 ## Development Setup
 
@@ -283,7 +308,9 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
 
 ### Testing
 - Backend: XUnit in `Tests/`, run with `dotnet test` from the repo root. Coverage is limited to
-  authorization and SignalR group scoping.
+  authorization, SignalR group scoping, web-push throttling and the F6 correctness fixes
+  (`Tests/CorrectnessTests.cs` — unit handling, the declutter query's SQL translation and its
+  candidate semantics, and the 400 error contract).
 - `mps.slnx` is load-bearing: without a solution file `dotnet test` resolves `mps.csproj`, finds no
   test adapter and **exits 0 having run nothing**.
 - `Tests/TestAppFactory.cs` swaps in a temp SQLite file and a header-driven auth scheme, so tests
@@ -355,7 +382,8 @@ Notes:
 - Database migrations run automatically on startup
 - All API responses are JSON (no MVC views)
 - HTTPS certificates auto-generated via `aspnetcore-https.js`
-- Tests cover authorization and hub scoping only; the rest of the codebase has none
+- Tests cover authorization, hub scoping, web push and the F6 correctness fixes; the rest of the
+  codebase has none
 - `FINDINGS.md` records known architecture and implementation issues from a code review — check it
   before assuming a rough edge is intentional
 - **AutoMapper is pinned to 11.0.1 and its vulnerability warning is an accepted risk.** NU1903 /

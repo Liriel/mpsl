@@ -7,6 +7,12 @@
     font-size: xx-large;
 }
 
+// server side rejections that don't belong to a single input
+.save-error {
+    display: block;
+    margin-bottom: 8px;
+}
+
 .flex-row {
     display: flex;
 

@@ -90,6 +90,22 @@ namespace mps.Services
             return base.Delete(entity);
         }
 
+        public override int DeleteRange(IEnumerable<ShoppingListItem> entities)
+        {
+            var toDelete = entities as IList<ShoppingListItem> ?? entities.ToList();
+
+            // One save for the whole batch, then one broadcast per item so clients still drop each
+            // row individually.
+            var deleted = base.DeleteRange(toDelete);
+            if (deleted > 0)
+            {
+                foreach (var entity in toDelete)
+                    this.notificationService.BroadCastItemRemoved(entity);
+            }
+
+            return deleted;
+        }
+
         public override EntityOperationResult<ShoppingListItem> Validate(ShoppingListItem entity)
         {
             if (this.repo.Find<ShoppingList>(entity.ShoppingListId) == null && entity.ShoppingList == null)

@@ -17,6 +17,10 @@
       }
     </mat-form-field>
 
+    @if (saveError) {
+      <mat-error class="save-error">{{saveError}}</mat-error>
+    }
+
     <div class="drawer-actions">
       <button mat-button
         type="button"

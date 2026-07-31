@@ -112,62 +112,68 @@ namespace mps.Controllers
         [HttpPost(Order = 1)]
         public IActionResult Post(TEditViewModel viewModel)
         {
-            WebOperationResult<TEditViewModel, TEntity> result;
-            if (ModelState.IsValid)
-            {
-                if (viewModel.Id != 0)
-                    return new BadRequestObjectResult($"{typeof(TEntity).Name} has already been added");
+            if (!ModelState.IsValid)
+                return Failure(new WebOperationResult<TEditViewModel, TEntity>(ModelState));
 
-                var entity = this.mapper.Map<TEntity>(viewModel);
-                this.PostMapping(viewModel, entity);
+            if (viewModel.Id != 0)
+                return Failure($"{typeof(TEntity).Name} has already been added", nameof(EditViewModel.Id));
 
-                var validationResult = this.svc.Validate(entity);
-                if (!validationResult.Success)
-                    return new BadRequestObjectResult(validationResult);
+            var entity = this.mapper.Map<TEntity>(viewModel);
+            this.PostMapping(viewModel, entity);
 
-                var saveResult = this.svc.AddOrUpdate(entity);
-                result = new WebOperationResult<TEditViewModel, TEntity>(mapper, saveResult);
-            }
-            else
-            {
-                result = new WebOperationResult<TEditViewModel, TEntity>(ModelState);
-            }
+            var validationResult = this.svc.Validate(entity);
+            if (!validationResult.Success)
+                return Failure(new WebOperationResult<TEditViewModel, TEntity>(this.mapper, validationResult));
 
-            return new OkObjectResult(result);
+            var saveResult = this.svc.AddOrUpdate(entity);
+            var result = new WebOperationResult<TEditViewModel, TEntity>(this.mapper, saveResult);
+
+            return result.Success ? new OkObjectResult(result) : Failure(result);
         }
 
         [HttpPut("{id}", Order = 1)]
         public IActionResult Put(int id, TEditViewModel viewModel)
         {
-            WebOperationResult<TEditViewModel, TEntity> result;
-            if (ModelState.IsValid)
-            {
-                if (id == 0)
-                    return new BadRequestObjectResult("Use POST to create new values");
+            if (!ModelState.IsValid)
+                return Failure(new WebOperationResult<TEditViewModel, TEntity>(ModelState));
 
-                var entity = this.repo.Find<TEntity>(id);
-                if (entity == null)
-                    return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
+            if (id == 0)
+                return Failure("Use POST to create new values", nameof(EditViewModel.Id));
 
-                if (!this.CanAccess(entity))
-                    return Forbid();
+            var entity = this.repo.Find<TEntity>(id);
+            if (entity == null)
+                return new NotFoundObjectResult($"{typeof(TEntity).Name} with id {id} not found.");
 
-                this.mapper.Map<TEditViewModel, TEntity>(viewModel, entity);
-                this.PostMapping(viewModel, entity);
+            if (!this.CanAccess(entity))
+                return Forbid();
 
-                var validationResult = this.svc.Validate(entity);
-                if (!validationResult.Success)
-                    return new BadRequestObjectResult(validationResult);
+            this.mapper.Map<TEditViewModel, TEntity>(viewModel, entity);
+            this.PostMapping(viewModel, entity);
 
-                var saveResult = this.svc.AddOrUpdate(entity);
-                result = new WebOperationResult<TEditViewModel, TEntity>(mapper, saveResult);
-            }
-            else
-            {
-                result = new WebOperationResult<TEditViewModel, TEntity>(ModelState);
-            }
+            var validationResult = this.svc.Validate(entity);
+            if (!validationResult.Success)
+                return Failure(new WebOperationResult<TEditViewModel, TEntity>(this.mapper, validationResult));
 
-            return new OkObjectResult(result);
+            var saveResult = this.svc.AddOrUpdate(entity);
+            var result = new WebOperationResult<TEditViewModel, TEntity>(this.mapper, saveResult);
+
+            return result.Success ? new OkObjectResult(result) : Failure(result);
+        }
+
+        /// <summary>
+        /// Returns a rejected write as 400 carrying the usual
+        /// <see cref="WebOperationResult{TEditViewModel, TEntity}"/> body, so a client can read
+        /// every failure out of one shape instead of guessing between a 200 with
+        /// <c>Success = false</c>, a bare string and a differently shaped result object.
+        /// </summary>
+        internal BadRequestObjectResult Failure(WebOperationResult<TEditViewModel, TEntity> result) =>
+            new BadRequestObjectResult(result);
+
+        internal BadRequestObjectResult Failure(string message, params string[] fields)
+        {
+            var result = new WebOperationResult<TEditViewModel, TEntity> { Success = false };
+            result.ValidationErrors.Add(new ValidationError(message, fields));
+            return new BadRequestObjectResult(result);
         }
 
         protected virtual void PostMapping(TEditViewModel viewModel, TEntity entity)
@@ -183,9 +189,13 @@ namespace mps.Controllers
             if (!this.CanAccess(entity))
                 return Forbid();
 
-            // TODO: implement delete callback in entity service
-            this.repo.Remove(entity);
-            this.repo.SaveChanges();
+            // Go through the service rather than the repository directly, so type specific hooks
+            // (notably the SignalR "item removed" broadcast) run. Note this is a hard delete and
+            // dependent rows such as ItemHistory cascade away with it.
+            var deleteResult = this.svc.Delete(entity);
+            if (!deleteResult.Success)
+                return new BadRequestObjectResult(new WebOperationResult<TEditViewModel, TEntity>(this.mapper, deleteResult));
+
             return new OkResult();
         }
 

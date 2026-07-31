@@ -7,6 +7,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { ReactiveFormsModule } from '@angular/forms';
 
 import { ShoppingList } from '../models/ShoppingList';
+import { ServerValidation } from '../infrastructure/ServerValidation';
 import { IRepo, IRepoToken } from '../services';
 import { Observable, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
@@ -21,6 +22,7 @@ export class CreateListDrawerComponent implements OnInit {
   createForm: FormGroup;
   isLoading = false;
   existingLists: ShoppingList[] = [];
+  saveError: string = null;
 
   constructor(
     private bottomSheetRef: MatBottomSheetRef<CreateListDrawerComponent>,
@@ -65,13 +67,15 @@ export class CreateListDrawerComponent implements OnInit {
       const newList = new ShoppingList();
       newList.name = this.createForm.get('name')?.value.trim();
       
+      this.saveError = null;
       this.repo.SaveEntity<ShoppingList>("ShoppingList", newList).subscribe({
         next: (result) => {
           this.bottomSheetRef.dismiss(result.entity);
           this.isLoading = false;
         },
+        // a rejected create answers 400 - keep the drawer open and show why
         error: (error) => {
-          console.error('Error creating shopping list:', error);
+          this.saveError = ServerValidation.Show(error, this.createForm, 'Could not create the list. Please try again.');
           this.isLoading = false;
         }
       });
@@ -92,6 +96,9 @@ export class CreateListDrawerComponent implements OnInit {
     }
     if (this.nameControl?.hasError('uniqueName')) {
       return 'A list with this name already exists';
+    }
+    if (this.nameControl?.hasError('server')) {
+      return this.nameControl.errors['server'];
     }
     return '';
   }

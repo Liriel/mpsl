@@ -85,6 +85,12 @@
     margin-top: 5px;
 }
 
+// server side rejections of an add that don't belong to a single input
+.add-error {
+    display: block;
+    margin-bottom: 8px;
+}
+
 .connection-info {
     display: flex;
     align-items: center;

@@ -4,9 +4,9 @@ Static review of the MPS codebase (backend + Angular client), 2026-07-27, on bra
 at commit `39734b6`. Nothing was executed for the original review — all findings came from reading
 the source, so line numbers refer to that snapshot.
 
-**Status:** F1, F3 and F5 are **fixed** (F1/F3 on 2026-07-27, F5 on 2026-07-28; uncommitted in the
-working tree) — see [Resolved](#resolved) at the bottom. Line numbers for those three no longer match
-the code. Everything else stands.
+**Status:** F1, F3, F5 and F6 are **fixed** (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28) — see
+[Resolved](#resolved) at the bottom. Line numbers for those no longer match the code. One row of F6
+(`DateTime.Now` vs `UtcNow`) was deliberately deferred. Everything else stands.
 
 **Suggested order of attack for what remains:** F2 (rotate the leaked VAPID key — a credential
 operation, not a code change; push notifications now work, so they are signed with a key that is
@@ -101,20 +101,20 @@ Related:
 - `SendNotificationToAllExceptAsync` notifies *every* user in the system about *every* list,
   regardless of any relationship to that list — same blast radius as F3, and it leaks list names.
 
-### F6 — Assorted correctness bugs
+### F6 — Assorted correctness bugs — ✅ FIXED (except the `DateTime.Now` row, deferred)
 
-| Where | Problem |
-|---|---|
-| `Controllers/ShoppingListController.cs:288-291` | `SingleOrDefault` on `NormalizedName`, which has **no unique index** (the unique index is on `Name`+`ShoppingListId`, `Model/ShoppingListItem.cs:12`). "Öl" and "Oel" both normalize to `OEL` → `InvalidOperationException` → 500. |
-| `Controllers/ItemController.cs:443-446` | `PostMapping` unconditionally sets `model.Unit = GetOrCreateUnit(viewModel.UnitShortName)`, so any edit that omits the unit silently clears it. |
-| `Services/UnitService.cs:23-28` | Returns an unsaved, unattached `Unit` with `Id = 0` and no `Name`; the caller then does `item.UnitId = item.Unit?.Id` → 0 (`Controllers/ShoppingListController.cs:308`). Also `ShortName.ToLower()` compared with `SingleOrDefault` throws if the case-insensitive match hits two rows. |
-| `Controllers/EntityContoller.cs:154-165` | Generic `Delete` bypasses `IEntityService`, so no broadcast and no service hooks (the TODO admits it). It also hard-deletes items, and `ItemHistories` cascades (`Migrations/20220914124713_InitialMigration.cs:240`) — contradicting the documented promise in `CLAUDE.md` and `DECLUTTER_FEATURE.md` that deletes preserve `ItemHistory` for analytics. |
-| `Controllers/EntityContoller.cs:93-118` | Validation failures return **200 OK** with `Success=false`; other endpoints return 400 with a bare string. Clients cannot handle errors uniformly. |
-| `Services/DeclutterService.cs:76-83` | `.AsEnumerable()` pulls every item of the list into memory, then touches `x.HistoryRecords` under lazy-loading proxies → one query per item (N+1). Should be a single grouped LINQ query. |
-| `Services/DeclutterService.cs:114-127` | Criteria are combined with `&&`; `CLAUDE.md` states "Items matching ANY criteria are shown". Code and docs disagree on the feature's core semantics — decide which is intended. |
-| `Services/DeclutterService.cs:139-152` | `itemService.Delete()` calls `SaveChanges()` per item (N round-trips + N broadcasts), then a redundant `SaveChanges()`. No ownership check beyond `shoppingListId`. |
-| `Services/PersistedRepository.cs:36-105` | The audit-stamping block is copy-pasted between `SaveChanges` and `SaveChangesAsync`, and each save issues an extra `Users` lookup by name. |
-| project-wide | `DateTime.Now` (local) in domain code vs `DateTime.UtcNow` in `PushSubscription`/notifications. SQLite stores these as text; a container timezone change silently corrupts staleness and recommendation math. |
+| Where | Problem | Status |
+|---|---|---|
+| `Controllers/ShoppingListController.cs:288-291` | `SingleOrDefault` on `NormalizedName`, which has **no unique index** (the unique index is on `Name`+`ShoppingListId`, `Model/ShoppingListItem.cs:12`). "Öl" and "Oel" both normalize to `OEL` → `InvalidOperationException` → 500. | ✅ |
+| `Controllers/ItemController.cs:443-446` | `PostMapping` unconditionally sets `model.Unit = GetOrCreateUnit(viewModel.UnitShortName)`, so any edit that omits the unit silently clears it. | ✅ |
+| `Services/UnitService.cs:23-28` | Returns an unsaved, unattached `Unit` with `Id = 0` and no `Name`; the caller then does `item.UnitId = item.Unit?.Id` → 0 (`Controllers/ShoppingListController.cs:308`). Also `ShortName.ToLower()` compared with `SingleOrDefault` throws if the case-insensitive match hits two rows. | ✅ |
+| `Controllers/EntityContoller.cs:154-165` | Generic `Delete` bypasses `IEntityService`, so no broadcast and no service hooks (the TODO admits it). It also hard-deletes items, and `ItemHistories` cascades (`Migrations/20220914124713_InitialMigration.cs:240`) — contradicting the documented promise in `CLAUDE.md` and `DECLUTTER_FEATURE.md` that deletes preserve `ItemHistory` for analytics. | ✅ delete routed through the service; cascade **kept** and the docs corrected |
+| `Controllers/EntityContoller.cs:93-118` | Validation failures return **200 OK** with `Success=false`; other endpoints return 400 with a bare string. Clients cannot handle errors uniformly. | ✅ |
+| `Services/DeclutterService.cs:76-83` | `.AsEnumerable()` pulls every item of the list into memory, then touches `x.HistoryRecords` under lazy-loading proxies → one query per item (N+1). Should be a single grouped LINQ query. | ✅ |
+| `Services/DeclutterService.cs:114-127` | Criteria are combined with `&&`; `CLAUDE.md` states "Items matching ANY criteria are shown". Code and docs disagree on the feature's core semantics — decide which is intended. | ✅ resolved in favour of the docs (**OR**) |
+| `Services/DeclutterService.cs:139-152` | `itemService.Delete()` calls `SaveChanges()` per item (N round-trips + N broadcasts), then a redundant `SaveChanges()`. No ownership check beyond `shoppingListId`. | ✅ batched; the ownership question is F1's household-sharing model, unchanged |
+| `Services/PersistedRepository.cs:36-105` | The audit-stamping block is copy-pasted between `SaveChanges` and `SaveChangesAsync`, and each save issues an extra `Users` lookup by name. | ✅ |
+| project-wide | `DateTime.Now` (local) in domain code vs `DateTime.UtcNow` in `PushSubscription`/notifications. SQLite stores these as text; a container timezone change silently corrupts staleness and recommendation math. | ⏸ **deferred by decision** — switching reinterprets every existing local-time row as UTC, so it needs a backfill migration to be worth doing. Only bites if the container timezone changes. |
 
 ---
 
@@ -197,7 +197,7 @@ Related:
 
 ## Resolved
 
-### F1 + F3 — fixed 2026-07-27 (uncommitted, branch `notifications`)
+### F1 + F3 — fixed 2026-07-27 (branch `notifications`)
 
 Access model implemented: **admin-approved household sharing** — any account in the `user` or
 `admin` role reaches every list, matching the existing approval UX; unapproved accounts are now
@@ -262,7 +262,7 @@ particular the two-browser group-isolation and reconnect checks.
 `ShoppingListController.AddItem`, which sets the id explicitly. The corresponding test asserts only
 the authorization boundary and documents this inline.
 
-### F5 — fixed 2026-07-28 (uncommitted, branch `notifications`)
+### F5 — fixed 2026-07-28 (branch `notifications`)
 
 **The debounce was also the wrong mechanism, not just a buggy one.** It sent 30 s after the *last*
 item, so a notification only arrived once the other person had stopped — whereas the point of the
@@ -322,3 +322,79 @@ or push service — the two-account end-to-end checks in
 
 **Explicitly out of scope:** F2. Push notifications now genuinely send, signed with the VAPID private
 key that is still committed in `appsettings.json`.
+
+### F6 — fixed 2026-07-28 (branch `notifications`)
+
+Nine of the ten rows are fixed; the `DateTime.Now` row is deferred by decision (see the table).
+Three of the rows were judgement calls rather than defects, resolved as follows:
+
+- **Declutter criteria → OR.** The code's `&&` was replaced by the documented "matches ANY
+  criterion" semantics, so a frequently-but-long-ago purchased item is now a candidate where it
+  previously was not. This *widens* what the declutter screen offers.
+- **Deletes keep cascading `ItemHistory` away, and the docs were corrected instead.** Every consumer
+  reaches history through the owning item (`recommend.sql` inner-joins it, `DeclutterService` walks
+  `item.History`), so orphaned rows would be unreadable rather than useful, and `Archived` already
+  exists as the non-destructive "off the list" state. `CLAUDE.md` and `DECLUTTER_FEATURE.md` no
+  longer promise preservation.
+- **Rejected writes are now uniformly 400** carrying `{ success, entity, validationErrors }`.
+
+Changes:
+
+- `Controllers/ShoppingListController.cs` — the normalized-name lookup materialises all matches and
+  prefers the exact `Name` match, falling back to the oldest row; `AddItem` returns 400 through the
+  same result shape as everything else.
+- `Controllers/ItemController.cs`, `Controllers/ShoppingListController.cs` — a **null**
+  `UnitShortName` now means "not supplied" and leaves the stored unit alone; an empty string still
+  clears it. Both call sites hold the unit in a local: reading `model.Unit?.Id` back goes through the
+  lazy-loading proxy and **re-fetches the unit that was just cleared**, so `UnitId` could never
+  become null. This one only showed up under test.
+- `Services/UnitService.cs` — a newly created unit is persisted immediately (so callers get a real
+  `Id` instead of storing `UnitId = 0`) and gets a `Name`; the case-insensitive lookup orders and
+  takes the first rather than throwing on two matches.
+- `Controllers/EntityContoller.cs` — `Delete` goes through `IEntityService`, so the SignalR removal
+  broadcast fires. `Post`/`Put` return 400 via a `Failure(...)` helper for every rejection path,
+  including the previously bare-string ones; a service-level validation failure is wrapped in
+  `WebOperationResult` rather than leaking the raw `EntityOperationResult` (which carried the EF
+  entity, and with it the lazy-loading proxy graph).
+- `Program.cs` + `Infrastructure/ValidationFailureResult.cs` (new) — `[ApiController]` rejects an
+  invalid `ModelState` in a **filter, before the action runs**, so the controllers' own ModelState
+  branches were unreachable and the framework answered RFC 7807 ProblemDetails.
+  `InvalidModelStateResponseFactory` now emits the same shape. Suppressing the filter instead was
+  rejected: it would let every action in the app run on unvalidated input.
+- `Services/DeclutterService.cs` — one grouped LINQ query instead of `.AsEnumerable()` plus a lazy
+  `item.History` touch per row, with the 30-day age gate pushed into the `where`; `BulkDeleteItems`
+  delegates to the new `IEntityService<T>.DeleteRange`.
+- `Services/IEntityService.cs`, `Services/EntityService.cs`,
+  `Services/ShoppingListItemEntityService.cs` — `DeleteRange` saves once for the batch and then
+  broadcasts one removal per item, replacing N saves + N broadcasts.
+- `Services/PersistedRepository.cs` — the duplicated stamping block collapsed into
+  `StampChangedEntities()`; the user lookup is skipped entirely when nothing needs stamping and
+  cached per repository instance otherwise.
+- Client — `ServerValidation` (new) reads the 400 body, hands each error to
+  `FormHelper.ShowErrors` (which now **returns the errors it could not place** instead of dropping
+  them) and returns a summary of the rest. Wired into the item dialog, the create-list drawer and
+  the shopping list's add box, all three of which previously treated a rejected write as success or
+  did nothing at all. `RecommendationsComponent.addItem` now clears `isProcessing` on error — it
+  used to leave the row spinning forever, unable to retry.
+
+**Two adjacent bugs found by the new tests, fixed alongside** (same family, not in the original
+table):
+
+- `ViewModels/ShoppingListEditViewModel.cs` — `Name` was not `[Required]` although
+  `ShoppingList.Name` is, so `POST api/ShoppingList` with a null name passed `ModelState` and died at
+  the database as a **500**.
+- `Infrastructure/AutomapperConfiguration.cs` — `ShoppingListItemEditViewModel.ShortName` is
+  optional but `ShoppingListItem.ShortName` is `[Required]`, so **any `PUT api/item/{id}` that
+  omitted it nulled the column and 500'd**. The map now has a `Condition` skipping a null source.
+
+**Tests** — `Tests/CorrectnessTests.cs` (new, 11 tests; suite is now 54). Worth keeping because the
+declutter rewrite is only correct if it *translates* — an untranslatable `let`/subquery would throw
+at runtime, not at build. Covers: the duplicate-normalized-name 500 and exact-match preference; unit
+creation, preservation on an omitted field and clearing on an empty one; the declutter OR semantics
+and 30-day gate (`StaleOften` is a candidate only under OR), the reported statistics, and batched
+bulk delete; and the 400 contract for both a failed annotation and a non-zero id on POST.
+
+**Verified:** `dotnet build` clean (0 warnings), `dotnet test` 54/54, `npm run build` clean apart
+from the two pre-existing warnings (bundle budget, hammerjs CommonJS). **Not** exercised in a
+browser — the changed client paths (dialog/drawer/add-box error display) were type-checked and
+built, not clicked through.

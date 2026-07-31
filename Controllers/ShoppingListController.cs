@@ -125,48 +125,66 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         if (!this.accessService.CanAccessList(shoppingListId, this.User))
             return Forbid();
 
-        WebOperationResult<ShoppingListAddViewModel, ShoppingListItem> result;
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
+            return new BadRequestObjectResult(
+                new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(ModelState));
+
+        if (itemViewModel.Id != 0)
+            return AddItemFailure("Use item controller to update items", nameof(itemViewModel.Id));
+
+        // NormalizedName is not unique - only Name+ShoppingListId is - so several rows can
+        // collapse onto the same normalized value ("Öl" and "Oel" both become OEL). Prefer the
+        // exact name match and otherwise take the oldest row, rather than throwing a 500.
+        var normalizedName = NameHelper.GetNormalizedName(itemViewModel.Name);
+        var candidates = this.repo.ShoppingListItems
+            .Where(i => i.ShoppingListId == shoppingListId &&
+                   i.NormalizedName == normalizedName)
+            .OrderBy(i => i.Id)
+            .ToList();
+
+        var item = candidates.FirstOrDefault(i => i.Name == itemViewModel.Name)
+            ?? candidates.FirstOrDefault();
+
+        if (item == null)
         {
-            if (itemViewModel.Id != 0)
-                return new BadRequestObjectResult("Use item controller to update items");
-
-            var normalizedName = NameHelper.GetNormalizedName(itemViewModel.Name);
-            var item = this.repo.ShoppingListItems
-                .Where(i => i.ShoppingListId == shoppingListId &&
-                       i.NormalizedName == normalizedName)
-                .SingleOrDefault();
-
-            if (item == null)
-            {
-                item = this.mapper.Map<ShoppingListItem>(itemViewModel);
-                item.ShoppingListId = shoppingListId;
-            }
-            else
-            {
-                item.Amount = itemViewModel.Amount;
-                item.Status = ItemState.Open;
-            }
-
-            // this ensures that the unit property was loaded by the lazy laoding proxy
-            if (item.Unit != null || !string.IsNullOrEmpty(itemViewModel.UnitShortName))
-            {
-                item.Unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
-                item.UnitId = item.Unit?.Id;
-            }
-
-            item.AddDate = DateTime.Now;
-            item.AddedByUserId = this.userIdentityService.CurrentUserId;
-            var saveResult = this.itemService.AddOrUpdate(item);
-
-            result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(mapper, saveResult);
+            item = this.mapper.Map<ShoppingListItem>(itemViewModel);
+            item.ShoppingListId = shoppingListId;
         }
         else
         {
-            result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(ModelState);
+            item.Amount = itemViewModel.Amount;
+            item.Status = ItemState.Open;
         }
 
-        return new OkObjectResult(result);
+        // Same rule as ItemController.PostMapping: a null short name leaves whatever unit the
+        // item already carries in place, an empty one clears it.
+        if (itemViewModel.UnitShortName != null)
+        {
+            // local, not item.Unit - see ItemController.PostMapping
+            var unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
+            item.Unit = unit;
+            item.UnitId = unit?.Id;
+        }
+
+        item.AddDate = DateTime.Now;
+        item.AddedByUserId = this.userIdentityService.CurrentUserId;
+        var saveResult = this.itemService.AddOrUpdate(item);
+
+        var result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(this.mapper, saveResult);
+        return result.Success
+            ? new OkObjectResult(result)
+            : new BadRequestObjectResult(result);
+    }
+
+    /// <summary>
+    /// Rejects an add with the same <see cref="WebOperationResult{TEditViewModel, TEntity}"/> shape
+    /// the rest of the write endpoints use, rather than a bare string.
+    /// </summary>
+    private BadRequestObjectResult AddItemFailure(string message, params string[] fields)
+    {
+        var result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem> { Success = false };
+        result.ValidationErrors.Add(new ValidationError(message, fields));
+        return new BadRequestObjectResult(result);
     }
 
     [HttpDelete("{shoppingListId}/remove/{itemId}")]

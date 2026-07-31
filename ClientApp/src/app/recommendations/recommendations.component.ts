@@ -65,9 +65,17 @@ export class RecommendationsComponent implements OnInit, AfterViewInit {
     item.isProcessing = true;
     let shoppingListItem = new ShoppingListItem({ name: item.name, shoppingListId: this.shoppingListId });
 
-    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", shoppingListItem).subscribe(() => {
-      item.isProcessing = false;
-      item.added = true;
+    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", shoppingListItem).subscribe({
+      next: () => {
+        item.isProcessing = false;
+        item.added = true;
+      },
+
+      // without this a rejected add leaves the row spinning forever and the recommendation can
+      // never be retried
+      error: () => {
+        item.isProcessing = false;
+      }
     });
   }
 

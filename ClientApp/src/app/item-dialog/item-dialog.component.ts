@@ -5,6 +5,7 @@ import { ShoppingListItem } from '../models/ShoppingListItem';
 import { IRepoToken, IRepo } from '../services/IRepo';
 import { ItemDialogData } from './ItemDialogData';
 import { FormHelper } from '../infrastructure/FormHelper';
+import { ServerValidation } from '../infrastructure/ServerValidation';
 import { trigger, state, style, transition, animate } from '@angular/animations';
 import { BehaviorSubject } from 'rxjs';
 
@@ -38,6 +39,7 @@ export class ItemDialogComponent {
   public item: ShoppingListItem;
   public flyInOut: string = "in";
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
+  public saveError: string = null;
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.maxLength(50)]),
@@ -76,9 +78,14 @@ export class ItemDialogComponent {
   }
 
   public save(): void {
+    this.saveError = null;
     FormHelper.UpdateModel(ShoppingListItem, this.item, this.formGroup);
-    this.repo.SaveEntity("item", this.item).subscribe(result =>
-      this.dialogRef.close(result)
-    );
+    this.repo.SaveEntity("item", this.item).subscribe({
+      next: result => this.dialogRef.close(result),
+
+      // a rejected save answers 400 - keep the dialog open and show why instead of closing as
+      // though it had worked
+      error: error => this.saveError = ServerValidation.Show(error, this.formGroup, "Could not save the item. Please try again.")
+    });
   }
 }

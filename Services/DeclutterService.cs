@@ -44,6 +44,12 @@ namespace mps.Services
 
     public class DeclutterService : IDeclutterService
     {
+        /// <summary>
+        /// Items younger than this are never declutter candidates, so a freshly added item cannot
+        /// immediately look like clutter.
+        /// </summary>
+        private const int MinimumItemAgeDays = 30;
+
         private readonly IRepository repo;
         private readonly IEntityService<ShoppingListItem> itemService;
 
@@ -60,60 +66,43 @@ namespace mps.Services
         {
             var now = DateTime.Now;
             var minDate = now.AddMonths(-minMonthsSinceLastPurchase);
+            var maxAddDate = now.AddDays(-MinimumItemAgeDays);
 
-            // Query all items for the shopping list with their history
-            var items = from item in this.repo.ShoppingListItems
+            // One grouped query rather than materialising every item and walking History through
+            // the lazy loading proxies, which cost a round trip per item.
+            var stats = from item in this.repo.ShoppingListItems
                         where item.ShoppingListId == shoppingListId
+                        // Only consider items that are at least 30 days old, so newly added items
+                        // never show up as clutter.
+                        where item.AddDate <= maxAddDate
+                        let purchaseCount = item.History.Count()
+                        let lastPurchaseDate = item.History
+                            .Select(h => (DateTime?)h.CheckDate)
+                            .Max()
+                        // An item qualifies if ANY criterion matches: rarely purchased, never
+                        // purchased, or not purchased for a long time.
+                        where purchaseCount <= maxPurchaseCount
+                            || lastPurchaseDate == null
+                            || lastPurchaseDate < minDate
+                        orderby lastPurchaseDate, purchaseCount
                         select new
                         {
                             Item = item,
-                            // Get history records for this item
-                            HistoryRecords = item.History
+                            PurchaseCount = purchaseCount,
+                            LastPurchaseDate = lastPurchaseDate
                         };
 
-            // Calculate purchase statistics for each item
-            var candidates = items.AsEnumerable()
-                .Select(x => new
-                {
-                    x.Item,
-                    PurchaseCount = x.HistoryRecords.Count(),
-                    LastPurchaseDate = x.HistoryRecords.Any() 
-                        ? x.HistoryRecords.Max(h => h.CheckDate) 
-                        : (DateTime?)null,
-                    ItemAge = (now - x.Item.AddDate).TotalDays
-                })
+            return stats.AsEnumerable()
                 .Select(x => new DeclutterCandidate
                 {
                     Item = x.Item,
                     PurchaseCount = x.PurchaseCount,
                     LastPurchaseDate = x.LastPurchaseDate,
-                    DaysSinceLastPurchase = x.LastPurchaseDate.HasValue 
-                        ? (int)(now - x.LastPurchaseDate.Value).TotalDays 
+                    DaysSinceLastPurchase = x.LastPurchaseDate.HasValue
+                        ? (int)(now - x.LastPurchaseDate.Value).TotalDays
                         : (int?)null
                 })
-                .Where(x => 
-                {
-                    // Calculate item age in days
-                    var itemAgeDays = (now - x.Item.AddDate).TotalDays;
-                    
-                    // Only include items that are at least 30 days old (1 month)
-                    // This prevents newly added items from showing up as clutter
-                    if (itemAgeDays < 30)
-                        return false;
-                    
-                    // Include if ALL of these conditions are met:
-                    return (
-                        // Rarely purchased (or never purchased)
-                        (x.PurchaseCount <= maxPurchaseCount) &&
-                        // AND either never purchased OR not purchased recently
-                        (!x.LastPurchaseDate.HasValue || x.LastPurchaseDate.Value < minDate)
-                    );
-                })
-                .OrderBy(x => x.LastPurchaseDate ?? DateTime.MinValue)
-                .ThenBy(x => x.PurchaseCount)
                 .ToList();
-
-            return candidates;
         }
 
         public int BulkDeleteItems(int shoppingListId, int[] itemIds)
@@ -126,19 +115,9 @@ namespace mps.Services
                 .Where(i => i.ShoppingListId == shoppingListId && itemIds.Contains(i.Id))
                 .ToList();
 
-            int count = 0;
-            foreach (var item in itemsToDelete)
-            {
-                // Use the entity service to properly handle deletion and notifications
-                var result = this.itemService.Delete(item);
-                if (result.Success)
-                    count++;
-            }
-
-            if (count > 0)
-                this.repo.SaveChanges();
-
-            return count;
+            // Use the entity service so deletion notifications still go out, but as a single save
+            // rather than one round trip per item.
+            return this.itemService.DeleteRange(itemsToDelete);
         }
     }
 }

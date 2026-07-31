@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using mps.Hubs;
 using mps.Infrastructure;
 using mps.Model;
@@ -79,6 +80,15 @@ builder.Services.AddMvc();
 builder.Services.AddAutoMapper(typeof(MyProfile));
 
 builder.Services.AddControllers();
+
+// [ApiController] rejects an invalid ModelState in a filter, before the action runs, and would
+// answer with an RFC 7807 ProblemDetails body. Emit the same { success, entity, validationErrors }
+// shape the controllers use for every other rejected write, so a client only has to understand one.
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+        new BadRequestObjectResult(ValidationFailureResult.FromModelState(context.ModelState));
+});
 
 // backs the container HEALTHCHECK in the Dockerfiles
 builder.Services.AddHealthChecks();
