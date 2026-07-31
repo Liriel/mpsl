@@ -24,6 +24,20 @@ namespace mps.Model
         public DbSet<ItemHistory> ItemHistories { get; set; }
         public DbSet<PushSubscription> PushSubscriptions { get; set; }
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            base.ConfigureConventions(configurationBuilder);
+
+            // SQLite stores dates as Kind-less TEXT. Convert Local values to UTC on write and hand
+            // everything back as Kind=Utc on read, so System.Text.Json emits the trailing 'Z' the
+            // Angular client needs - see UtcDateTimeConverter for why Unspecified is left alone.
+            // Pre-convention configuration on DateTime also covers DateTime? - EF applies it to the
+            // underlying (non-nullable) CLR type of the property - so this alone reaches
+            // ShoppingListItem.CheckDate/LastChangedDate too.
+            configurationBuilder.Properties<DateTime>()
+                .HaveConversion<UtcDateTimeConverter>();
+        }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             // https://stackoverflow.com/a/34013431/1859022

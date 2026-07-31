@@ -1,3 +1,7 @@
+-- This view assumes stored CheckDate values are UTC, since JulianDay('now') is evaluated in UTC.
+-- It is a copy of the view created in Migrations/20231207150407_Recommendations.cs; keep the two
+-- in sync if either changes.
+
 -- drop view if exists Recommendations;
 
 -- create view Recommendations as 

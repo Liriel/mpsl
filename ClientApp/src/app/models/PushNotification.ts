@@ -28,7 +28,7 @@ export interface SubscriptionInfo {
   userName: string;
   shortName?: string;
   endpoint: string;
-  createdAt: Date;
+  createdAt: string;
   userAgent?: string;
 }
 

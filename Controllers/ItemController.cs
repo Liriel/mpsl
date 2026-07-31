@@ -69,7 +69,7 @@ public class ItemController : EntityController<ShoppingListItem, ShoppingListIte
         if (item.Status == ItemState.Open)
         {
             item.Status = ItemState.Checked;
-            item.CheckDate = DateTime.Now;
+            item.CheckDate = DateTime.UtcNow;
             item.CheckedByUserId = this.userIdentityService.CurrentUserId;
         }
         else

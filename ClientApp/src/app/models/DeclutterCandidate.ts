@@ -30,7 +30,7 @@ export interface DeclutterCandidate {
   /**
    * The date this item was last purchased. Null if never purchased.
    */
-  lastPurchaseDate: Date | null;
+  lastPurchaseDate: string | null;
 
   /**
    * Number of days since the item was last purchased. Null if never purchased.

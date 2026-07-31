@@ -150,7 +150,7 @@ export class DeclutterComponent implements OnInit {
     this.router.navigate(['/list', this.shoppingListId]);
   }
 
-  formatDate(date: Date | null): string {
+  formatDate(date: string | null): string {
     if (!date) return 'Never';
     const d = new Date(date);
     return d.toLocaleDateString();

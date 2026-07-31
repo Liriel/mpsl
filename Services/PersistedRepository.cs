@@ -86,7 +86,7 @@ namespace mps.Services
                 return;
 
             var currentUserId = this.GetCurrentUserId();
-            var timestamp = DateTime.Now;
+            var timestamp = DateTime.UtcNow;
 
             foreach (var entity in changed)
             {

@@ -4,11 +4,11 @@ Static review of the MPS codebase (backend + Angular client), 2026-07-27, on bra
 at commit `39734b6`. Nothing was executed for the original review — all findings came from reading
 the source, so line numbers refer to that snapshot.
 
-**Status:** the original F1, F3, F5 and F6 were fixed (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28)
-and have been removed from this file; see commits `bd92e7c` and `09f32de` and the corresponding
-sections of `CLAUDE.md` for what the fixes established. Surviving findings keep their original
-identifiers rather than being renumbered, so the list starts at F2; the one row of F6 that was
-deferred rather than fixed is carried forward here as F7. Everything listed below still stands.
+**Status:** the original F1, F3, F5 and F6 were fixed (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28),
+and F7 — the one row of F6 that was deferred rather than fixed at the time — has now been fixed too
+(2026-07-31); see commits `bd92e7c`, `09f32de` and the corresponding sections of `CLAUDE.md` for what
+the fixes established. Surviving findings keep their original identifiers rather than being
+renumbered, so the list is now F2 and F4. Everything listed below still stands.
 
 **Suggested order of attack:** F2 (rotate the leaked VAPID key — a credential operation, not a code
 change; push notifications now work, so they are signed with a key that is public in git history),
@@ -42,16 +42,6 @@ records then skew recommendations and declutter statistics. There is no transact
 concurrency token anywhere in the model.
 
 **Fix direction:** move archiving to a background job or an explicit idempotent command endpoint.
-
-### F7 — `DateTime.Now` vs `DateTime.UtcNow` — deferred by decision
-
-Project-wide: domain code stamps `DateTime.Now` (local) while `PushSubscription`/notifications use
-`DateTime.UtcNow`. SQLite stores both as text, so a container timezone change silently corrupts
-staleness and recommendation math.
-
-Carried over from the original F6 table, where it was the one row left unfixed: switching
-reinterprets every existing local-time row as UTC, so it needs a backfill migration to be worth
-doing. Only bites if the container timezone changes.
 
 ---
 

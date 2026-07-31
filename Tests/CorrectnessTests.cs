@@ -99,8 +99,8 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
     [Fact]
     public async Task AddItem_WithDuplicateNormalizedName_DoesNotFail()
     {
-        await this.SeedItemAsync("Öl", "OEL", DateTime.Now);
-        await this.SeedItemAsync("Oel", "OEL", DateTime.Now);
+        await this.SeedItemAsync("Öl", "OEL", DateTime.UtcNow);
+        await this.SeedItemAsync("Oel", "OEL", DateTime.UtcNow);
 
         using var client = this.CreateClient();
         using var response = await client.PostAsJsonAsync(
@@ -118,8 +118,8 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
     [Fact]
     public async Task AddItem_WithDuplicateNormalizedName_PrefersTheExactNameMatch()
     {
-        await this.SeedItemAsync("Öl", "OEL", DateTime.Now);
-        var oelId = await this.SeedItemAsync("Oel", "OEL", DateTime.Now);
+        await this.SeedItemAsync("Öl", "OEL", DateTime.UtcNow);
+        var oelId = await this.SeedItemAsync("Oel", "OEL", DateTime.UtcNow);
 
         using var client = this.CreateClient();
         using var response = await client.PostAsJsonAsync(
@@ -264,7 +264,7 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
         await db0.SaveChangesAsync();
         var listId = list.Id;
 
-        var now = DateTime.Now;
+        var now = DateTime.UtcNow;
         var old = now.AddDays(-400);
 
         // frequently purchased, but not for a year -> stale, so a candidate under OR semantics
@@ -315,8 +315,8 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
         db0.ShoppingLists.Add(list);
         await db0.SaveChangesAsync();
 
-        var lastPurchase = DateTime.Now.AddDays(-200);
-        await this.SeedItemAsync("Counted", "COUNTED", DateTime.Now.AddDays(-400), list.Id,
+        var lastPurchase = DateTime.UtcNow.AddDays(-200);
+        await this.SeedItemAsync("Counted", "COUNTED", DateTime.UtcNow.AddDays(-400), list.Id,
             lastPurchase, lastPurchase.AddDays(-30), lastPurchase.AddDays(-60));
 
         using var client = this.CreateClient();
@@ -338,9 +338,9 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
     [Fact]
     public async Task Declutter_BulkDelete_RemovesTheItemsInOneBatch()
     {
-        var first = await this.SeedItemAsync("BulkA", "BULKA", DateTime.Now.AddDays(-400));
-        var second = await this.SeedItemAsync("BulkB", "BULKB", DateTime.Now.AddDays(-400));
-        var kept = await this.SeedItemAsync("BulkC", "BULKC", DateTime.Now.AddDays(-400));
+        var first = await this.SeedItemAsync("BulkA", "BULKA", DateTime.UtcNow.AddDays(-400));
+        var second = await this.SeedItemAsync("BulkB", "BULKB", DateTime.UtcNow.AddDays(-400));
+        var kept = await this.SeedItemAsync("BulkC", "BULKC", DateTime.UtcNow.AddDays(-400));
 
         using var client = this.CreateClient();
         using var response = await client.PostAsJsonAsync(

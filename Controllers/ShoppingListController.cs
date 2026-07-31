@@ -83,7 +83,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         if (!this.accessService.CanAccessList(shoppingListId, this.User))
             return Forbid();
 
-        DateTime minDate = DateTime.Now.AddHours(-1);
+        DateTime minDate = DateTime.UtcNow.AddHours(-1);
 
         // find old items
         var o = from i in this.repo.ShoppingListItems
@@ -166,7 +166,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
             item.UnitId = unit?.Id;
         }
 
-        item.AddDate = DateTime.Now;
+        item.AddDate = DateTime.UtcNow;
         item.AddedByUserId = this.userIdentityService.CurrentUserId;
         var saveResult = this.itemService.AddOrUpdate(item);
 

@@ -160,6 +160,13 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
   both stamps of the SYSTEM user to the literals already baked into the snapshot. Never reintroduce a
   `Guid.NewGuid()`/`DateTime.Now` into a seed — it takes the whole app down at startup, not just
   migrations.
+- **All persisted `DateTime`s are UTC.** `DataContext.ConfigureConventions` registers a `DateTime`
+  value converter (`Model/UtcDateTimeConverter.cs`) so every value comes back `Kind = Utc` on read and
+  System.Text.Json emits the trailing `Z` the Angular client needs. Never use `DateTime.Now` in domain
+  code — the `Recommendations` view depends on this, since `JulianDay('now')` is evaluated in UTC. The
+  one-off Europe/Berlin → UTC backfill lives in the `UtcTimestamps` migration and deliberately skips
+  `PushSubscriptions.CreatedAt` (already UTC) and rows before 1990 (the `0001-01-01` sentinel would
+  shift to year `0000` and become unparsable).
 
 ### Frontend Architecture
 
@@ -308,9 +315,16 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
 
 ### Testing
 - Backend: XUnit in `Tests/`, run with `dotnet test` from the repo root. Coverage is limited to
-  authorization, SignalR group scoping, web-push throttling and the F6 correctness fixes
+  authorization, SignalR group scoping, web-push throttling, the F6 correctness fixes
   (`Tests/CorrectnessTests.cs` — unit handling, the declutter query's SQL translation and its
-  candidate semantics, and the 400 error contract).
+  candidate semantics, and the 400 error contract) and the F7 UTC switch
+  (`Tests/UtcDateTimeTests.cs` — `Kind` round-trip, the trailing `Z` on the wire and the archive
+  cutoff; `Tests/UtcBackfillSqlTests.cs` — the DST boundary arithmetic and the generated backfill SQL
+  run against in-memory SQLite).
+- **Seed dates with `DateTime.UtcNow`, not `DateTime.Now`.** The converter turns a `Local` value into
+  the right instant, but a local seed N days back is converted with the offset in force *then*, so a
+  seed crossing a DST boundary lands an hour off and any exact day-count assertion fails half the
+  year.
 - `mps.slnx` is load-bearing: without a solution file `dotnet test` resolves `mps.csproj`, finds no
   test adapter and **exits 0 having run nothing**.
 - `Tests/TestAppFactory.cs` swaps in a temp SQLite file and a header-driven auth scheme, so tests

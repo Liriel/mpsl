@@ -64,7 +64,7 @@ namespace mps.Services
             int minMonthsSinceLastPurchase = 6, 
             int maxPurchaseCount = 2)
         {
-            var now = DateTime.Now;
+            var now = DateTime.UtcNow;
             var minDate = now.AddMonths(-minMonthsSinceLastPurchase);
             var maxAddDate = now.AddDays(-MinimumItemAgeDays);
 

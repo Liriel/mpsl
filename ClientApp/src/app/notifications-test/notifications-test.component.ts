@@ -66,7 +66,7 @@ export class NotificationsTestComponent implements OnInit {
     });
   }
 
-  public formatDate(date: Date): string {
+  public formatDate(date: string): string {
     return new Date(date).toLocaleString();
   }
 
