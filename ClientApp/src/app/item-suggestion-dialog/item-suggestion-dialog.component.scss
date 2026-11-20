@@ -1,0 +1,11 @@
+.purchase-count {
+  color: var(--mps-text-secondary);
+}
+
+mat-dialog-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px;
+}

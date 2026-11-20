@@ -3,14 +3,14 @@ import { AfterViewInit, Component, HostListener, Inject, OnDestroy, OnInit } fro
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
 import { Router, ActivatedRoute } from '@angular/router';
-import { BehaviorSubject, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, catchError, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
 import { ServerValidation } from '../infrastructure/ServerValidation';
 import { ItemDialogComponent } from '../item-dialog/item-dialog.component';
 import { ItemDialogData } from '../item-dialog/ItemDialogData';
+import { ItemSuggestionDialogComponent } from '../item-suggestion-dialog/item-suggestion-dialog.component';
 import { RemovedItem } from '../models/RemovedItem';
 import { ShoppingListItem } from '../models/ShoppingListItem';
-import { Unit } from '../models/Unit';
 import { ConnectionState } from '../services/ConnectionState';
 import { INotificationService, INotificationServiceToken } from '../services/INotificationService';
 import { IRepo, IRepoToken } from '../services/IRepo';
@@ -48,7 +48,10 @@ import { IAppUiService, IAppUiServiceToken } from '../services';
 })
 export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
 
-  public items: ShoppingListItem[];
+  // initialized eagerly, not left undefined: the constructor subscribes the SignalR handlers
+  // before ngAfterViewInit calls refresh(), so OnItemChanged/OnItemRemoved can dereference this
+  // if a push lands while the initial load is still in flight
+  public items: ShoppingListItem[] = [];
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
   public shoppingListId: number = 0;
   public ConnState: Observable<ConnectionState>;
@@ -93,7 +96,6 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private OnItemRemoved(item: RemovedItem): void {
-    console.log("items", this.items);
     let shoppingListItem = this.items.filter(l => l.id == item.id)[0];
     if (shoppingListItem) {
       let idx: number = this.items.indexOf(shoppingListItem);
@@ -141,7 +143,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
       startWith(''),
       // filter(value => value != ''),
       debounceTime(200),
-      switchMap((pattern) => this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/search/" + pattern)),
+      // catchError on the inner request, not the outer pipe - otherwise one failed search
+      // completes the whole merged stream and autocomplete stops for the rest of the session
+      switchMap((pattern) => this.repo.SearchItems(this.shoppingListId, pattern).pipe(catchError(() => of([])))),
       map(value => value.map(o => o.name))
     );
 
@@ -149,7 +153,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
       startWith(''),
       // filter(value => value != ''),
       debounceTime(200),
-      switchMap((pattern) => this.repo.Get<Unit[]>("api/unit/search/" + pattern)),
+      switchMap((pattern) => this.repo.SearchUnits(pattern).pipe(catchError(() => of([])))),
       map(value => value.map(o => o.shortName))
     );
   }
@@ -168,9 +172,14 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public refresh():void{
     //this.isLoading.next(true);
-    this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").subscribe(r => {
-      this.items = r;
-      this.isLoading.next(false);
+    this.repo.Get<ShoppingListItem[]>("api/shoppinglist/" + this.shoppingListId + "/item").subscribe({
+      next: r => {
+        this.items = r;
+        this.isLoading.next(false);
+      },
+      // a failed load must not leave the spinner up forever; the global HTTP interceptor
+      // reports the error, so nothing more to do here
+      error: () => this.isLoading.next(false)
     });
   }
 
@@ -190,6 +199,40 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
     FormHelper.UpdateModel(ShoppingListItem, item, this.formGroup);
 
     this.addError = null;
+
+    // Typo guard: an unknown name that is close to existing items asks "Meintest du ...?" first.
+    // A name that matches exactly, has no near match, or a failed lookup adds straight away, so
+    // the common case stays one tap.
+    const name = (item.name ?? '').trim();
+    if (name === '') {
+      this.add(item);
+      return;
+    }
+
+    this.repo.SuggestItems(this.shoppingListId, name).pipe(catchError(() => of([]))).subscribe(suggestions => {
+      if (suggestions.length === 0) {
+        this.add(item);
+        return;
+      }
+
+      this.dialog.open(ItemSuggestionDialogComponent, {
+        data: { name: name, suggestions: suggestions }
+      }).afterClosed().subscribe((choice: string | null | undefined) => {
+        if (choice === undefined) {
+          return; // dismissed: back to the form, nothing added
+        }
+
+        if (choice !== null) {
+          item.name = choice;
+          this.formGroup.get('name').setValue(choice);
+        }
+
+        this.add(item);
+      });
+    });
+  }
+
+  private add(item: ShoppingListItem): void {
     this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe({
       next: result => {
         this.formGroup.reset();
@@ -211,7 +254,9 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
 
   public onSwipeComplete(event: any, item: ShoppingListItem): void {
     if (event.toState === 'left') {
-      this.repo.Put<void>("api/item/" + item.id, "toggle", null).subscribe();
+      // error callback so a rejected toggle doesn't become an unhandled rxjs error; the
+      // interceptor reports it
+      this.repo.Put<void>("api/item/" + item.id, "toggle", null).subscribe({ error: () => {} });
       item.animateFlyInOut = "start";
     }
   }

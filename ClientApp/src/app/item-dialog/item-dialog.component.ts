@@ -54,10 +54,15 @@ export class ItemDialogComponent {
     public dialogRef: MatDialogRef<ItemDialogComponent>,
   ) {
     this.repo.GetEntity<ShoppingListItem>("item", this.data.itemId)
-    .subscribe(i => {
-      this.item = i;
-      FormHelper.ReadModel(i, this.formGroup);
-      this.isLoading.next(false);
+    .subscribe({
+      next: i => {
+        this.item = i;
+        FormHelper.ReadModel(i, this.formGroup);
+        this.isLoading.next(false);
+      },
+      // a failed load leaves the dialog blank with no data to retry against - close it rather than
+      // leave it stuck open and uncloseable; the interceptor already toasts the failure
+      error: () => this.dialogRef.close()
     });
   }
 

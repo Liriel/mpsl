@@ -5,14 +5,15 @@ at commit `39734b6`. Nothing was executed for the original review — all findin
 the source, so line numbers refer to that snapshot.
 
 **Status:** the original F1, F3, F5 and F6 were fixed (F1/F3 on 2026-07-27, F5 and F6 on 2026-07-28),
-and F7 — the one row of F6 that was deferred rather than fixed at the time — has now been fixed too
-(2026-07-31); see commits `bd92e7c`, `09f32de` and the corresponding sections of `CLAUDE.md` for what
-the fixes established. Surviving findings keep their original identifiers rather than being
-renumbered, so the list is now F2 and F4. Everything listed below still stands.
+F7 — the one row of F6 that was deferred rather than fixed at the time — was fixed on 2026-07-31, and
+F8, the *Medium — frontend* block, on the same day, and F4 (the archive race) by improvement I1 on 2026-11-20; see commits `bd92e7c`, `09f32de`, `9ca9436` and
+the corresponding sections of `CLAUDE.md` for what the fixes established. Surviving findings keep
+their original identifiers rather than being renumbered, so the list is now F2 only. Everything
+listed below still stands.
 
 **Suggested order of attack:** F2 (rotate the leaked VAPID key — a credential operation, not a code
 change; push notifications now work, so they are signed with a key that is public in git history),
-then F4.
+then the remaining items below.
 
 ---
 
@@ -27,21 +28,6 @@ then F4.
 keep only the public key in config. The public key is also duplicated into
 `ClientApp/src/environments/environment.ts` and `environment.prod.ts` — that part is fine, it is
 public by design, but it must be updated in lockstep when the pair is rotated.
-
----
-
-## High
-
-### F4 — A GET request mutates the database
-
-`Controllers/ShoppingListController.cs:242-276` (`GetItems`) archives stale checked items and writes
-`ItemHistory` rows on a plain `GET`. Two clients polling concurrently — and the client calls
-`refresh()` on every window focus (`ClientApp/src/app/shopping-list/shopping-list.component.ts:103`)
-— both observe the same rows as unarchived and both append history entries. Duplicate purchase
-records then skew recommendations and declutter statistics. There is no transaction and no
-concurrency token anywhere in the model.
-
-**Fix direction:** move archiving to a background job or an explicit idempotent command endpoint.
 
 ---
 
@@ -78,25 +64,18 @@ concurrency token anywhere in the model.
 
 ## Medium — frontend
 
-- **Subscription leaks**: `ClientApp/src/app/notification-banner/notification-banner.component.ts:28-37`
-  (two subscriptions, no `OnDestroy`), and `ClientApp/src/app/declutter/declutter.component.ts:52`
-  adds a `window.resize` listener that is never removed.
-- **Race → runtime error**: `OnItemChanged`/`OnItemRemoved` dereference `this.items`
-  (`shopping-list.component.ts:92,119`), which is `undefined` until the first `refresh()` resolves.
-  A push arriving during initial load throws.
-- **`AuthService.UserInfo` is a cold observable** (`ClientApp/src/app/services/AuthService.ts:12`) —
-  every guard evaluation and every component subscription issues a fresh `GET /Account`. Needs
-  `shareReplay(1)`.
-- **Unencoded path parameters**: search patterns are concatenated straight into URLs
-  (`shopping-list.component.ts:139,147`), so an item name containing `/`, `#` or `%` breaks or
-  misroutes the request. `encodeURIComponent` is missing throughout `WebRepo`.
-- **No error handling on writes**: the list loads and the toggle call `subscribe()` with no error
-  callback, and there is no HTTP interceptor — an expired session (401) silently does nothing
-  instead of routing to `/login`. *(The three write paths that display validation errors — the item
-  dialog, the create-list drawer and the add box — were wired up with F6.)*
-- Service worker is force-enabled in dev (`ClientApp/src/app/app.module.ts:106`, the comment
-  acknowledges it); no lazy-loaded routes (everything eager in one `AppModule`); `alert()` used for
-  error UX in `notification-banner.component.ts:69` despite `MatSnackBar` being available.
+Fixed on 2026-07-31 (F8): the subscription/listener leaks, the `this.items` race, the cold
+`AuthService.UserInfo`, the unencoded search patterns, the missing error handling on writes and the
+`alert()` for error UX. See the *Frontend Architecture* section of `CLAUDE.md` for what the fixes
+established. Two rows were deliberately **not** fixed:
+
+- **Service worker is force-enabled in dev** (`ClientApp/src/app/app.module.ts:111`). Kept on
+  purpose — push notifications cannot be exercised under `ng serve` otherwise, and that is an active
+  area of work. Revisit once push is stable.
+- **No lazy-loaded routes** — every component is declared in one eager `AppModule`. Splitting the
+  admin pages (`user-list`, `notifications-test`) and `declutter` into lazy feature modules needs a
+  shared Material module first. Deferred: the initial bundle is ~1.36 MB against a 1.5 MB error
+  threshold, and this is a single-household app, so bundle size is not a real problem.
 
 ---
 

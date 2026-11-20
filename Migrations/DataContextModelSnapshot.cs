@@ -255,9 +255,10 @@ namespace mps.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ShoppingListItemId");
-
                     b.HasIndex("UnitId");
+
+                    b.HasIndex("ShoppingListItemId", "CheckDate")
+                        .IsUnique();
 
                     b.ToTable("ItemHistories");
                 });
@@ -295,6 +296,9 @@ namespace mps.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Endpoint")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 

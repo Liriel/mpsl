@@ -3,7 +3,8 @@ import { InjectionToken } from "@angular/core";
 import { UserInfo } from '../models/UserInfo';
 import { DataResult } from "../models/DataResult";
 import { EntityOperationResult, Dictionary } from "../infrastructure";
-import { IEntity, ShoppingListItem } from "../models";
+import { IEntity, ItemMatch, ShoppingListItem } from "../models";
+import { Unit } from "../models/Unit";
 
 // this is needed to use IRepo like an interface in c# - if you don't
 // do this the interface symbols get lost during "compilation"
@@ -35,4 +36,11 @@ export interface IRepo {
     maxPurchaseCount?: number
   ): Observable<any[]>;
   BulkDeleteItems(shoppingListId: number, itemIds: number[]): Observable<{ deletedCount: number }>;
+
+  SearchItems(shoppingListId: number, pattern: string): Observable<ShoppingListItem[]>;
+  SearchUnits(pattern: string): Observable<Unit[]>;
+
+  SuggestItems(shoppingListId: number, name: string): Observable<ItemMatch[]>;
+  GetDuplicateGroups(shoppingListId: number): Observable<ItemMatch[][]>;
+  MergeItems(shoppingListId: number, targetId: number, sourceIds: number[]): Observable<ShoppingListItem>;
 }

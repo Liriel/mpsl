@@ -11,6 +11,44 @@
   background-color: var(--mps-background);
 }
 
+.merge-panel {
+  margin-bottom: 16px;
+}
+
+.merge-group {
+  margin-bottom: 12px;
+
+  .merge-hint {
+    color: var(--mps-text-secondary);
+    margin: 0 0 8px;
+  }
+
+  .merge-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    &.merge-excluded {
+      opacity: 0.5;
+    }
+  }
+
+  .merge-name {
+    font-weight: 500;
+  }
+
+  .merge-meta {
+    display: block;
+    font-size: 12px;
+    color: var(--mps-text-secondary);
+  }
+
+  mat-card-actions button {
+    width: 100%;
+  }
+}
+
 .filter-card {
   margin-bottom: 16px;
 }

@@ -7,7 +7,8 @@ import { HttpClient, HttpHeaders, HttpParams } from "@angular/common/http";
 import { Dictionary, EntityOperationResult } from "../infrastructure";
 import { IConfigServiceToken, IConfigService } from "./IConfigService";
 import { ILoggerToken, ILogger } from "./ILogger";
-import { DataResult, IEntity, ShoppingListItem } from "../models";
+import { DataResult, IEntity, ItemMatch, ShoppingListItem } from "../models";
+import { Unit } from "../models/Unit";
 
 @Injectable()
 export class WebRepo implements IRepo {
@@ -71,11 +72,11 @@ export class WebRepo implements IRepo {
   }
 
   public PromoteUser(userId: string): Observable<boolean> {
-    return this.Put<boolean>("Account", "Promote/" + userId, null);
+    return this.Put<boolean>("Account", "Promote/" + encodeURIComponent(userId), null);
   }
 
   public DemoteUser(userId: string): Observable<boolean> {
-    return this.Put<boolean>("Account", "Demote/" + userId, null);
+    return this.Put<boolean>("Account", "Demote/" + encodeURIComponent(userId), null);
   }
 
   public Post<T>(controller: string, action: string, data: any): Observable<T> {
@@ -114,5 +115,45 @@ export class WebRepo implements IRepo {
     var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/declutter";
     this.logger.Debug("POST Bulk Delete Items REQ to " + reqUrl);
     return this.http.post<{ deletedCount: number }>(reqUrl, itemIds, { headers: this.headers, withCredentials: true });
+  }
+
+  public SearchItems(shoppingListId: number, pattern: string): Observable<ShoppingListItem[]> {
+    let params: HttpParams = new HttpParams();
+    params = params.append("pattern", pattern);
+
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/search";
+    this.logger.Debug("GET Search Items REQ to " + reqUrl);
+    return this.http.get<ShoppingListItem[]>(reqUrl, { params: params, withCredentials: true });
+  }
+
+  // typed method with HttpParams, not Get(): the name is user-typed text and may contain "/" or "%"
+  public SuggestItems(shoppingListId: number, name: string): Observable<ItemMatch[]> {
+    let params: HttpParams = new HttpParams();
+    params = params.append("name", name);
+
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/suggest";
+    this.logger.Debug("GET Suggest Items REQ to " + reqUrl);
+    return this.http.get<ItemMatch[]>(reqUrl, { params: params, withCredentials: true });
+  }
+
+  public GetDuplicateGroups(shoppingListId: number): Observable<ItemMatch[][]> {
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/duplicates";
+    this.logger.Debug("GET Duplicate Groups REQ to " + reqUrl);
+    return this.http.get<ItemMatch[][]>(reqUrl, { withCredentials: true });
+  }
+
+  public MergeItems(shoppingListId: number, targetId: number, sourceIds: number[]): Observable<ShoppingListItem> {
+    var reqUrl = this.config.ServerUrl + "/api/ShoppingList/" + shoppingListId + "/merge";
+    this.logger.Debug("POST Merge Items REQ to " + reqUrl);
+    return this.http.post<ShoppingListItem>(reqUrl, { targetId: targetId, sourceIds: sourceIds }, { headers: this.headers, withCredentials: true });
+  }
+
+  public SearchUnits(pattern: string): Observable<Unit[]> {
+    let params: HttpParams = new HttpParams();
+    params = params.append("pattern", pattern);
+
+    var reqUrl = this.config.ServerUrl + "/api/Unit/search";
+    this.logger.Debug("GET Search Units REQ to " + reqUrl);
+    return this.http.get<Unit[]>(reqUrl, { params: params, withCredentials: true });
   }
 }

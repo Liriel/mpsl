@@ -8,4 +8,7 @@ export let IAuthServiceToken = new InjectionToken<IAuthService>("IAuthService");
 
 export interface IAuthService {
   UserInfo: Observable<UserInfo>;
+
+  // refetches /Account, pushes to UserInfo, and emits once + completes
+  Refresh(): Observable<UserInfo>;
 }

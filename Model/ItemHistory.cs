@@ -1,8 +1,14 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
 
 namespace mps.Model
 {
+    /// <summary>
+    /// One row per (item, check date): the unique index is the backstop behind
+    /// <see cref="mps.Services.IItemArchiveService"/>, so a race can never record a purchase twice.
+    /// </summary>
+    [Index(nameof(ShoppingListItemId), nameof(CheckDate), IsUnique = true)]
     public class ItemHistory
     {
         [Key]

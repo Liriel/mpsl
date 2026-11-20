@@ -7,6 +7,62 @@
   </mat-toolbar>
 
   <div class="content-container">
+    <!-- Merge Duplicates Section -->
+    <mat-expansion-panel class="merge-panel" (opened)="loadMergeGroups()">
+      <mat-expansion-panel-header>
+        <mat-panel-title>Merge duplicates</mat-panel-title>
+        <mat-panel-description>
+          @if (isLoadingGroups) {
+            Searching...
+          } @else {
+            Typos, plurals and spelling variants
+          }
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+
+      @if (isLoadingGroups) {
+        <div class="loading-container">
+          <mat-spinner diameter="40"></mat-spinner>
+        </div>
+      }
+
+      @if (!isLoadingGroups && mergeGroups.length === 0) {
+        <div class="no-results">
+          <mat-icon>check_circle</mat-icon>
+          <p>No duplicates found.</p>
+        </div>
+      }
+
+      @for (group of mergeGroups; track group.items[0].id) {
+        <mat-card class="merge-group" appearance="outlined">
+          <mat-card-content>
+            <p class="merge-hint">Keep this one, merge the others into it:</p>
+            <mat-radio-group class="merge-items" [value]="group.targetId" (change)="selectTarget(group, $event.value)">
+              @for (item of group.items; track item.id) {
+                <div class="merge-item" [class.merge-excluded]="group.excluded.has(item.id)">
+                  <mat-radio-button [value]="item.id">
+                    <span class="merge-name">{{ item.name }}</span>
+                    <span class="merge-meta">{{ item.purchaseCount }}&times;, {{ formatDate(item.lastPurchaseDate) }}</span>
+                  </mat-radio-button>
+                  @if (item.id !== group.targetId) {
+                    <mat-checkbox [checked]="!group.excluded.has(item.id)" (change)="toggleSource(group, item.id)"
+                      aria-label="Include in merge"></mat-checkbox>
+                  }
+                </div>
+              }
+            </mat-radio-group>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-raised-button color="primary" (click)="merge(group)"
+              [disabled]="group.isMerging || mergeCount(group) === 0">
+              <mat-icon>merge</mat-icon>
+              Merge {{ mergeCount(group) }} into {{ targetName(group) }}
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </mat-expansion-panel>
+
     <!-- Filter Section -->
     <mat-card class="filter-card">
       <mat-card-header>
@@ -76,7 +132,10 @@
               </button>
             </div>
             <!-- Mobile Card View -->
-            @if (isMobile) {
+            <!-- explicit === true/false, not !(isMobile|async): BreakpointAppUiService debounces
+                 200ms and the async pipe yields null until then, which would otherwise flash the
+                 desktop table on a phone -->
+            @if ((isMobile | async) === true) {
               <div class="mobile-card-list">
                 @for (candidate of candidates; track candidate.id) {
                   <mat-card
@@ -117,7 +176,7 @@
               </div>
             }
             <!-- Desktop Table View -->
-            @if (!isMobile) {
+            @if ((isMobile | async) === false) {
               <div class="table-container">
                 <table mat-table [dataSource]="candidates" class="declutter-table">
                   <!-- Checkbox Column -->

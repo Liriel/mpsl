@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace mps.Model;
 
 /// <summary>
 /// Stores push notification subscription data for a user
 /// </summary>
+[Index(nameof(Endpoint), IsUnique = true)]
 public class PushSubscription : EntityBase
 {
     /// <summary>

@@ -42,11 +42,13 @@ export class CreateListDrawerComponent implements OnInit {
   }
 
   private loadExistingLists() {
-    this.repo.GetEntities<ShoppingList>("ShoppingList").subscribe(
-      result => {
+    this.repo.GetEntities<ShoppingList>("ShoppingList").subscribe({
+      next: result => {
         this.existingLists = result.results || [];
-      }
-    );
+      },
+      // no loading flag here to unstick - the interceptor already toasts the failure
+      error: () => { }
+    });
   }
 
   private uniqueNameValidator(control: AbstractControl): ValidationErrors | null {

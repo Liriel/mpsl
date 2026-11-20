@@ -23,9 +23,13 @@ export class UserListComponent implements AfterViewInit {
   ngAfterViewInit(): void {
 
     this.repo.Get<UserAccount[]>("Account", "UserList")
-      .subscribe(ua => {
-        this.activeUsers = ua.filter(v => v.isUser);
-        this.pendingUsers = ua.filter(v => !v.isUser);
+      .subscribe({
+        next: ua => {
+          this.activeUsers = ua.filter(v => v.isUser);
+          this.pendingUsers = ua.filter(v => !v.isUser);
+        },
+        // no loading flag here to unstick - the interceptor already toasts the failure
+        error: () => { }
       });
   }
 

@@ -130,8 +130,55 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
   `UnitShortName` and the AutoMapper profile puts a `Condition` on `ShortName`; an *empty* string
   still clears the unit. Beware reading the navigation back afterwards — `model.Unit?.Id` re-triggers
   the lazy-loading proxy and resurrects the unit you just cleared, so keep it in a local.
-- **`NameHelper`**: normalizes German umlauts (ä→ae, ö→oe, ü→ue, ß→sz) and upper-cases. Search and
-  duplicate detection go through the `NormalizedName` field, not `Name`.
+- **The unit field is not for quantities.** `UnitParser.Split` (`Infrastructure/UnitParser.cs`) runs in
+  `ShoppingListController.AddItem` and `ItemController.PostMapping` before `GetOrCreateUnit`: when the
+  amount is null/0 and the unit text is `digits[letters]`, `"500g"` becomes amount 500 + unit `g`,
+  while `"2x"`, `"6er"` and `"3"` become amount only (unit cleared). A set amount is never overwritten.
+  `IUnitService.GetOrCreateUnit` returns an `EntityOperationResult<Unit>` and refuses to *create* a unit
+  with no letter in it (`"10"`, `"..."`) with a 400 on `UnitShortName`; existing units are still found.
+  `EntityController.PostMapping` returns a `ValidationError` (null = fine) so a hook can reject a write.
+  `GET api/Unit/search` only offers units with a long name or used 3+ times (items + history), so the
+  autocomplete needs no client-side filtering. Migration `UnitCleanup` did the one-off data cleanup.
+- **`NameHelper`**: trims and collapses whitespace, normalizes German umlauts (ä→ae, ö→oe, ü→ue,
+  ß→sz) and upper-cases. Search and duplicate detection go through the `NormalizedName` field, not
+  `Name`. The AutoMapper maps for item add/edit trim `Name`; a whitespace-only name fails `[Required]`
+  with the usual 400.
+- **`NameHelper.GetMatchKey` is the fuzzy key, `NormalizedName` stays the exact one.** The match key
+  lower-cases, spells out umlauts, folds `ß` and `sz` to `ss` and drops everything that is not a
+  letter or digit ("Weißwein"="Weisswein", "Wiener wurst"="Wienerwurst"). It is computed in memory,
+  never stored — do not change `NormalizedName` semantics, search and uniqueness depend on them.
+- **`IItemMatchService` (scoped) is the single matcher** behind the add-time suggestion, the search
+  fallback and the merge tool's duplicate groups, so they always agree. `AreNear(keyA, keyB)`: same
+  key, or same key after stripping one plural suffix (`en/er/n/s/e`, key longer than 4), or edit
+  distance ≤ 1 (shorter key 5–7 chars) / ≤ 2 (≥ 8); keys differing in their digits never match
+  ("Pizza 1"/"Pizza 2"). **No substring matching** (Wein/Portwein). It loads `(Id, Name, history
+  count, last purchase)` of one list (~800 rows) and compares in memory. Known residual false
+  positives on prod data are distance-2 pairs like Duschgel/Waschgel — acceptable because the merge
+  UI lets a person pick. `FindDuplicateGroups` clusters transitively (union-find) but a component
+  over `MaxGroupSize` (6) falls back to star clustering around the best-established item. The view
+  models are mapped by hand in the controller: AutoMapper 11 throws on a positional `record` source
+  under .NET 10 and would break *every* mapping at startup.
+- **Endpoints on `ShoppingListController`** (all `ApprovedUser` + `CanAccessList`):
+  `GET {id}/suggest?name=` (≤3 near items by purchase count; empty when the name already matches
+  exactly), `GET {id}/duplicates` (array of groups, each an array of `ItemMatchViewModel`),
+  `POST {id}/merge` body `{ targetId, sourceIds[] }` → the surviving item, or a standard 400 when an
+  id is outside the list, the target is among the sources or no source is given. `SearchItems` also
+  matches on the match key.
+- **`IItemMergeService.Merge`** repoints source `ItemHistories` to the target, *removing* rows whose
+  `CheckDate` the target already has (unique index), picks the most active status (Open > Checked >
+  Archived, later `CheckDate` breaks ties; the winner's amount/unit/check date come along), keeps the
+  target's name/unit and takes a source hint only if the target has none, then
+  `ChangeTracker.DetectChanges()` and `IEntityService.DeleteRange(sources)` — the DetectChanges is
+  load-bearing, otherwise EF's cascade deletes the just-moved history with the old parent. One save;
+  the target change is broadcast directly (not via `AddOrUpdate`, which would fire a web push).
+- **`RemoveItem` deletes instead of archiving** when the item has no `ItemHistory` and was added
+  under 10 minutes ago (typo cleanup), via `IEntityService.Delete` so the removal broadcast runs.
+- **Archiving lives in `IItemArchiveService.ArchiveStale`** (scoped; `GetItems` calls it). Each stale
+  checked item is *claimed* with a conditional `ExecuteUpdate … where Id==x && Status==Checked &&
+  CheckDate==seen` inside a transaction, and the `ItemHistory` row is written only when that affected
+  exactly one row, so concurrent `GET`s cannot record a purchase twice. `ItemHistories` also has a
+  unique index on `(ShoppingListItemId, CheckDate)` as a backstop. It goes through `DataContext`
+  directly because `IRepository` has no way to add an `ItemHistory`.
 - **`AppDbInitializer`**: runs migrations and seeds the `user`/`admin` roles on startup.
 
 ### Key Directories
@@ -151,6 +198,12 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 - All entities track modification user/timestamp
 - SQLite database with Entity Framework Code First
 - Recommendation algorithm in `recommend.sql`
+- **`Recommendations` view ranking** (`recommend.sql`, mirrored in `RecommendationOverdueRank`):
+  `Weight` = overdue ratio `Since / max(median purchase interval, 1 day)`; `Rank` = `-priority`, so the
+  ascending `orderby r.Rank` lists the most promising item first. Priority rises with the ratio up to 2,
+  then decays as `2/(ratio-1)` (an item at 10x is probably no longer bought), scaled by
+  `Count/(Count+5)` so staples beat rarities. `AvgDiff` stays the mean, for display only. The view is
+  raw SQL, so changing it needs a migration plus the `recommend.sql` copy (`Tests/RecommendationRankTests.cs`).
 - Items are unique per shopping list (composite unique index on Name + ShoppingListId)
 - ItemHistory records purchase events for analytics and decluttering
 - **`HasData` seeds must be deterministic.** Since EF Core 9, `Database.Migrate()` throws
@@ -184,7 +237,37 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 - **InjectionToken-based DI**: each service exports an `IXxxToken` constant and components inject via
   `@Inject(IRepoToken)` rather than the concrete class. Follow this pattern for new services.
 - **`WebRepo`** implements `IRepo`. Every request sets `withCredentials: true` for cookie auth;
-  `SaveEntity()` dispatches to PUT when `id > 0` and POST when `id === 0`.
+  `SaveEntity()` dispatches to PUT when `id > 0` and POST when `id === 0`. The generic
+  `Get`/`Post`/`Put`/`Delete` take **raw multi-segment path fragments**, so they cannot encode their
+  arguments — anything containing user-typed text needs a typed method that builds `HttpParams`
+  instead (`SearchItems`, `SearchUnits`, `GetDeclutterCandidates`). That is also why the item and
+  unit search endpoints take `[FromQuery] string pattern` rather than a route segment: Kestrel decodes
+  `%2F` before routing, so an item name containing `/` would 404 against a `{pattern?}` route even
+  with `encodeURIComponent` on the client.
+- **Unsubscribe with `destroy$` + `takeUntil`**, declared as a field and completed in `ngOnDestroy`
+  (`shopping-list.component.ts`, `login`, `home`, `notification-banner`). The codebase deliberately
+  uses one idiom — do not mix in `takeUntilDestroyed`. Subscriptions to a plain HTTP call complete on
+  their own and need no teardown; subscriptions to a service-held subject (`AuthService.UserInfo`,
+  `PushNotificationService.permission$`) do.
+- **Errors have two owners and they must not overlap.** `HttpErrorInterceptor`
+  (`infrastructure/HttpErrorInterceptor.ts`, registered via `HTTP_INTERCEPTORS` — the existing
+  `provideHttpClient(withInterceptorsFromDi())` is what makes the class form work) handles **401/403**
+  by refreshing `IAuthService` and routing to `/login`, and **status 0 or ≥ 500** with a rate-limited
+  snackbar. It passes **400 straight through** because `ServerValidation` owns that shape, and it
+  always rethrows so component `error` callbacks still run. Components therefore add an `error`
+  callback only to unstick their own state (a stuck `isLoading` behind `[app-loading]`), never a
+  second snackbar.
+  - The interceptor is instantiated on the **first HTTP request**, which is `AuthService`'s
+    constructor. Injecting `IAuthServiceToken` into it directly is an NG0200 cycle at bootstrap — it
+    must be resolved through `Injector` inside the handler. `Router` and `MatSnackBar` are safe.
+- **`AuthService.UserInfo` is a cached `ReplaySubject(1)`, not the raw HTTP call**, so `GET /Account`
+  happens once instead of once per guard evaluation and component. `Refresh()` re-fetches and emits
+  once, then completes, so callers can sequence on it — `LoginComponent.ClaimAdmin` must, or the guard
+  reads the pre-claim roles and bounces back to `/login`. `Refresh()` never errors (it fails closed to
+  an anonymous user): the router wraps guards in `first()`, so an error there becomes a
+  `NavigationError` and leaves a blank page. It also normalizes `roles` to `[]` — `AccountController`
+  omits the field entirely for an anonymous caller, so it arrives as `null`. Watch for truthiness
+  checks on `roles` after that: `[]` is truthy.
 - **`SignalRNotificationService`** connects to `/live` with auto-reconnect and exposes
   `OnItemChanged()`/`OnItemRemoved()` as observables filtered by shopping list id. Callers must
   `JoinList()` to receive anything (see Real-time Features).
@@ -193,7 +276,11 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
 - **Models** extend `ModelBase<T>` (constructor takes `Partial<T>`) and implement `IEntity`
   (`id: number`). Infrastructure types: `DataResult<T>` for pagination, `EntityOperationResult<T>`
   for validation.
-- **Responsive**: use the `IAppUiService.IsMobile` observable rather than ad-hoc media queries.
+- **Responsive**: use the `IAppUiService.IsMobile` observable rather than ad-hoc media queries. In a
+  template, compare it explicitly — `@if ((isMobile | async) === true)` / `=== false`, never
+  `@if (!(isMobile | async))`. `BreakpointAppUiService` debounces 200 ms, so the async pipe yields
+  `null` until the first emission and a negated check would render the desktop branch on a phone for
+  that window.
 - PWA capabilities with service worker.
 
 ## Features
@@ -232,6 +319,13 @@ The declutter feature helps users identify and remove stale or rarely-used items
   `ItemHistory` — `recommend.sql` and `DeclutterService` alike — reaches it through the item, so
   orphaned history rows would be unreadable rather than useful. `Archived` is the state for "not
   currently on the list"; a delete is a real delete.
+- **Merge duplicates** is a collapsed `mat-expansion-panel` at the top of `DeclutterComponent`; the
+  groups load on first expand (pairwise matching is not free). Per group the user picks the survivor
+  with a radio (default: highest purchase count), can untick individual sources, and the group
+  disappears after a successful merge. It needs `MatRadioModule` (added to `AppModule`).
+- The add form (`ShoppingListComponent.save`) calls `SuggestItems` first; near matches open
+  `ItemSuggestionDialogComponent` ("Meintest du …?": pick an existing name, keep the typed one, or
+  dismiss to cancel). No near match or a failed lookup adds immediately — still one tap.
 - Bulk delete goes through `IEntityService<T>.DeleteRange`, which saves once for the whole batch and
   then broadcasts one removal per item.
 
@@ -285,6 +379,10 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
 `PushNotifications:CooldownMinutes` (default 5) however much more that user adds. The body's count is
 "items in the collect window", not a running total.
 
+- Endpoints whose host is `.invalid` (Chrome's marker for retired FCM subscriptions) are unsubscribed
+  *before* sending (`IsDeadEndpoint`); a plain network error never removes a subscription. `Endpoint`
+  is unique: `SubscribeAsync` looks up by endpoint alone and updates that row, including `UserId`,
+  so a browser now used by another account moves over instead of duplicating.
 - The service is a **singleton** and resolves `IPushSubscriptionService` per send from
   `IServiceScopeFactory` — the send happens long after the originating request scope is gone, so it
   must not capture a scoped `DataContext`. Do not re-register it as scoped.
@@ -314,10 +412,15 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
 6. Add corresponding Angular service and components
 
 ### Testing
+- `Tests/ImprovementsTests.cs` covers the archive race and history unique index (I1) and name
+  trimming (I2); `Tests/WebPushNotificationTests.cs` also covers `.invalid` pruning and the unique
+  endpoint (I3). The `ArchiveRaceNameTrimAndPushEndpoints` migration's data SQL is verified by a dry
+  run against a prod copy, not by a unit test.
 - Backend: XUnit in `Tests/`, run with `dotnet test` from the repo root. Coverage is limited to
   authorization, SignalR group scoping, web-push throttling, the F6 correctness fixes
   (`Tests/CorrectnessTests.cs` — unit handling, the declutter query's SQL translation and its
-  candidate semantics, and the 400 error contract) and the F7 UTC switch
+  candidate semantics, the 400 error contract, and the query-string search pattern from F8) and the
+  F7 UTC switch
   (`Tests/UtcDateTimeTests.cs` — `Kind` round-trip, the trailing `Z` on the wire and the archive
   cutoff; `Tests/UtcBackfillSqlTests.cs` — the DST boundary arithmetic and the generated backfill SQL
   run against in-memory SQLite).

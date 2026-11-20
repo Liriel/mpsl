@@ -197,7 +197,7 @@ public class AuthorizationTests : IClassFixture<TestAppFactory>, IAsyncLifetime
 
     [Fact]
     public Task ShoppingList_Search_RequiresApprovedUser() =>
-        this.AssertRequiresApprovedUser(() => new HttpRequestMessage(HttpMethod.Get, $"api/ShoppingList/{this.shoppingListId}/search/milk"));
+        this.AssertRequiresApprovedUser(() => new HttpRequestMessage(HttpMethod.Get, $"api/ShoppingList/{this.shoppingListId}/search?pattern=milk"));
 
     [Fact]
     public Task ShoppingList_Recommendations_RequiresApprovedUser() =>
@@ -330,7 +330,7 @@ public class AuthorizationTests : IClassFixture<TestAppFactory>, IAsyncLifetime
 
     [Fact]
     public Task Unit_Search_RequiresApprovedUser() =>
-        this.AssertRequiresApprovedUser(() => new HttpRequestMessage(HttpMethod.Get, "api/Unit/search/g"));
+        this.AssertRequiresApprovedUser(() => new HttpRequestMessage(HttpMethod.Get, "api/Unit/search?pattern=g"));
 
     [Fact]
     public Task Unit_Post_RequiresApprovedUser() =>

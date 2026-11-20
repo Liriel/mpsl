@@ -246,6 +246,34 @@ public class CorrectnessTests : IClassFixture<TestAppFactory>, IAsyncLifetime
         }
     }
 
+    // ---- search pattern in the query string ----
+
+    /// <summary>
+    /// The search pattern moved from a route segment to a query parameter because Kestrel decodes
+    /// %2F before routing, so a name containing "/" would 404 against a {pattern?} route segment
+    /// even with client-side encodeURIComponent. The query string does not have that problem.
+    /// </summary>
+    [Fact]
+    public async Task SearchItems_WithSlashAndPercentInName_IsFound()
+    {
+        var name = $"Snacks/Chips 50%-{Guid.NewGuid():N}";
+        await this.SeedItemAsync(name, NameHelper.GetNormalizedName(name), DateTime.UtcNow);
+
+        using var client = this.CreateClient();
+        using var response = await client.GetAsync(
+            $"api/ShoppingList/{this.shoppingListId}/search?pattern={Uri.EscapeDataString(name)}");
+
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.True(response.IsSuccessStatusCode, $"expected success, got {response.StatusCode}: {body}");
+
+        var names = JsonDocument.Parse(body).RootElement
+            .EnumerateArray()
+            .Select(e => e.GetProperty("name").GetString())
+            .ToList();
+
+        Assert.Contains(name, names);
+    }
+
     // ---- declutter ----
 
     /// <summary>

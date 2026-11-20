@@ -34,13 +34,15 @@ public class PushSubscriptionService : IPushSubscriptionService
 
     public async Task<PushSubscription> SubscribeAsync(string userId, string endpoint, string p256dh, string auth, string userAgent)
     {
-        // Check if subscription already exists
+        // Check if subscription already exists - by endpoint alone, which identifies the browser
         var existing = this.repo.GetEntities<PushSubscription>()
-            .FirstOrDefault(s => s.UserId == userId && s.Endpoint == endpoint);
+            .FirstOrDefault(s => s.Endpoint == endpoint);
 
         if (existing != null)
         {
-            // Update existing subscription
+            // Update existing subscription. The endpoint is unique, so a browser that is now used by
+            // a different account takes the row over rather than adding a second one.
+            existing.UserId = userId;
             existing.P256dh = p256dh;
             existing.Auth = auth;
             existing.UserAgent = userAgent;

@@ -48,9 +48,13 @@ export class RecommendationsComponent implements OnInit, AfterViewInit {
 
   public refresh(): void {
     //this.isLoading.next(true);
-    this.repo.Get<Recommendation[]>("api/shoppinglist/" + this.shoppingListId + "/recommendations").subscribe(r => {
-      this.items = r.slice(0, 7);
-      this.isLoading.next(false);
+    this.repo.Get<Recommendation[]>("api/shoppinglist/" + this.shoppingListId + "/recommendations").subscribe({
+      next: r => {
+        this.items = r.slice(0, 7);
+        this.isLoading.next(false);
+      },
+      // unstick the spinner on failure - the interceptor already toasts the failure
+      error: () => this.isLoading.next(false)
     });
   }
 

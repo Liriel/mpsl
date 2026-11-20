@@ -280,8 +280,35 @@ public class WebPushNotificationService : IWebPushNotificationService
         }
     }
 
+    /// <summary>
+    /// True for endpoints on the reserved <c>.invalid</c> TLD, which Chrome writes into retired FCM
+    /// subscriptions. They can never resolve, so there is nothing to wait for before removing them.
+    /// </summary>
+    internal static bool IsDeadEndpoint(string endpoint)
+    {
+        if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri))
+            return false;
+
+        return uri.Host.Equals("invalid", StringComparison.OrdinalIgnoreCase) ||
+               uri.Host.EndsWith(".invalid", StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task SendToSubscriptionAsync(IPushSubscriptionService subscriptionService, PushSubscriptionModel subscription, PushNotificationPayload payload)
     {
+        if (IsDeadEndpoint(subscription.Endpoint))
+        {
+            this.logger.LogInformation($"Removing subscription {subscription.Id} with an unreachable .invalid endpoint");
+            try
+            {
+                await subscriptionService.UnsubscribeAsync(subscription.UserId, subscription.Endpoint);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, $"Failed to remove dead subscription {subscription.Id}");
+            }
+            return;
+        }
+
         try
         {
             var pushSubscription = new WebPushSubscription(

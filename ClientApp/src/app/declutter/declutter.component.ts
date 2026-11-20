@@ -3,11 +3,21 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SelectionModel } from '@angular/cdk/collections';
+import { Observable } from 'rxjs';
 import { IRepo, IRepoToken } from '../services/IRepo';
 import { IAppUiService, IAppUiServiceToken } from '../services';
-import { DeclutterCandidate, ShoppingList } from '../models';
+import { DeclutterCandidate, ItemMatch, ShoppingList } from '../models';
 import { ConfirmDeleteDialogComponent } from '../shared/confirm-delete-dialog/confirm-delete-dialog.component';
 import { ConfirmDeleteDialogData } from '../shared/confirm-delete-dialog/confirm-delete-dialog.model';
+
+/** One suggested set of duplicates, with the user's choice of survivor and exclusions. */
+export interface MergeGroup {
+  items: ItemMatch[];
+  targetId: number;
+  /** ids the user took out of the merge */
+  excluded: Set<number>;
+  isMerging: boolean;
+}
 
 @Component({
   selector: 'app-declutter',
@@ -20,8 +30,13 @@ export class DeclutterComponent implements OnInit {
   public isLoading = false;
   public shoppingListId: number;
   public shoppingListName: string = '';
-  public isMobile = false;
-  
+  public isMobile: Observable<boolean>;
+
+  // Merge duplicates
+  public mergeGroups: MergeGroup[] = [];
+  public isLoadingGroups = false;
+  private groupsLoaded = false;
+
   // Filter settings
   public minMonthsSinceLastPurchase = 6;
   public maxPurchaseCount = 2;
@@ -37,15 +52,13 @@ export class DeclutterComponent implements OnInit {
     private router: Router,
     private dialog: MatDialog,
     private snackBar: MatSnackBar
-  ) { }
+  ) {
+    this.isMobile = this.appUiService.IsMobile;
+  }
 
   ngOnInit(): void {
     this.shoppingListId = parseInt(this.route.snapshot.paramMap.get('id') || '0', 10);
-    
-    // Detect mobile view
-    this.checkMobileView();
-    window.addEventListener('resize', () => this.checkMobileView());
-    
+
     // Load shopping list name
     this.repo.GetEntity<ShoppingList>('ShoppingList', this.shoppingListId).subscribe({
       next: (shoppingList) => {
@@ -58,10 +71,6 @@ export class DeclutterComponent implements OnInit {
     });
     
     this.loadCandidates();
-  }
-
-  private checkMobileView(): void {
-    this.isMobile = window.innerWidth <= 768;
   }
 
   loadCandidates(): void {
@@ -142,6 +151,77 @@ export class DeclutterComponent implements OnInit {
             this.isLoading = false;
           }
         });
+      }
+    });
+  }
+
+  /** Loaded on first expand: the matcher compares every item pair, so it is not free. */
+  loadMergeGroups(): void {
+    if (this.groupsLoaded || this.isLoadingGroups) {
+      return;
+    }
+
+    this.isLoadingGroups = true;
+    this.repo.GetDuplicateGroups(this.shoppingListId).subscribe({
+      next: groups => {
+        this.mergeGroups = groups.map(items => ({
+          items: items,
+          // the matcher sends the best-established item first
+          targetId: items.reduce((best, i) => i.purchaseCount > best.purchaseCount ? i : best, items[0]).id,
+          excluded: new Set<number>(),
+          isMerging: false
+        }));
+        this.groupsLoaded = true;
+        this.isLoadingGroups = false;
+      },
+      error: () => this.isLoadingGroups = false
+    });
+  }
+
+  sourcesOf(group: MergeGroup): ItemMatch[] {
+    return group.items.filter(i => i.id !== group.targetId);
+  }
+
+  mergeCount(group: MergeGroup): number {
+    return this.sourcesOf(group).filter(i => !group.excluded.has(i.id)).length;
+  }
+
+  selectTarget(group: MergeGroup, id: number): void {
+    group.targetId = id;
+    group.excluded.delete(id);
+  }
+
+  toggleSource(group: MergeGroup, id: number): void {
+    if (group.excluded.has(id)) {
+      group.excluded.delete(id);
+    } else {
+      group.excluded.add(id);
+    }
+  }
+
+  targetName(group: MergeGroup): string {
+    return group.items.find(i => i.id === group.targetId)?.name ?? '';
+  }
+
+  merge(group: MergeGroup): void {
+    const sourceIds = this.sourcesOf(group).filter(i => !group.excluded.has(i.id)).map(i => i.id);
+    if (sourceIds.length === 0) {
+      return;
+    }
+
+    group.isMerging = true;
+    this.repo.MergeItems(this.shoppingListId, group.targetId, sourceIds).subscribe({
+      next: () => {
+        this.snackBar.open(`Merged ${sourceIds.length} item(s) into ${this.targetName(group)}`, 'Close', { duration: 3000 });
+        this.mergeGroups = this.mergeGroups.filter(g => g !== group);
+        // the merged-away items may have been declutter candidates too
+        this.loadCandidates();
+      },
+      // the interceptor reports 5xx/network; a 400 from the server has nothing useful for the
+      // user to fix here beyond reloading the suggestions
+      error: () => {
+        group.isMerging = false;
+        this.snackBar.open('Could not merge these items', 'Close', { duration: 3000 });
       }
     });
   }

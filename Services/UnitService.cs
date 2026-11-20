@@ -1,3 +1,4 @@
+using mps.Infrastructure;
 using mps.Model;
 using mps.Services;
 
@@ -14,11 +15,11 @@ public class UnitService : IUnitService
         this.repo = repo;
     }
 
-    public Unit GetOrCreateUnit(string unitShortName)
+    public EntityOperationResult<Unit> GetOrCreateUnit(string unitShortName)
     {
         // check if the unit exists or should be created
         if (string.IsNullOrWhiteSpace(unitShortName))
-            return null;
+            return new EntityOperationResult<Unit> { Success = true };
 
         unitShortName = unitShortName.Trim();
 
@@ -31,6 +32,10 @@ public class UnitService : IUnitService
 
         if (unit == null)
         {
+            if (!UnitParser.IsPlausibleUnit(unitShortName))
+                return new EntityOperationResult<Unit>(
+                    new ValidationError("A unit needs at least one letter", "UnitShortName"));
+
             // persist immediately so callers get a unit with a real Id they can assign to a
             // foreign key - returning a detached Id = 0 unit silently wrote UnitId = 0 before
             unit = new Unit { ShortName = unitShortName, Name = unitShortName };
@@ -39,6 +44,6 @@ public class UnitService : IUnitService
             this.logger.LogInformation("Created unit {ShortName} with id {Id}", unit.ShortName, unit.Id);
         }
 
-        return unit;
+        return new EntityOperationResult<Unit> { Success = true, Entity = unit };
     }
 }

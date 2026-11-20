@@ -82,7 +82,13 @@ public class WebPushNotificationTests
         public Task<PushSubscriptionModel> SubscribeAsync(string userId, string endpoint, string p256dh, string auth, string userAgent) =>
             throw new NotImplementedException();
 
-        public Task<bool> UnsubscribeAsync(string userId, string endpoint) => throw new NotImplementedException();
+        public ConcurrentQueue<string> Unsubscribed { get; } = new();
+
+        public Task<bool> UnsubscribeAsync(string userId, string endpoint)
+        {
+            this.Unsubscribed.Enqueue(endpoint);
+            return Task.FromResult(true);
+        }
 
         public Task<IEnumerable<PushSubscriptionModel>> GetUserSubscriptionsAsync(string userId) => throw new NotImplementedException();
 
@@ -97,7 +103,7 @@ public class WebPushNotificationTests
     /// millisecond-scale values so tests never wait anywhere near real production durations.
     /// </summary>
     private static WebPushNotificationService CreateService(
-        FakeWebPushSender sender,
+        IWebPushSender sender,
         IPushSubscriptionService subscriptionService,
         TimeSpan collectWindow,
         TimeSpan cooldown)
@@ -304,6 +310,85 @@ public class WebPushNotificationTests
         await Task.Delay(200);
         Assert.DoesNotContain(sender.Calls, c => c.Endpoint == "https://push.example.com/audience-actor");
         Assert.DoesNotContain(sender.Calls, c => c.Endpoint == "https://push.example.com/audience-unapproved");
+    }
+
+    // ---- I3: dead endpoints are pruned, transient errors are not ----
+
+    private class ThrowingWebPushSender : IWebPushSender
+    {
+        public ConcurrentQueue<string> Attempts { get; } = new();
+
+        public Task SendAsync(WebPushSubscription subscription, string payloadJson, VapidDetails vapidDetails)
+        {
+            this.Attempts.Enqueue(subscription.Endpoint);
+            throw new HttpRequestException("Name or service not known");
+        }
+    }
+
+    [Theory]
+    [InlineData("https://permanently-removed.invalid/fcm/send/abc")]
+    [InlineData("https://PERMANENTLY-REMOVED.INVALID:443/fcm/send/abc")]
+    public async Task NotifyListActivity_InvalidHostEndpoint_IsUnsubscribedWithoutSending(string endpoint)
+    {
+        var subs = new FakeSubscriptionService(("actor", "https://push.example.com/actor"), ("other", endpoint));
+        var sender = new ThrowingWebPushSender();
+        var service = CreateService(sender, subs, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(400));
+
+        service.NotifyListActivity(1, "Groceries", "actor", "Actor");
+
+        Assert.True(await WaitUntilAsync(() => subs.Unsubscribed.Contains(endpoint), TimeSpan.FromSeconds(5)),
+            "expected the .invalid endpoint to be unsubscribed");
+        Assert.Empty(sender.Attempts);
+    }
+
+    [Fact]
+    public async Task NotifyListActivity_TransientNetworkError_KeepsTheSubscription()
+    {
+        const string endpoint = "https://push.example.com/flaky";
+        var subs = new FakeSubscriptionService(("actor", "https://push.example.com/actor"), ("other", endpoint));
+        var sender = new ThrowingWebPushSender();
+        var service = CreateService(sender, subs, TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(400));
+
+        service.NotifyListActivity(1, "Groceries", "actor", "Actor");
+
+        Assert.True(await WaitUntilAsync(() => sender.Attempts.Contains(endpoint), TimeSpan.FromSeconds(5)));
+        await Task.Delay(150);
+        Assert.Empty(subs.Unsubscribed);
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_ExistingEndpoint_UpdatesTheRowEvenForAnotherUser()
+    {
+        using var factory = new TestAppFactory();
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var first = await CreateApprovedUserAsync(userManager, "sub-first");
+        var second = await CreateApprovedUserAsync(userManager, "sub-second");
+
+        var service = scope.ServiceProvider.GetRequiredService<IPushSubscriptionService>();
+        const string endpoint = "https://push.example.com/same-browser";
+        await service.SubscribeAsync(first, endpoint, "k1", "a1", "ua");
+        await service.SubscribeAsync(second, endpoint, "k2", "a2", "ua");
+
+        var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+        var row = Assert.Single(db.PushSubscriptions.Where(s => s.Endpoint == endpoint).ToList());
+        Assert.Equal(second, row.UserId);
+        Assert.Equal("k2", row.P256dh);
+    }
+
+    [Fact]
+    public async Task UniqueEndpointIndex_RejectsADuplicateRow()
+    {
+        using var factory = new TestAppFactory();
+        using var scope = factory.Services.CreateScope();
+        var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+        var user = await CreateApprovedUserAsync(userManager, "dup-endpoint");
+
+        var db = scope.ServiceProvider.GetRequiredService<DataContext>();
+        db.PushSubscriptions.Add(new PushSubscriptionModel { UserId = user, Endpoint = "https://push.example.com/dup", P256dh = "p", Auth = "a" });
+        await db.SaveChangesAsync();
+        db.PushSubscriptions.Add(new PushSubscriptionModel { UserId = user, Endpoint = "https://push.example.com/dup", P256dh = "p", Auth = "a" });
+        await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 
     private static async Task<string> CreateApprovedUserAsync(UserManager<ApplicationUser> userManager, string userNamePrefix)

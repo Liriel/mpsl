@@ -21,9 +21,13 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly IUserIdentityService userIdentityService;
     private readonly IShoppingListAccessService accessService;
     private readonly IDeclutterService declutterService;
+    private readonly IItemArchiveService archiveService;
+    private readonly IItemMatchService matchService;
+    private readonly IItemMergeService mergeService;
 
     public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService,
-        IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService, IShoppingListAccessService accessService, IDeclutterService declutterService)
+        IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService, IShoppingListAccessService accessService, IDeclutterService declutterService, IItemArchiveService archiveService,
+        IItemMatchService matchService, IItemMergeService mergeService)
         : base(entitySvc, repo, logger, mapper)
     {
         this.userIdentityService = userIdentityService;
@@ -34,6 +38,9 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         this.mapper = mapper;
         this.accessService = accessService;
         this.declutterService = declutterService;
+        this.archiveService = archiveService;
+        this.matchService = matchService;
+        this.mergeService = mergeService;
     }
 
     protected override IQueryable<ShoppingList> ApplyAccessFilter(IQueryable<ShoppingList> query) =>
@@ -85,27 +92,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
 
         DateTime minDate = DateTime.UtcNow.AddHours(-1);
 
-        // find old items
-        var o = from i in this.repo.ShoppingListItems
-                where i.ShoppingListId == shoppingListId
-                where i.Status == ItemState.Checked && i.CheckDate < minDate
-                select i;
-
-        if (o.Any())
-        {
-            foreach (var item in o)
-            {
-                item.History.Add(new ItemHistory
-                {
-                    Amount = item.Amount,
-                    UnitId = item.UnitId,
-                    CheckDate = item.CheckDate.Value
-                });
-                item.Status = ItemState.Archived;
-            }
-
-            this.repo.SaveChanges();
-        }
+        this.archiveService.ArchiveStale(shoppingListId, minDate);
 
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
@@ -160,10 +147,17 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         // item already carries in place, an empty one clears it.
         if (itemViewModel.UnitShortName != null)
         {
+            // "500g" typed into the unit field with no amount becomes amount 500 + unit g
+            var (amount, unitText) = UnitParser.Split(itemViewModel.Amount, itemViewModel.UnitShortName);
+            item.Amount = amount;
+
             // local, not item.Unit - see ItemController.PostMapping
-            var unit = this.unitService.GetOrCreateUnit(itemViewModel.UnitShortName);
-            item.Unit = unit;
-            item.UnitId = unit?.Id;
+            var unitResult = this.unitService.GetOrCreateUnit(unitText);
+            if (!unitResult.Success)
+                return AddItemFailure(unitResult.ValidationErrors[0].Message, nameof(itemViewModel.UnitShortName));
+
+            item.Unit = unitResult.Entity;
+            item.UnitId = unitResult.Entity?.Id;
         }
 
         item.AddDate = DateTime.UtcNow;
@@ -187,6 +181,9 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         return new BadRequestObjectResult(result);
     }
 
+    /// <summary>An item without history that is removed within this many minutes is deleted, not archived.</summary>
+    private const int FreshItemMinutes = 10;
+
     [HttpDelete("{shoppingListId}/remove/{itemId}")]
     public IActionResult RemoveItem(int shoppingListId, int itemId)
     {
@@ -202,14 +199,24 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         if (item == null)
             return new BadRequestObjectResult("Item not found in shopping list");
 
+        // A typo removed right after it was added (no purchase ever recorded) leaves nothing behind:
+        // archiving it would only add clutter for the declutter tool to find later. Going through
+        // the entity service keeps the SignalR removal broadcast.
+        if (item.AddDate > DateTime.UtcNow.AddMinutes(-FreshItemMinutes)
+            && !this.repo.ItemHistories.Any(h => h.ShoppingListItemId == itemId))
+        {
+            this.itemService.Delete(item);
+            return Ok();
+        }
+
         item.Status = ItemState.Archived;
         var saveResult = this.itemService.AddOrUpdate(item);
 
         return Ok();
     }
 
-    [HttpGet("{shoppingListId}/search/{pattern?}")]
-    public IActionResult SearchItems(int shoppingListId, string pattern = "")
+    [HttpGet("{shoppingListId}/search")]
+    public IActionResult SearchItems(int shoppingListId, [FromQuery] string pattern = "")
     {
         if (this.repo.Find<ShoppingList>(shoppingListId) == null)
             return new NotFoundObjectResult("Invalid shopping list");
@@ -220,13 +227,78 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         // replace umlauts
         pattern = NameHelper.GetNormalizedName(pattern);
 
+        // also match on the fuzzy key, so "passtomaten" finds "Pass Tomaten"
+        var keyMatches = this.matchService.FindByMatchKey(shoppingListId, pattern);
+
         var q = from i in this.repo.ShoppingListItems
                 where i.ShoppingListId == shoppingListId
-                where i.NormalizedName.Contains(pattern)
+                where i.NormalizedName.Contains(pattern) || keyMatches.Contains(i.Id)
                 orderby i.Name
                 select i;
 
         return Ok(this.mapper.ProjectTo<ShoppingListItemViewModel>(q));
+    }
+
+    /// <summary>
+    /// Existing items close to <paramref name="name"/> ("Meintest du ...?"), best-established first.
+    /// Empty when the name already matches an item exactly or nothing is near.
+    /// </summary>
+    [HttpGet("{shoppingListId}/suggest")]
+    public IActionResult SuggestItems(int shoppingListId, [FromQuery] string name = "")
+    {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
+        var matches = this.matchService.Suggest(shoppingListId, name ?? string.Empty);
+        return Ok(matches.Select(ToViewModel));
+    }
+
+    // not AutoMapper: AutoMapper 11 cannot scan a positional record on .NET 10 (it throws while
+    // probing LINQ extension methods) and takes every other mapping in the app down with it
+    private static ItemMatchViewModel ToViewModel(ItemMatch m) => new ItemMatchViewModel
+    {
+        Id = m.Id,
+        Name = m.Name,
+        ShortName = m.ShortName,
+        Status = m.Status.ToString(),
+        PurchaseCount = m.PurchaseCount,
+        LastPurchaseDate = m.LastPurchaseDate
+    };
+
+    /// <summary>Suggested groups of probable duplicate items, input for the merge tool.</summary>
+    [HttpGet("{shoppingListId}/duplicates")]
+    public IActionResult GetDuplicateGroups(int shoppingListId)
+    {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
+        var groups = this.matchService.FindDuplicateGroups(shoppingListId)
+            .Select(g => g.Items.Select(ToViewModel).ToList())
+            .ToList();
+        return Ok(groups);
+    }
+
+    /// <summary>Folds duplicate items into a surviving one, keeping their purchase history.</summary>
+    [HttpPost("{shoppingListId}/merge")]
+    public IActionResult MergeItems(int shoppingListId, [FromBody] ItemMergeViewModel model)
+    {
+        if (this.repo.Find<ShoppingList>(shoppingListId) == null)
+            return new NotFoundObjectResult("Invalid shopping list");
+
+        if (!this.accessService.CanAccessList(shoppingListId, this.User))
+            return Forbid();
+
+        var result = this.mergeService.Merge(shoppingListId, model.TargetId, model.SourceIds);
+        if (!result.Success)
+            return new BadRequestObjectResult(new ValidationFailureResult { ValidationErrors = result.ValidationErrors.ToList() });
+
+        return Ok(this.mapper.Map<ShoppingListItemViewModel>(result.Entity));
     }
 
     /// <summary>

@@ -14,6 +14,8 @@ import { MatDialogModule } from '@angular/material/dialog';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatRadioModule } from '@angular/material/radio';
+import { ItemSuggestionDialogComponent } from './item-suggestion-dialog/item-suggestion-dialog.component';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
@@ -30,7 +32,8 @@ import { ShoppingListComponent } from './shopping-list/shopping-list.component';
 import { ItemDialogComponent } from './item-dialog/item-dialog.component';
 import { AuthService, BreakpointAppUiService, ConsoleLogger, IAppUiServiceToken, IAuthServiceToken, IConfigServiceToken, ILoggerToken, StaticConfigService, WebRepo, ThemeService, IThemeServiceToken } from './services';
 import { HomeComponent } from './home/home.component';
-import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { HttpErrorInterceptor } from './infrastructure/HttpErrorInterceptor';
 import { INotificationServiceToken } from './services/INotificationService';
 import { SignalRNotificationService } from './services/SignalRNotificationService';
 import { LoadingComponent } from './loading/loading.component';
@@ -76,6 +79,7 @@ import { NotificationsTestComponent } from './notifications-test/notifications-t
     ThemeToggleComponent,
     DeclutterComponent,
     ConfirmDeleteDialogComponent,
+    ItemSuggestionDialogComponent,
     NotificationBannerComponent,
     NotificationsTestComponent
   ],
@@ -95,6 +99,7 @@ import { NotificationsTestComponent } from './notifications-test/notifications-t
     MatRippleModule,
     MatListModule,
     MatExpansionModule,
+    MatRadioModule,
     MatCardModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,
@@ -116,6 +121,7 @@ import { NotificationsTestComponent } from './notifications-test/notifications-t
   ],
   providers: [
     provideHttpClient(withInterceptorsFromDi()),
+    { provide: HTTP_INTERCEPTORS, useClass: HttpErrorInterceptor, multi: true },
     { provide: IRepoToken, useClass: WebRepo },
     { provide: INotificationServiceToken, useClass: SignalRNotificationService },
     { provide: IConfigServiceToken, useClass: StaticConfigService },

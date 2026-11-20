@@ -30,9 +30,11 @@ export class AppComponent implements OnInit {
     sanitizer: DomSanitizer
   ){
     iconRegistry.addSvgIcon("microsoft", sanitizer.bypassSecurityTrustResourceUrl("assets/mssymbol.svg"));
+    // AppComponent lives for the app's lifetime, so this subscription needs no teardown; roles is
+    // guaranteed non-null (AuthService normalizes it), so no null-check is needed here either
     this.authService.UserInfo.subscribe(r => {
       this.isAuthenticated = r.isAuthenticated;
-      this.isAdmin = r.roles ? r.roles.includes("admin") : false;
+      this.isAdmin = r.roles.includes("admin");
       this.userName = r.userName;
     });
 
@@ -44,7 +46,8 @@ export class AppComponent implements OnInit {
       console.log('Notification clicked:', click);
       
       if (click.notification?.data?.shoppingListId) {
-        this.router.navigate(['/shopping-list', click.notification.data.shoppingListId]);
+        // route is "list/:id" (app-routing.module.ts), not "shopping-list" - this was a dead end
+        this.router.navigate(['/list', click.notification.data.shoppingListId]);
       }
     });
 

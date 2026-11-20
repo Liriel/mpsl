@@ -119,7 +119,9 @@ namespace mps.Controllers
                 return Failure($"{typeof(TEntity).Name} has already been added", nameof(EditViewModel.Id));
 
             var entity = this.mapper.Map<TEntity>(viewModel);
-            this.PostMapping(viewModel, entity);
+            var mappingError = this.PostMapping(viewModel, entity);
+            if (mappingError != null)
+                return Failure(mappingError.Message, mappingError.Fields.ToArray());
 
             var validationResult = this.svc.Validate(entity);
             if (!validationResult.Success)
@@ -148,7 +150,9 @@ namespace mps.Controllers
                 return Forbid();
 
             this.mapper.Map<TEditViewModel, TEntity>(viewModel, entity);
-            this.PostMapping(viewModel, entity);
+            var mappingError = this.PostMapping(viewModel, entity);
+            if (mappingError != null)
+                return Failure(mappingError.Message, mappingError.Fields.ToArray());
 
             var validationResult = this.svc.Validate(entity);
             if (!validationResult.Success)
@@ -176,8 +180,11 @@ namespace mps.Controllers
             return new BadRequestObjectResult(result);
         }
 
-        protected virtual void PostMapping(TEditViewModel viewModel, TEntity entity)
-        { }
+        /// <summary>
+        /// Post-map hook. Return a <see cref="ValidationError"/> to reject the write with a 400 in
+        /// the standard shape, or null to carry on.
+        /// </summary>
+        protected virtual ValidationError PostMapping(TEditViewModel viewModel, TEntity entity) => null;
 
         [HttpDelete("{id}")]
         public IActionResult Delete(int id)
