@@ -76,6 +76,7 @@ builder.Services.AddTransient<IUnitService, UnitService>();
 builder.Services.AddTransient<IDeclutterService, DeclutterService>();
 builder.Services.AddScoped<IItemArchiveService, ItemArchiveService>();
 builder.Services.AddScoped<IItemMatchService, ItemMatchService>();
+builder.Services.AddSingleton<IItemKindClassifier, ItemKindClassifier>();
 builder.Services.AddTransient<IItemMergeService, ItemMergeService>();
 builder.Services.AddTransient<AppDbInitializer>();
 builder.Services.AddSignalR();

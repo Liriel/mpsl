@@ -15,6 +15,7 @@ import { MatMenuModule } from '@angular/material/menu';
 import { MatListModule } from '@angular/material/list';
 import { MatExpansionModule } from '@angular/material/expansion';
 import { MatRadioModule } from '@angular/material/radio';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { ItemSuggestionDialogComponent } from './item-suggestion-dialog/item-suggestion-dialog.component';
 import { MatCardModule } from '@angular/material/card';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
@@ -100,6 +101,7 @@ import { NotificationsTestComponent } from './notifications-test/notifications-t
     MatListModule,
     MatExpansionModule,
     MatRadioModule,
+    MatSlideToggleModule,
     MatCardModule,
     MatProgressSpinnerModule,
     MatProgressBarModule,

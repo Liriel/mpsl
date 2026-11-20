@@ -44,7 +44,13 @@
                   [style.left.px]="item.offsetX" (panstart)="item.offsetX = 0"
                   (panmove)="showSwipeAnimation($event, item)" (panend)="item.offsetX = 0"
                   (click)="openDialog(item)">
-                  <div class="avatar">{{item.shortName}}</div>
+                  <div class="avatar">
+                    @if (item.kind === 'Task') {
+                      <mat-icon class="task-icon">task_alt</mat-icon>
+                    } @else {
+                      {{item.shortName}}
+                    }
+                  </div>
                   <div class="item-info">
                     <div class="item-header">{{item.name}}</div>
                     @if (item.lastChangeByUserShowShortnameInList) {
@@ -99,7 +105,7 @@
         <form class="add-form" [formGroup]="formGroup">
           <mat-form-field style="flex:1;">
             <mat-label>Item</mat-label>
-            <input type="text" placeholder="Pick one" aria-label="Item name" matInput formControlName="name"
+            <input type="text" placeholder="Item or !todo" aria-label="Item name" matInput formControlName="name"
               [matAutocomplete]="autoItems">
             <mat-autocomplete #autoItems="matAutocomplete">
               @for (option of filteredItems | async; track option) {

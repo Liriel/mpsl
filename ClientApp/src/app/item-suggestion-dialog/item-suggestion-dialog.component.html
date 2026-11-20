@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>Meintest du &hellip;?</h2>
+<h2 mat-dialog-title>Did you mean &hellip;?</h2>
 
 <mat-dialog-content>
   <mat-action-list>
@@ -6,7 +6,7 @@
       <button mat-list-item [mat-dialog-close]="s.name">
         <span matListItemTitle>{{ s.name }}</span>
         @if (s.purchaseCount > 0) {
-          <span matListItemLine class="purchase-count">{{ s.purchaseCount }}&times; gekauft</span>
+          <span matListItemLine class="purchase-count">{{ s.purchaseCount }}&times; bought</span>
         }
       </button>
     }
@@ -14,8 +14,8 @@
 </mat-dialog-content>
 
 <mat-dialog-actions>
-  <button mat-button [mat-dialog-close]="undefined">Abbrechen</button>
+  <button mat-button [mat-dialog-close]="undefined">Cancel</button>
   <button mat-raised-button color="primary" [mat-dialog-close]="null" cdkFocusInitial>
-    &bdquo;{{ data.name }}&ldquo; neu anlegen
+    Add &ldquo;{{ data.name }}&rdquo; as new
   </button>
 </mat-dialog-actions>

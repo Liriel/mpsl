@@ -24,10 +24,11 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     private readonly IItemArchiveService archiveService;
     private readonly IItemMatchService matchService;
     private readonly IItemMergeService mergeService;
+    private readonly IItemKindClassifier kindClassifier;
 
     public ShoppingListController(IEntityService<ShoppingList> entitySvc, IRepository repo, ILogger<ShoppingListController> logger, IMapper mapper, IUnitService unitService,
         IEntityService<ShoppingListItem> itemService, IUserIdentityService userIdentityService, IShoppingListAccessService accessService, IDeclutterService declutterService, IItemArchiveService archiveService,
-        IItemMatchService matchService, IItemMergeService mergeService)
+        IItemMatchService matchService, IItemMergeService mergeService, IItemKindClassifier kindClassifier)
         : base(entitySvc, repo, logger, mapper)
     {
         this.userIdentityService = userIdentityService;
@@ -41,6 +42,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         this.archiveService = archiveService;
         this.matchService = matchService;
         this.mergeService = mergeService;
+        this.kindClassifier = kindClassifier;
     }
 
     protected override IQueryable<ShoppingList> ApplyAccessFilter(IQueryable<ShoppingList> query) =>
@@ -119,6 +121,17 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         if (itemViewModel.Id != 0)
             return AddItemFailure("Use item controller to update items", nameof(itemViewModel.Id));
 
+        // "!Tanken" is an explicit task; the prefix is not part of the name
+        var typedName = itemViewModel.Name;
+        var forcedTask = ItemKindClassifier.StripTaskPrefix(ref typedName);
+        if (forcedTask)
+        {
+            if (string.IsNullOrWhiteSpace(typedName))
+                return AddItemFailure("The name must not be empty", nameof(itemViewModel.Name));
+
+            itemViewModel.Name = typedName;
+        }
+
         // NormalizedName is not unique - only Name+ShoppingListId is - so several rows can
         // collapse onto the same normalized value ("Öl" and "Oel" both become OEL). Prefer the
         // exact name match and otherwise take the oldest row, rather than throwing a 500.
@@ -132,15 +145,37 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var item = candidates.FirstOrDefault(i => i.Name == itemViewModel.Name)
             ?? candidates.FirstOrDefault();
 
+        // explicit Kind > "!" prefix > (new items only) the classifier. A re-added item keeps the
+        // kind it has - that is how a user correction sticks.
+        ItemKind? explicitKind = itemViewModel.Kind ?? (forcedTask ? ItemKind.Task : null);
+        var autoClassified = false;
+        string kindReason = null;
+
         if (item == null)
         {
             item = this.mapper.Map<ShoppingListItem>(itemViewModel);
             item.ShoppingListId = shoppingListId;
+
+            if (explicitKind.HasValue)
+            {
+                item.Kind = explicitKind.Value;
+            }
+            else
+            {
+                var otherListNames = this.accessService.FilterAccessible(this.repo.GetEntities<ShoppingList>(), this.User)
+                    .Where(l => l.Id != shoppingListId)
+                    .Select(l => l.Name)
+                    .ToList();
+                (item.Kind, kindReason) = this.kindClassifier.Classify(item.Name, otherListNames);
+                autoClassified = true;
+            }
         }
         else
         {
             item.Amount = itemViewModel.Amount;
             item.Status = ItemState.Open;
+            if (explicitKind.HasValue)
+                item.Kind = explicitKind.Value;
         }
 
         // Same rule as ItemController.PostMapping: a null short name leaves whatever unit the
@@ -165,6 +200,12 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
         var saveResult = this.itemService.AddOrUpdate(item);
 
         var result = new WebOperationResult<ShoppingListAddViewModel, ShoppingListItem>(this.mapper, saveResult);
+        if (result.Entity != null)
+        {
+            result.Entity.KindAuto = autoClassified;
+            result.Entity.KindReason = kindReason;
+        }
+
         return result.Success
             ? new OkObjectResult(result)
             : new BadRequestObjectResult(result);
@@ -240,7 +281,7 @@ public class ShoppingListController : EntityController<ShoppingList, ShoppingLis
     }
 
     /// <summary>
-    /// Existing items close to <paramref name="name"/> ("Meintest du ...?"), best-established first.
+    /// Existing items close to <paramref name="name"/> ("Did you mean ...?"), best-established first.
     /// Empty when the name already matches an item exactly or nothing is near.
     /// </summary>
     [HttpGet("{shoppingListId}/suggest")]

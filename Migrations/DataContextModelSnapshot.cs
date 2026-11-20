@@ -384,6 +384,9 @@ namespace mps.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("LastChangeByUserId")
                         .HasColumnType("TEXT");
 

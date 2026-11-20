@@ -39,6 +39,14 @@
     text-align: center;
     line-height: 40px;
     margin-right: 10px;
+
+    // a task shows an icon instead of the short name; sized to sit inside the 38px content box
+    .task-icon {
+        font-size: 22px;
+        width: 22px;
+        height: 22px;
+        vertical-align: middle;
+    }
 }
 
 

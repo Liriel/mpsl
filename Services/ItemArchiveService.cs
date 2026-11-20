@@ -31,7 +31,7 @@ public class ItemArchiveService : IItemArchiveService
             .Where(i => i.ShoppingListId == shoppingListId
                         && i.Status == ItemState.Checked
                         && i.CheckDate != null && i.CheckDate < cutoff)
-            .Select(i => new { i.Id, i.Amount, i.UnitId, CheckDate = i.CheckDate.Value })
+            .Select(i => new { i.Id, i.Amount, i.UnitId, i.Kind, CheckDate = i.CheckDate.Value })
             .ToList();
 
         var archived = 0;
@@ -52,14 +52,18 @@ public class ItemArchiveService : IItemArchiveService
             if (claimed != 1)
                 continue; // disposing the transaction rolls back the no-op
 
-            this.db.ItemHistories.Add(new ItemHistory
+            // a task (errand, "go to the shop" reminder) is archived but is not a purchase
+            if (candidate.Kind == ItemKind.Product)
             {
-                ShoppingListItemId = candidate.Id,
-                Amount = candidate.Amount,
-                UnitId = candidate.UnitId,
-                CheckDate = candidate.CheckDate,
-            });
-            this.db.SaveChanges();
+                this.db.ItemHistories.Add(new ItemHistory
+                {
+                    ShoppingListItemId = candidate.Id,
+                    Amount = candidate.Amount,
+                    UnitId = candidate.UnitId,
+                    CheckDate = candidate.CheckDate,
+                });
+                this.db.SaveChanges();
+            }
             transaction.Commit();
             this.db.ChangeTracker.Clear();
             archived++;

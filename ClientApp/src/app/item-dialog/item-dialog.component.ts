@@ -40,6 +40,7 @@ export class ItemDialogComponent {
   public flyInOut: string = "in";
   public isLoading: BehaviorSubject<boolean> = new BehaviorSubject(true);
   public saveError: string = null;
+  public isTask: boolean = false;
 
   public formGroup: FormGroup = new FormGroup({
     name: new FormControl('', [Validators.required, Validators.maxLength(50)]),
@@ -57,6 +58,7 @@ export class ItemDialogComponent {
     .subscribe({
       next: i => {
         this.item = i;
+        this.isTask = i.kind === 'Task';
         FormHelper.ReadModel(i, this.formGroup);
         this.isLoading.next(false);
       },
@@ -85,6 +87,7 @@ export class ItemDialogComponent {
   public save(): void {
     this.saveError = null;
     FormHelper.UpdateModel(ShoppingListItem, this.item, this.formGroup);
+    this.item.kind = this.isTask ? 'Task' : 'Product';
     this.repo.SaveEntity("item", this.item).subscribe({
       next: result => this.dialogRef.close(result),
 

@@ -341,3 +341,16 @@
     }
   }
 }
+
+// small marker for task ("Todo") rows
+.task-marker {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 0 6px;
+  border: 1px solid var(--mps-primary);
+  border-radius: 8px;
+  color: var(--mps-primary);
+  font-size: 11px;
+  line-height: 16px;
+  vertical-align: middle;
+}

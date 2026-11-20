@@ -7,6 +7,10 @@ export class ShoppingListItem extends ModelBase<ShoppingListItem> implements IEn
   public shortName: string;
   public name: string;
   public hint: string;
+  // "Product" or "Task" (a todo / reminder rather than something to buy)
+  public kind: string;
+  // add response only: the server picked the kind itself
+  public kindAuto: boolean;
   public amount: number;
   public unitShortName: string;
   public offsetX: number;

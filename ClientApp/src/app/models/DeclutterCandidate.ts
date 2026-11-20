@@ -23,6 +23,11 @@ export interface DeclutterCandidate {
   shortName: string;
 
   /**
+   * "Product" or "Task".
+   */
+  kind: string;
+
+  /**
    * Total number of times this item has been purchased.
    */
   purchaseCount: number;

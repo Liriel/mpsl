@@ -179,6 +179,30 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
   exactly one row, so concurrent `GET`s cannot record a purchase twice. `ItemHistories` also has a
   unique index on `(ShoppingListItemId, CheckDate)` as a backstop. It goes through `DataContext`
   directly because `IRepository` has no way to add an `ItemHistory`.
+- **Item kinds (product vs task).** `ShoppingListItem.Kind` (`Model/ItemKind.cs`: `Product = 0`,
+  `Task = 1`, serialized as a string) separates things to buy from errands and "go to that shop"
+  reminders ("Tanken", "Apotheke"). A new item's kind is: explicit `Kind` on the add VM, else a
+  leading `!` in the typed name (prefix stripped, whitespace trimmed: `!Tanken` is the task "Tanken"),
+  else `IItemKindClassifier` (singleton, pure, `Services/ItemKindClassifier.cs`). The classifier works
+  on `NameHelper.GetMatchKey` and says Task when the key contains `packen`, `tanken`, `abholen`,
+  `bringen`, `anrufen`, `zahlen`, `termin`, `erledigen` or `schularbeit`, ends with `zeiten` or
+  `plaene`, or equals the match key of *another* list's name (so "Apotheke" on the shopping list is a
+  reminder to go there). There is deliberately no generic "-en" rule (Bananen, Nudeln, Kartoffeln stay
+  products); the cases are pinned in `Tests/ItemKindTests.cs` and the rules were run over all prod
+  names without a false positive. The kind is **learned per item**: a re-added item keeps its stored
+  kind, so a user correction (item dialog "Todo" toggle, or the snackbar "Undo" shown after an
+  auto-classified add) sticks; only an explicit `Kind` or `!` changes it. `AddItem` reports
+  `kind`, `kindAuto` and `kindReason` on the returned entity. On `ShoppingListItemEditViewModel`
+  `Kind` is nullable and `null` means "not supplied" (AutoMapper `Condition`), like `ShortName`.
+  - **Tasks write no history.** `ItemArchiveService` archives a checked task through the same atomic
+    claim but adds no `ItemHistory` row; the `AddItemKind` migration also deleted the existing history
+    of the tasks it tagged (by name, never by id). Changing a kind later does not touch history.
+  - **Exclusions:** the `Recommendations` view (`Kind = 0`), `ItemMatchService` duplicate groups and
+    near-match suggestions (an *exact* match against a task still silences the suggestion). Search /
+    autocomplete and the declutter candidates keep tasks; declutter exposes `Kind` and the UI shows a
+    "Todo" marker. Web push is unchanged. The migration's SQL backfill approximates the classifier
+    (same words, approximate match key) plus an explicit prod name list.
+  - Client: tasks show a `task_alt` icon in the `.avatar` instead of the short name.
 - **`AppDbInitializer`**: runs migrations and seeds the `user`/`admin` roles on startup.
 
 ### Key Directories
@@ -204,6 +228,7 @@ Core entities: `ShoppingList`, `ShoppingListItem`, `Unit`, `Recommendation`, `It
   then decays as `2/(ratio-1)` (an item at 10x is probably no longer bought), scaled by
   `Count/(Count+5)` so staples beat rarities. `AvgDiff` stays the mean, for display only. The view is
   raw SQL, so changing it needs a migration plus the `recommend.sql` copy (`Tests/RecommendationRankTests.cs`).
+  It also filters `Kind = 0`, so tasks (see Item kinds) never appear (`AddItemKind` migration).
 - Items are unique per shopping list (composite unique index on Name + ShoppingListId)
 - ItemHistory records purchase events for analytics and decluttering
 - **`HasData` seeds must be deterministic.** Since EF Core 9, `Database.Migrate()` throws
@@ -324,7 +349,7 @@ The declutter feature helps users identify and remove stale or rarely-used items
   with a radio (default: highest purchase count), can untick individual sources, and the group
   disappears after a successful merge. It needs `MatRadioModule` (added to `AppModule`).
 - The add form (`ShoppingListComponent.save`) calls `SuggestItems` first; near matches open
-  `ItemSuggestionDialogComponent` ("Meintest du …?": pick an existing name, keep the typed one, or
+  `ItemSuggestionDialogComponent` ("Did you mean …?": pick an existing name, keep the typed one, or
   dismiss to cancel). No near match or a failed lookup adds immediately — still one tap.
 - Bulk delete goes through `IEntityService<T>.DeleteRange`, which saves once for the whole batch and
   then broadcasts one removal per item.
@@ -514,3 +539,6 @@ Notes:
 - The app supports multiple themes using angular material themeing mechanics
 - Responsive design with a mobile first mindset is encouraged
 - do not deviate form the theme / default colors, font sizes and typography unless instructed otherwise
+- **The UI language is English.** Item names, hints and list names are user data and often German
+  (the matcher and classifier rules are German-aware for that reason), but every label, button,
+  dialog, snackbar and validation message the app itself shows must be English.

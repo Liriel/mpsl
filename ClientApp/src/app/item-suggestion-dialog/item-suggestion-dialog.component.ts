@@ -9,7 +9,7 @@ export interface ItemSuggestionDialogData {
 }
 
 /**
- * "Meintest du ...?" - closes with the chosen existing name, with null to keep the typed name,
+ * "Did you mean ...?" - closes with the chosen existing name, with null to keep the typed name,
  * or with undefined (backdrop / Escape) to go back to the form without adding anything.
  */
 @Component({

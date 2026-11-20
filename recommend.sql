@@ -12,7 +12,7 @@
 -- Items just bought (ratio ~0) rank last; due items (ratio ~1) and mildly overdue ones (1-3x) rank
 -- first. The priority is scaled by Count / (Count + 5): a ratio from 3 gaps is noisy, from 90 it is not,
 -- so staples beat rarities that merely happen to sit at 2x (checked against a prod snapshot: without
--- it the top 20 was all once-a-year items). Count > 2 and Status = 3 are unchanged.
+-- it the top 20 was all once-a-year items). Count > 2 and Status = 3 are unchanged; Kind = 0 keeps tasks out.
 
 -- drop view if exists Recommendations;
 
@@ -23,6 +23,7 @@ with t as (
     from ItemHistories as h
         inner join ShoppingListItems as i on i.id = h.ShoppingListItemId
     where i.Status = 3 -- only use items currently not active
+        and i.Kind = 0 -- products only: a task is not bought
 ),
 o as (
     select Id, diff, row_number() over (partition by Id order by diff) as rn, count(*) over (partition by Id) as n

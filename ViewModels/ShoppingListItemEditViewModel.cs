@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using mps.Model;
 
 namespace mps.ViewModels
 {
@@ -19,5 +20,8 @@ namespace mps.ViewModels
         public string UnitShortName {get; set;}
 
         public int? Amount { get; set; }
+
+        /// <summary>Null means "not supplied": the stored kind is left alone.</summary>
+        public ItemKind? Kind { get; set; }
     }
 }

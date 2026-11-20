@@ -41,5 +41,8 @@ namespace mps.ViewModels
         /// Number of days since the item was last purchased. Null if never purchased.
         /// </summary>
         public int? DaysSinceLastPurchase { get; set; }
+
+        /// <summary>"Product" or "Task".</summary>
+        public string Kind { get; set; }
     }
 }

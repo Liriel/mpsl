@@ -59,6 +59,12 @@ namespace mps.Model
         public ItemState Status { get; set; }
 
         /// <summary>
+        /// Gets or sets whether this is something to buy or a task / reminder. Tasks never write
+        /// item history and are left out of recommendations and duplicate matching.
+        /// </summary>
+        public ItemKind Kind { get; set; } = ItemKind.Product;
+
+        /// <summary>
         /// Gets or sets a property indicating when the item was completed.
         /// </summary>
         /// <remarks>

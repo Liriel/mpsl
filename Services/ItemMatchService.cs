@@ -123,15 +123,17 @@ public class ItemMatchService : IItemMatchService
 
     // ---- list-level operations ----
 
-    private List<(ItemMatch Item, string Key, string Normalized)> Load(int shoppingListId)
+    private List<(ItemMatch Item, string Key, string Normalized, ItemKind Kind)> Load(int shoppingListId, bool productsOnly = true)
     {
         // ~800 rows per list: one grouped query, matching happens in memory
         var rows = (from i in this.repo.ShoppingListItems
                     where i.ShoppingListId == shoppingListId
+                    where !productsOnly || i.Kind == ItemKind.Product
                     select new
                     {
                         i.Id,
                         i.Name,
+                        i.Kind,
                         i.NormalizedName,
                         i.ShortName,
                         i.Status,
@@ -140,7 +142,7 @@ public class ItemMatchService : IItemMatchService
                     }).AsNoTracking().ToList();
 
         return rows.Select(r => (new ItemMatch(r.Id, r.Name, r.ShortName, r.Status, r.Count, r.Last),
-            NameHelper.GetMatchKey(r.Name), r.NormalizedName)).ToList();
+            NameHelper.GetMatchKey(r.Name), r.NormalizedName, r.Kind)).ToList();
     }
 
     public IReadOnlyList<ItemMatch> Suggest(int shoppingListId, string name, int take = 3)
@@ -150,12 +152,14 @@ public class ItemMatchService : IItemMatchService
             return Array.Empty<ItemMatch>();
 
         var normalized = NameHelper.GetNormalizedName(name);
-        var items = Load(shoppingListId);
+        // tasks take part in the exact check (an existing "Tanken" needs no suggestion) but are
+        // never offered as a near match
+        var items = Load(shoppingListId, productsOnly: false);
 
         if (items.Any(i => i.Normalized == normalized))
             return Array.Empty<ItemMatch>();
 
-        return items.Where(i => AreNear(key, i.Key))
+        return items.Where(i => i.Kind == ItemKind.Product && AreNear(key, i.Key))
             .Select(i => i.Item)
             .OrderByDescending(i => i.PurchaseCount)
             .ThenBy(i => i.Name, StringComparer.OrdinalIgnoreCase)

@@ -2,6 +2,7 @@ import { trigger, state, style, transition, animate } from '@angular/animations'
 import { AfterViewInit, Component, HostListener, Inject, OnDestroy, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { MatDialog } from '@angular/material/dialog';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { Router, ActivatedRoute } from '@angular/router';
 import { BehaviorSubject, catchError, debounceTime, filter, map, merge, Observable, of, startWith, Subject, switchMap, takeUntil, tap } from 'rxjs';
 import { FormHelper } from '../infrastructure/FormHelper';
@@ -83,7 +84,8 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
     @Inject(INotificationServiceToken) private notificationService: INotificationService,
     @Inject(IAppUiServiceToken) private appUiSvc: IAppUiService,
     private route: ActivatedRoute,
-    private dialog: MatDialog
+    private dialog: MatDialog,
+    private snackBar: MatSnackBar
   ) {
     this.shoppingListId = +this.route.snapshot.paramMap.get('id');
     this.shoppingListName = this.repo.GetEntity<ShoppingList>("ShoppingList", this.shoppingListId).pipe(
@@ -200,7 +202,7 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
 
     this.addError = null;
 
-    // Typo guard: an unknown name that is close to existing items asks "Meintest du ...?" first.
+    // Typo guard: an unknown name that is close to existing items asks "Did you mean ...?" first.
     // A name that matches exactly, has no near match, or a failed lookup adds straight away, so
     // the common case stays one tap.
     const name = (item.name ?? '').trim();
@@ -233,15 +235,37 @@ export class ShoppingListComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   private add(item: ShoppingListItem): void {
-    this.repo.Post("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe({
+    this.repo.Post<{ entity: ShoppingListItem }>("api/shoppinglist/" + this.shoppingListId, "add", item).subscribe({
       next: result => {
         this.formGroup.reset();
         this.OnFormReset.next('');
+        this.offerTaskUndo(result?.entity);
       },
 
       // a rejected add answers 400 - keep what was typed and say why, rather than clearing the
       // form as though the item had been added
       error: error => this.addError = ServerValidation.Show(error, this.formGroup, "Could not add the item. Please try again.")
+    });
+  }
+
+  // The server guessed "todo" from the name: say so and let the user take it back. The correction
+  // is stored on the item, so re-adding it later keeps the product kind.
+  private offerTaskUndo(added: ShoppingListItem): void {
+    if (!added || added.kind !== 'Task' || !added.kindAuto) {
+      return;
+    }
+
+    this.snackBar.open('Marked as todo', 'Undo', { duration: 6000 }).onAction().subscribe(() => {
+      // the edit view model overwrites the fields it carries, so send back what the add produced
+      const undo = new ShoppingListItem({
+        id: added.id,
+        shoppingListId: this.shoppingListId,
+        name: added.name,
+        amount: added.amount,
+        unitShortName: added.unitShortName,
+        kind: 'Product'
+      });
+      this.repo.SaveEntity("item", undo).subscribe({ error: () => {} });
     });
   }
 

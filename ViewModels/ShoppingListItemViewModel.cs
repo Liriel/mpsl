@@ -24,6 +24,8 @@ namespace mps.ViewModels
 
         public string Status { get; set; }
 
+        public string Kind { get; set; }
+
         public bool Done { get; set; }
     }
 }

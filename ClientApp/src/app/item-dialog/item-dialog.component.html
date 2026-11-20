@@ -62,6 +62,8 @@
       </mat-form-field>
     </div>
 
+    <mat-slide-toggle class="todo-toggle" [checked]="isTask" (change)="isTask = $event.checked">Todo</mat-slide-toggle>
+
     @if (saveError) {
       <mat-error class="save-error">{{saveError}}</mat-error>
     }
