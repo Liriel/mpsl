@@ -55,13 +55,12 @@ Web push needs a key pair that belongs to your installation:
 npx web-push generate-vapid-keys
 ```
 
-Keep the private key secret. Changing the keys later invalidates every existing push subscription;
-users then have to re-enable notifications.
+Keep the private key secret. Both keys are passed to the container as settings (step 4); the app
+hands the public key to browsers at runtime, so the same image works with any key pair.
 
-> **The public key is also compiled into the client.** Set `vapidPublicKey` in
-> `ClientApp/src/environments/environment.prod.ts` to your public key *before* building the image —
-> otherwise browsers subscribe with the wrong key and pushes fail. The rest of the app works without
-> push.
+You can replace the keys later. Browsers that already granted notification permission renew their
+subscription with the new key the next time the app is opened, and notifications reach them again
+from then on.
 
 ## 4. Run the container
 

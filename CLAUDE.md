@@ -433,6 +433,11 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
   (`focusLastFocusedOrOpen`, url `/list/{id}`). It is load-bearing: without it ngsw only forwards the
   click to open windows, so with the app closed a click does nothing. A focused running app routes
   there itself through `SwPush.notificationClicks` in `AppComponent` (no reload).
+- **The client gets the VAPID public key from the server** (`GET api/PushSubscription/vapid-public-key`),
+  not from `environment*.ts`, so one image works with any key pair. `PushNotificationService` compares
+  the browser subscription's `applicationServerKey` with it and, when permission is already granted,
+  silently drops and renews a subscription made under an old key on startup — rotating the keys needs
+  no action from users. The server rows of the old subscriptions stay until a send fails.
 - `IWebPushSender` wraps `WebPushClient` purely so tests can record sends instead of hitting the
   network; `TestAppFactory` registers a recording fake and can shorten both windows.
 

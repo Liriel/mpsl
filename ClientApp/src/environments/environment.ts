@@ -7,8 +7,7 @@ export const environment = {
   // the backend by ClientApp/proxy.conf.js, so dev matches production (no CORS, no cross-origin
   // credentials, relative links such as <a href="Account/SignIn"> resolve correctly).
   ServerUrl: "",
-  production: false,
-  vapidPublicKey: "BEa_VDNyon1zoaJ7333Cc-EcdEeRyva4rSgSR7OXycZNPOMR7vjBIa84FWEBSNSrMkRM_VbyPwmeUbHwp-i6QOY"
+  production: false
 };
 
 /*

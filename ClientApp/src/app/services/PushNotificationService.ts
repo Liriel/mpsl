@@ -2,7 +2,6 @@ import { Injectable, ApplicationRef, Inject } from '@angular/core';
 import { SwPush } from '@angular/service-worker';
 import { Observable, BehaviorSubject, fromEvent, merge, firstValueFrom, of } from 'rxjs';
 import { map, distinctUntilChanged, filter, take, concat, catchError } from 'rxjs/operators';
-import { environment } from '../../environments/environment';
 import { PushSubscription as PushSubscriptionModel, SubscriptionInfo, TestNotificationRequest, TestNotificationResponse } from '../models/PushNotification';
 import { IRepo } from './IRepo';
 import { IRepoToken } from './IRepo';
@@ -11,7 +10,8 @@ import { IRepoToken } from './IRepo';
   providedIn: 'root'
 })
 export class PushNotificationService {
-  private readonly VAPID_PUBLIC_KEY = environment.vapidPublicKey;
+  // the server's VAPID public key, fetched once (not compiled in, so one image serves any key pair)
+  private serverPublicKey: Promise<string> | null = null;
 
   private isSubscribedSubject = new BehaviorSubject<boolean>(false);
   public isSubscribed$ = this.isSubscribedSubject.asObservable();
@@ -116,6 +116,18 @@ export class PushNotificationService {
 
       const isSubscribed = subscription !== null;
       console.log('Subscription check:', isSubscribed ? 'Active subscription found' : 'No subscription');
+
+      // a subscription made under a previous key pair no longer receives anything - renew it
+      // quietly (permission is already granted) so rotating the keys needs no action from users
+      // a failed key lookup is no reason to report the subscription as gone - just skip the check
+      const serverPublicKey = isSubscribed ? await this.getServerPublicKey().catch(() => null) : null;
+      if (serverPublicKey && Notification.permission === 'granted' &&
+          !this.matchesKey(subscription, serverPublicKey)) {
+        console.log('Push subscription uses an outdated server key, renewing it');
+        this.isSubscribedSubject.next(await this.subscribe());
+        return;
+      }
+
       this.isSubscribedSubject.next(isSubscribed);
     } catch (error) {
       console.error('Error checking subscription:', error);
@@ -156,7 +168,13 @@ export class PushNotificationService {
         )
       );
 
-      if (existingSubscription) {
+      const serverPublicKey = await this.getServerPublicKey();
+
+      if (existingSubscription && !this.matchesKey(existingSubscription, serverPublicKey)) {
+        // the browser refuses a second subscription with a different key, so drop the stale one
+        console.log('Dropping push subscription made with an outdated server key');
+        await this.unsubscribe();
+      } else if (existingSubscription) {
         console.log('Already subscribed to push notifications');
         // Still send to backend in case it wasn't saved before
         try {
@@ -182,7 +200,7 @@ export class PushNotificationService {
       
       // Subscribe to push notifications
       const subscription = await this.swPush.requestSubscription({
-        serverPublicKey: this.VAPID_PUBLIC_KEY
+        serverPublicKey
       });
 
       console.log('Push subscription obtained, sending to backend...');
@@ -243,6 +261,38 @@ export class PushNotificationService {
    */
   public get notificationClicks$(): Observable<any> {
     return this.swPush.notificationClicks;
+  }
+
+  /**
+   * The server's VAPID public key. A failed lookup is not cached, so the next attempt retries.
+   */
+  private getServerPublicKey(): Promise<string> {
+    if (!this.serverPublicKey) {
+      this.serverPublicKey = firstValueFrom(
+        this.repo.Get<{ publicKey: string }>('api/PushSubscription', 'vapid-public-key')
+      ).then(r => {
+        if (!r?.publicKey) {
+          throw new Error('The server has no VAPID public key configured');
+        }
+        return r.publicKey;
+      });
+      this.serverPublicKey.catch(() => this.serverPublicKey = null);
+    }
+    return this.serverPublicKey;
+  }
+
+  /**
+   * Whether a subscription was made with the given base64url VAPID public key
+   */
+  private matchesKey(subscription: globalThis.PushSubscription, publicKey: string): boolean {
+    const key = subscription.options?.applicationServerKey;
+    if (!key) {
+      // the browser does not say which key was used - assume it is current rather than churn
+      return true;
+    }
+    const encoded = btoa(String.fromCharCode(...new Uint8Array(key)))
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return encoded === publicKey.replace(/=+$/, '');
   }
 
   /**
