@@ -112,7 +112,7 @@ What the pieces are for:
 | `/app/data` | the SQLite database `mps.db`. **Back this up** — it is all of your data |
 | `/root/.aspnet/DataProtection-Keys` | keys that sign the login cookies; without a volume, everyone is logged out on every container restart |
 | `Authentication__Microsoft__*` | the app registration from step 2 |
-| `VapidKeys__*` | the key pair from step 3 (overrides the defaults in `appsettings.json`) |
+| `VapidKeys__*` | the key pair from step 3. The repository ships no keys; never bake a private key into the image |
 | `PushNotifications__CollectWindowSeconds`, `PushNotifications__CooldownMinutes` | optional: how push notifications are batched (defaults 10 s and 5 min) |
 
 The database schema is created and migrated automatically on startup, so upgrading is: rebuild the

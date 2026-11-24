@@ -31,6 +31,10 @@ Requirements: .NET SDK 11, Node.js 22, and a Microsoft app registration whose re
 dotnet user-secrets set Authentication:Microsoft:ClientId <client-id>
 dotnet user-secrets set Authentication:Microsoft:ClientSecret <client-secret>
 
+# push notification keys (optional): copy the template and fill in a VAPID key pair
+# appsettings.json is gitignored - never commit it
+cp appsettings.example.json appsettings.json
+
 # backend on https://localhost:5001
 dotnet run
 
