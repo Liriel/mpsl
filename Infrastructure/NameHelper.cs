@@ -26,18 +26,18 @@ namespace mps.Infrastructure
             if (string.IsNullOrWhiteSpace(name))
                 return null;
 
-            if(offset >= name.Length)
-                return (name.Substring(0, 1) + offset.ToString()).ToUpper();
+            var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            var first = words.First();
+
+            // the second letter comes from the last word ("Rote Zora" -> RO, RR, RA), so the bound
+            // is that word's length, not the whole name's - otherwise offset 4 throws on "Zora"
+            if (offset >= words.Last().Length)
+                return (first.Substring(0, 1) + offset.ToString()).ToUpper();
 
             if (name.Length <= length)
                 return name.ToUpper();
 
-            var words = name.Split(' ');
-
-            if (words.Length > 1)
-                return (words.First().Substring(0, 1) + words.Last().Substring(offset, 1)).ToUpper();
-
-            return (words[0].Substring(0, 1) + words[0].Substring(offset, 1)).ToUpper();
+            return (first.Substring(0, 1) + words.Last().Substring(offset, 1)).ToUpper();
         }
 
         /// <summary>
