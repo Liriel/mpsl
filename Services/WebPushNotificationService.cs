@@ -192,7 +192,15 @@ public class WebPushNotificationService : IWebPushNotificationService
                     ShoppingListName = entry.ShoppingListName,
                     AddedByUser = entry.ActorName,
                     ItemCount = itemCount,
-                    Action = "view"
+                    Action = "view",
+                    OnActionClick = new Dictionary<string, NotificationClickAction>
+                    {
+                        ["default"] = new NotificationClickAction
+                        {
+                            Operation = "focusLastFocusedOrOpen",
+                            Url = $"/list/{entry.ShoppingListId}"
+                        }
+                    }
                 }
             };
 

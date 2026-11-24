@@ -423,6 +423,10 @@ goes out summarizing what landed in it, then that `(list, actor)` pair stays sil
 - The audience is approved users only, via `IPushSubscriptionService.
   GetSubscriptionsForApprovedUsersExceptAsync` — the push-side counterpart of
   `IShoppingListAccessService` and the one place to change if per-list membership ever arrives.
+- **Clicking a notification opens its list** via ngsw's `data.onActionClick.default`
+  (`focusLastFocusedOrOpen`, url `/list/{id}`). It is load-bearing: without it ngsw only forwards the
+  click to open windows, so with the app closed a click does nothing. A focused running app routes
+  there itself through `SwPush.notificationClicks` in `AppComponent` (no reload).
 - `IWebPushSender` wraps `WebPushClient` purely so tests can record sends instead of hitting the
   network; `TestAppFactory` registers a recording fake and can shorten both windows.
 

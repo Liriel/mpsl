@@ -148,6 +148,27 @@ public class WebPushNotificationTests
         return doc.RootElement.GetProperty("notification").GetProperty("body").GetString()!;
     }
 
+    [Fact]
+    public async Task NotifyListActivity_PayloadTellsServiceWorkerToOpenTheList()
+    {
+        var sender = new FakeWebPushSender();
+        var subs = new FakeSubscriptionService(("actor", "https://push.example.com/actor"),
+            ("other", "https://push.example.com/other"));
+        var service = CreateService(sender, subs, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(200));
+
+        service.NotifyListActivity(42, "Groceries", "actor", "Actor");
+
+        Assert.True(await WaitUntilAsync(() => sender.Calls.Count >= 1, TimeSpan.FromSeconds(5)));
+        using var doc = JsonDocument.Parse(sender.Calls.First().PayloadJson);
+        var data = doc.RootElement.GetProperty("notification").GetProperty("data");
+        // the app's in-window click handler reads this
+        Assert.Equal(42, data.GetProperty("shoppingListId").GetInt32());
+        // ngsw itself reads this - it is what makes a click work while the app is closed
+        var click = data.GetProperty("onActionClick").GetProperty("default");
+        Assert.Equal("focusLastFocusedOrOpen", click.GetProperty("operation").GetString());
+        Assert.Equal("/list/42", click.GetProperty("url").GetString());
+    }
+
     // ---- 1: collect window collapses a burst into one send per subscriber ----
 
     [Fact]

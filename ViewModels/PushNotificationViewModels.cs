@@ -62,6 +62,27 @@ public class ShoppingListNotificationData
     
     [JsonPropertyName("action")]
     public string Action { get; set; } = "view";
+
+    /// <summary>
+    /// Read by the Angular service worker (ngsw) on notification click. Without it the worker only
+    /// forwards the click to already-open windows, so a click with the app closed does nothing.
+    /// "focusLastFocusedOrOpen" focuses a running app (whose <c>notificationClicks</c> handler then
+    /// routes to the list without a reload) or opens a new window directly on the list.
+    /// </summary>
+    [JsonPropertyName("onActionClick")]
+    public Dictionary<string, NotificationClickAction> OnActionClick { get; set; }
+}
+
+/// <summary>
+/// One entry of ngsw's <c>data.onActionClick</c> map, keyed by action ("default" for the body click).
+/// </summary>
+public class NotificationClickAction
+{
+    [JsonPropertyName("operation")]
+    public string Operation { get; set; }
+
+    [JsonPropertyName("url")]
+    public string Url { get; set; }
 }
 
 /// <summary>
