@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 MPS (Multiplayer Shopping List) is a real-time collaborative shopping list application with:
-- **Backend**: ASP.NET Core 10.0 with Entity Framework Core, SQLite, and SignalR
+- **Backend**: ASP.NET Core 11.0 with Entity Framework Core, SQLite, and SignalR
 - **Frontend**: Angular 21 with Angular Material UI
 - **Authentication**: ASP.NET Core Identity with Microsoft Account integration
 - **Deployment**: Multi-architecture Docker containers
@@ -157,7 +157,7 @@ The client uses the esbuild/Vite-based **`@angular/build:application`** builder.
   UI lets a person pick. `FindDuplicateGroups` clusters transitively (union-find) but a component
   over `MaxGroupSize` (6) falls back to star clustering around the best-established item. The view
   models are mapped by hand in the controller: AutoMapper 11 throws on a positional `record` source
-  under .NET 10 and would break *every* mapping at startup.
+  under .NET 10+ and would break *every* mapping at startup.
 - **Endpoints on `ShoppingListController`** (all `ApprovedUser` + `CanAccessList`):
   `GET {id}/suggest?name=` (≤3 near items by purchase count; empty when the name already matches
   exactly), `GET {id}/duplicates` (array of groups, each an array of `ItemMatchViewModel`),
@@ -494,7 +494,7 @@ checking is strict (`strictTemplates`), and since v21 `typeCheckHostBindings` is
 
 Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8, modelled on the sibling
 `tempmon.Web` project. `Dockerfile.x64` (Alpine, `runtime-deps`), `Dockerfile.arm32v7` and
-`Dockerfile.arm64v8` (Ubuntu 24.04 Noble, `aspnet`). Each is a **three-stage build**:
+`Dockerfile.arm64v8` (Ubuntu 26.04 Resolute, `aspnet`). Each is a **three-stage build**:
 
 1. `client` — `node:22-alpine`, `npm ci` then `npm run publish`. **The SPA is built in the image, not
    on the dev machine.** `package.json`/`package-lock.json` are copied before the rest of `ClientApp/`
@@ -506,17 +506,18 @@ Multi-architecture Docker deployment supporting AMD64, ARM32v7, ARM64v8, modelle
 3. final — `COPY --from=build /app ./` then `COPY --from=client /client/dist/ ./wwwroot/`.
 
 Notes:
-- **.NET 10 ships no Debian base images at all** — `bookworm-slim` has no 10.x tag and there is no
-  released `trixie-slim` either, so the ARM images moved to Noble during the .NET 10 upgrade. The
-  published tags are Alpine, Noble, Resolute and Azure Linux; check
-  `mcr.microsoft.com/v2/dotnet/aspnet/tags/list` before assuming one exists.
+- **.NET ships no Debian base images since 10.0** — `bookworm-slim` has no 10.x tag and there is no
+  released `trixie-slim` either, and 11.0 has no Noble tags at all, so the ARM images use Resolute
+  (Ubuntu 26.04: `aspnet:11.0-resolute-<arch>`; they were on Noble for .NET 10). The published 11.0
+  tags are Alpine, Resolute and Azure Linux; check `mcr.microsoft.com/v2/dotnet/aspnet/tags/list`
+  before assuming one exists.
 - Source is copied **one `COPY` per directory**. A single `COPY` listing several directories flattens
   their contents into the destination (moby#15858); it happens to compile today because no two source
   files share a basename, but it silently breaks the moment two do.
 - Each image has a `HEALTHCHECK` against `/health` (`MapHealthChecks` in `Program.cs`, anonymous and
   registered above the SPA fallback so it returns a status rather than `index.html`). Port defaults to
   8080 — the base images' `ASPNETCORE_HTTP_PORTS` — and is overridable via `HEALTH_PORT`. Alpine
-  probes with busybox `wget`; the Noble images ship neither `wget` nor `curl`, so they use bash's
+  probes with busybox `wget`; the Resolute images ship neither `wget` nor `curl`, so they use bash's
   `/dev/tcp`.
 - The ARM files open with `# check=skip=InvalidBaseImagePlatform`: the final stage pins an arm base
   image while building on amd64, which is safe because only `COPY` runs there.
@@ -535,11 +536,10 @@ Notes:
 - **AutoMapper is pinned to 11.0.1 and its vulnerability warning is an accepted risk.** NU1903 /
   CVE-2026-32933 (a `StackOverflowException` DoS on recursive object graphs) is only fixed in 15.1.1
   and 16.1.1, both released after AutoMapper stopped being MIT-licensed, so there is no upgrade path.
-  A `NuGetAuditSuppress` item in `mps.csproj` (and a mirrored one in `Tests/Tests.csproj`, since NuGet
-  audits transitive packages by default from .NET 9 on) silences exactly that one advisory and nothing
-  else — the build is otherwise warning-free, so keep it that way rather than reaching for `NoWarn`.
-- `SQLitePCLRaw.bundle_e_sqlite3` is referenced explicitly only to lift EF Core's pinned 2.1.11 (which
-  bundles a SQLite affected by CVE-2025-6965) to 2.1.12. Drop it once EF Core ships a newer pin.
+  Two more advisories of the same recursion-DoS class (GHSA-6vhm-j9h7-f9gh, GHSA-gpwp-5797-mjff,
+  fixed only in 15.1.4/16.3.0) are accepted on the same grounds. `NuGetAuditSuppress` items in
+  `mps.csproj` (mirrored in `Tests/Tests.csproj`, since NuGet audits transitive packages by default
+  from .NET 9 on) silence exactly those three advisories and nothing else — the build is otherwise warning-free, so keep it that way rather than reaching for `NoWarn`.
 - The app supports multiple themes using angular material themeing mechanics
 - Responsive design with a mobile first mindset is encouraged
 - do not deviate form the theme / default colors, font sizes and typography unless instructed otherwise

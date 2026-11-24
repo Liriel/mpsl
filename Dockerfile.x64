@@ -10,7 +10,7 @@ COPY ClientApp/ ./
 # (angular.json outputPath is { base: "dist", browser: "" })
 RUN npm run publish
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0-alpine AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0-alpine AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
@@ -35,7 +35,7 @@ COPY wwwroot/ ./wwwroot/
 RUN dotnet publish -c release -o /app -r linux-musl-x64 --self-contained true --no-restore
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/runtime-deps:10.0-alpine-amd64
+FROM mcr.microsoft.com/dotnet/runtime-deps:11.0-alpine-amd64
 
 LABEL maintainer="lassi@heisl.org"
 LABEL version="0.3"

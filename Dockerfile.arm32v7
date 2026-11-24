@@ -13,7 +13,7 @@ COPY ClientApp/ ./
 # (angular.json outputPath is { base: "dist", browser: "" })
 RUN npm run publish
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
@@ -37,7 +37,7 @@ COPY wwwroot/ ./wwwroot/
 RUN dotnet publish -c release -o /app -r linux-arm --self-contained true --no-restore
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-arm32v7
+FROM mcr.microsoft.com/dotnet/aspnet:11.0-resolute-arm32v7
 
 LABEL maintainer="lassi@heisl.org"
 LABEL version="0.2"
@@ -58,7 +58,7 @@ COPY --from=client /client/dist/ ./wwwroot/
 # check will be ok if app is able to serve requests.
 # The port must match the app's HTTP binding (ASPNETCORE_HTTP_PORTS, 8080 in these
 # base images); override via the HEALTH_PORT env var if that binding differs.
-# This base image (Ubuntu noble) has neither wget nor curl, so probe via
+# This base image (Ubuntu resolute) has neither wget nor curl, so probe via
 # bash's /dev/tcp instead.
 HEALTHCHECK --start-period=30s CMD bash -c 'exec 3<>/dev/tcp/localhost/${HEALTH_PORT:-8080} && printf "GET /health HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n" >&3 && head -n1 <&3 | grep -q " 200 "' || exit 1
 
