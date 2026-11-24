@@ -32,9 +32,10 @@ namespace Tests;
 /// </summary>
 public class WebPushNotificationTests
 {
-    // Deliberately not real secrets - VapidDetails only needs *some* strings at construction time,
-    // nothing in these tests ever reaches the point of actually signing a push (the sender is faked).
-    private const string TestVapidPublicKey = "BEa_VDNyon1zoaJ7333Cc-EcdEeRyva4rSgSR7OXycZNPOMR7vjBIa84FWEBSNSrMkRM_VbyPwmeUbHwp-i6QOY";
+    // A throwaway pair generated for the tests only - never use the production keys here, this file
+    // is public. VapidDetails only needs well-formed keys at construction time; nothing in these
+    // tests ever signs a push (the sender is faked).
+    private const string TestVapidPublicKey = "BEzbnGI4hO4UvUVBiIEayDjboGy37iQmw9k3l0b3hGpFVtVFTZSctOhbbNNFlCnsTgNX-SY9KsWdb22g3BCj_So";
     private const string TestVapidPrivateKey = "X3xWg-XvaGEJg0BLtpVcEcCELfCTr_TOyLf8cQVv8T8";
 
     // ---- helpers shared by the direct-construction (throttle) tests ----

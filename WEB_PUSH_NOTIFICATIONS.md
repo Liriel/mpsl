@@ -48,12 +48,14 @@ The system sends smart, batched push notifications to users when items are added
   - `GET /api/PushSubscription/my-subscriptions`: Get user's subscriptions
 
 #### Configuration
-- **VAPID Keys** stored in `appsettings.json`:
+- **VAPID Keys** come from configuration — a local, gitignored `appsettings.json` (copy
+  `appsettings.example.json`), user secrets, or `VapidKeys__*` environment variables. Never commit
+  the private key:
   ```json
   "VapidKeys": {
-    "PublicKey": "BCZxeUF1n8siWOVn24cyDu52ZaEkYvZkQaciuOpjsZPyj6rbDYdLm0O0g5Ej7auF9nNtK2eAXrKFXrwHrZnFa8Q",
-    "PrivateKey": "...",
-    "Subject": "mailto:admin@lassi.net"
+    "PublicKey": "<vapid-public-key>",
+    "PrivateKey": "<vapid-private-key>",
+    "Subject": "mailto:<you@example.com>"
   }
   ```
 

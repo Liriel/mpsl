@@ -364,6 +364,12 @@ The declutter feature helps users identify and remove stale or rarely-used items
   that list falls through to the SPA and surfaces as an Angular "cannot match any routes" error.
 - **Database**: SQLite at `data/mps.db` (gitignored)
 - **Authentication**: Requires Microsoft Account OAuth ClientId/ClientSecret in user secrets
+- **`appsettings.json` is gitignored and holds secrets** (the VAPID private key). The repository is
+  public; `appsettings.example.json` is the tracked template. Never re-add `appsettings.json` or put a
+  real key into any tracked file — the leaked key was purged from history once already. The file is
+  still baked into the image: `publish.sh` builds from the working tree and the Dockerfiles copy
+  `app*.json`, so prod currently gets its keys from the developer machine's local copy. Tests use
+  their own throwaway pair in `Tests/WebPushNotificationTests.cs`.
 - **CORS**: Configured for localhost:44443 and 192.168.0.96:44443. Not exercised by the dev proxy
   flow; kept as a fallback for running the client cross-origin.
 

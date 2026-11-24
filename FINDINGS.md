@@ -21,10 +21,13 @@ then the remaining items below.
 
 ### F2 — VAPID private key committed to git
 
-`appsettings.json:11` contains the VAPID **private** key and is tracked in git (committed in
-`d7ffa3d`). Anyone with repo access can sign push messages to your subscribers.
+**Partly fixed.** `appsettings.json` is no longer tracked (it is gitignored, `appsettings.example.json`
+is the template) and was purged from the git history together with the copy of the key in
+`Tests/WebPushNotificationTests.cs`. The key had already been pushed to the public GitHub repository
+before the purge, though, so it must still be treated as leaked — it remains valid until rotated, and
+anyone holding it plus a subscriber endpoint can sign push messages to that subscriber.
 
-**Fix direction:** rotate the keypair, move the private key to user-secrets / environment variables,
+**Remaining:** rotate the keypair, move the private key to user-secrets / environment variables,
 keep only the public key in config. The public key is also duplicated into
 `ClientApp/src/environments/environment.ts` and `environment.prod.ts` — that part is fine, it is
 public by design, but it must be updated in lockstep when the pair is rotated.

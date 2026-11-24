@@ -36,6 +36,8 @@ log.txt
 *.swp
 data/
 RaspberryPi/appsettings.json
+# holds secrets (VAPID private key) - copy appsettings.example.json and fill it in
+/appsettings.json
 Client/dist
 .vs/
 cert/
